@@ -1,0 +1,12 @@
+# Ignore any left over DB siles
+
+# virtual env
+pyhome/*
+
+# any local sqlite files
+*.db
+*.sql*
+
+# no Docs
+*.md
+!COPYRIGHT.md

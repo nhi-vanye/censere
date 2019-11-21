@@ -2,34 +2,41 @@
 import enum
 import logging
 
-import sqlalchemy as SA
+import peewee
+import playhouse.signals
+
+import db
 
 from config import Generator as thisApp
 
-from .base import Base as Base
+from .colonist import Colonist as Colonist
 
 
-class RelationshipEnum(enum.Enum):
+class RelationshipEnum():
     partner = 1
     child = 2
 
-class Relationship( Base ):
+class Relationship( playhouse.signals.Model ):
 
-    __tablename__ = 'relationships'
+    class Meta:
+        database = db.db
 
-    id = SA.Column(SA.String(36), primary_key=True)
-
-    first = SA.Column(SA.String(36), SA.ForeignKey('colonists.id'))
-    second = SA.Column(SA.String(36), SA.ForeignKey('colonists.id'))
-
-    relationship = SA.Column( SA.Enum(RelationshipEnum) )
-
-    begin_solday = SA.Column( SA.Integer )
-    end_solday = SA.Column( SA.Integer, default=0 )
+        table_name = 'relationships'
 
     def __repr__(self):
-        r"""
-Provide a friendly representation of the object.
-"""
-        return "<Relationship('{} {} {}->{}')>".format(
-                self.first, self.second, self.begin_solday, self.end_solday)
+        return "{} {} <-> {}".format( self.relationship_id, self.first, self.second ) 
+
+    relationship_id = peewee.UUIDField( unique=True)
+
+    # TODO - make these foreign key or not ?
+    first = peewee.UUIDField()
+    second = peewee.UUIDField()
+    # 
+    #first = peewee.ForeignKeyField(Colonist, field="colonist_id", backref='partner')
+    #second = peewee.ForeignKeyField(Colonist, field="colonist_id", backref='partner')
+
+    relationship = peewee.IntegerField()
+
+    begin_solday = peewee.IntegerField()
+    end_solday = peewee.IntegerField( default=0 )
+

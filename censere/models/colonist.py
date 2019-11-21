@@ -5,71 +5,88 @@ Created on Fri Mar 29 17:30:50 2019
 @author: matej
 """
 
-# Module gonverning the attributes of the colonists
-# Updated to use SQLAlchemy 
+# Module governing the attributes of the colonists
+# Updated to use an ORM for storage in database 
 
 import logging
-import sqlalchemy as SA
 
-from .base import Base as Base
+import peewee
+import playhouse.signals
+
+from config import Generator as thisApp
+
+import db
 
 ##
 # The Colonist is the base class for `Martian` or `Astronaut`
 # As such it holds all the data fields
 # The subclasses are expected to override any value for their
 # class.
-class Colonist(Base):
+#class Colonist(playhouse.signals.Model):
+class Colonist(playhouse.signals.Model):
 
-    __tablename__ = 'colonists'
+    class Meta:
+        database = db.db
+
+        table_name = 'colonists'
+
+
+    ## provide a internal representation function
+    # to make debugging easeir
+    def __repr__(self):
+        return "{} {} ({})".format( self.first_name, self.family_name, self.colonist_id ) 
+
 
     # Unique identifier for a person - names are not unique
-    id = SA.Column(SA.String(36), primary_key=True)
+    colonist_id = peewee.UUIDField( unique=True )
 
     # allow the same database to be used for multple executions
-    simulation = SA.Column(SA.String(36))
+    simulation = peewee.UUIDField()
 
     # reproductive sex - currently expected to be either
     # `m` or `f`. In the future this could include `t`
-    sex = SA.Column( SA.String(1) )
+    sex = peewee.CharField( 1 )
 
     # Lets treat them as human and give them names
-    first_name = SA.Column(SA.String(32))
-    family_name = SA.Column(SA.String(32))
+    first_name = peewee.CharField( 32 )
+    family_name = peewee.CharField( 32 )
 
     # record biological parents to avoid future close-relationships
-    # TODO
-    biological_father = SA.Column(SA.String(36) ) 
-    biological_mother = SA.Column(SA.String(36) )
+    # TODO - use this data
+    # These cannot be foreign keys, because there may not be a Colonist row with
+    # that id. Think astronaut whose parents are still on Earth
+    biological_father = peewee.UUIDField()
+    biological_mother = peewee.UUIDField()
 
     # sexual orientation. acceptable values:
     #   m
     #   f
     #   mf
     # Only people of compatable orientations build families
-    orientation = SA.Column( SA.String(3) )
+    orientation = peewee.CharField(3)
 
     # Is the person `single` or a `couple`
     # TODO is `couple` the best word
     # Currently only `single` people can start a new family
     # That would need to change to handle extended families
-    state = SA.Column( SA.String(10), default='single' )
+    state = peewee.CharField( 8, default='single' )
 
     # obviously only valid for `f`
-    pregnant = SA.Column( SA.Boolean(), default=False )
+    pregnant = peewee.BooleanField( default=False )
 
     # TODO 
     # how to track health state ???
 
     # Track Martian or Earther
-    birth_location = SA.Column(SA.String(16))
+    birth_location = peewee.CharField(16)
 
     # all calculations are done using soldays with
     # conversions as needed (pregnany etc)
-    birth_solday = SA.Column( SA.Integer )
-    death_solday = SA.Column( SA.Integer, default=0 )
+    birth_solday = peewee.IntegerField( )
+    death_solday = peewee.IntegerField( default=0 )
 
     # How productive is person ??
-    productivity = SA.Column( SA.Integer, default=50 )
+    productivity = peewee.IntegerField( default=50 )
 
     """
     def getWorkHours(self):

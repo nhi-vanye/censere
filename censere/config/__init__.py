@@ -38,12 +38,17 @@ then use its value, otherwise use default
 ##
 # Dummy class to hold configuration details for the generator
 class Generator:
-    pass
+    NOTICE = 25     # status messages
+    DETAILS = 15    # info + additional details
+    TRACE = 1
 
 ##
-# Dummy class to hold configuration details for the viewer
+# Dummy class to hold configuration details for the generator
 class Viewer:
-    pass
+    NOTICE = 25     # status messages
+    DETAILS = 15    # info + additional details
+    TRACE = 1
+
 
 
 ## Arguments that are common to all programs
@@ -60,6 +65,11 @@ class CommonOptions:
         parser.add_argument( '--debug', action="store_true",
             **check_env_for_default( 'CENSERE_DEBUG', False ),
             help='Enable debug mode (CENSERE_DEBUG)' )
+
+        parser.add_argument( '--log-level', action="store",
+            type=int,
+            **check_env_for_default( 'CENSERE_LOG_LEVEL', 25 ),
+            help='Enable debug mode: 15=DETAILS, 20=INFO, 25=NOTICE (CENSERE_LOG_LEVEL)' )
 
         parser.add_argument( '--debug-sql', action="store_true",
             **check_env_for_default( 'CENSERE_DEBUG_SQL', False ),
@@ -89,9 +99,14 @@ class GeneratorOptions(CommonOptions):
         parser.add_argument( '--limit-count', action="store",
             type=int,
             **check_env_for_default( 'CENSERE_LIMIT_COUNT', 1000 ),
-            help='Stop simmulation when we hit a time or population limit (CENSERE_LIMIT_COUNT)' )
+            help='Stop simulation when we hit a time or population limit (CENSERE_LIMIT_COUNT)' )
 
 
+## Viewer-specific arguments
+#
+class ViewerOptions(CommonOptions):
 
+    def register(self, parser):
 
-
+        super().register(parser)
+ 

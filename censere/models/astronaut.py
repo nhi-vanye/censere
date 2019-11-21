@@ -12,27 +12,26 @@ import logging
 import random
 import uuid
 
+import db
+
 from config import Generator as thisApp
 
-from .base import Base as Base
 from .colonist import Colonist as Colonist
 
 from .names import get_random_male_first_name
 from .names import get_random_female_first_name
 from .names import get_random_family_name
 
-class Astronaut(Colonist, Base):
-    
-    def __repr__(self):
-        r"""
-Provide a friendly representation of the object.
-"""
-        return "<Astronaut(id=%s, '{} {}')>".format( self.id,
-                self.first_name, self.family_name)
+class Astronaut(Colonist):
 
+    class Meta:
+        database = db.db
+
+        table_name = 'colonists'
+    
     def initialize(self, solday):
 
-        self.id = str(uuid.uuid4())
+        self.colonist_id = str(uuid.uuid4())
 
         self.simulation = thisApp.simulation
 
@@ -43,7 +42,7 @@ Provide a friendly representation of the object.
             self.first_name = get_random_male_first_name()
 
             # \TODO straight:homosexual:bisexual = 90:6:4 
-            self.orientation = random.choices( [ 'f', 'm', 'mf' ], [ 60, 6, 4 ] )[0]
+            self.orientation = random.choices( [ 'f', 'm', 'mf' ], [ 90, 6, 4 ] )[0]
 
         else:
             self.first_name = get_random_female_first_name()
@@ -58,13 +57,13 @@ Provide a friendly representation of the object.
         # easier (no special cases)
         # There is an assumption that astronauts are not 
         # related to any earlier astronaut
-        biological_father = str(uuid.uuid4())
-        biological_mother = str(uuid.uuid4())
+        self.biological_father = str(uuid.uuid4())
+        self.biological_mother = str(uuid.uuid4())
 
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  solday - (
              int(random.choice( 
                 thisApp.astronaut_age_range.split(",") ) ) * 365.25 * 1.02749125 )
 
-        productivity = 100
+        self.productivity = 100
 

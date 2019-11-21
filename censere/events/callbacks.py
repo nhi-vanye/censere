@@ -9,19 +9,19 @@ in the future
 
 import logging
 import random
+import uuid
 
 from config import Generator as thisApp
 
 import models
 
+import utils
+
 from .store import register_callback as register_callback
 
-## Kill a person some time in the future
-# @param kwargs - dict that should contain `id` field indicating which person dies
-# @param solday - the solday the person dies (global count from initial landing)
-# @param solyear, sol - the solyear and sol within the solyear the person dies
+## A person dies
 #
-def person_dies(solday, solyear, sol, **kwargs):
+def colonist_dies(**kwargs):
 
     id = None
 
@@ -30,92 +30,154 @@ def person_dies(solday, solyear, sol, **kwargs):
             id = v
 
     if id == None:
-        logging.error( "person_dies event called with no person identifier")
+        logging.error( "colonist_dies event called with no person identifier")
         return
 
-    logging.info("{}.{}     Colonist {} dies ".format( solyear, sol, id, sol,solday ) )
+    logging.log( thisApp.NOTICE, "{}.{} Colonist {} dies ".format( *utils.from_soldays( thisApp.solday ), id ) )
 
-    session = thisApp.Session()
+    # Call the instance method to trigger callback handling.
+    for c in models.Colonist().select().filter( models.Colonist.colonist_id == id ):
 
-    for user in session.query( models.Colonist ).filter( models.Colonist.id == id):
+        c.death_solday = thisApp.solday
 
-        user.death_solday = solday
+        c.save()
 
-    session.commit()
-
-
-## A new person is born some time in the future
-# @param kwargs - dict that should contain `id` field indicating which person dies
-# @param solday - the solday the person dies (global count from initial landing)
-# @param solyear, sol - the solyear and sol within the solyear the person dies
+## A person is born
 #
-def person_born(solday, solyear, sol, **kwargs):
+def colonist_born(**kwargs):
 
     biological_mother = None
+    biological_father = None
 
     for k,v in kwargs.items():
         if k == "biological_mother":
             biological_mother = v
+        if k == "biological_father":
+            biological_father = v
 
-    if biological_mother == None:
-        logging.error( "person_born event called with no biological_mother specified")
+    if biological_mother == None or biological_father == None:
+        logging.error( "colonist_born event called with no biological parents specified")
         return
 
-    logging.info("{}.{}     Colonist born {}".format( solyear, sol, id, sol,solday ) )
+    father = None
+    mother = None
 
-    session = thisApp.Session()
+    try:
+        father = models.Colonist.get( models.Colonist.colonist_id == str(biological_father) ) 
+        mother = models.Colonist.get( models.Colonist.colonist_id == str(biological_mother) ) 
 
-    # TODO - maternity leave
-    # How best o handle both biological mother and family parent's leave ?
+    except Exception as e:
+
+        logging.error( 'Failed to find parents {} or {}'.format( str(biological_father), str(biological_mother) ) )
+        return
+
+    # Mother died while pregnant - no child
+    if mother.death_solday:
+        logging.error( '{}.{} Mother {} died while pregnant.'.format( *utils.from_soldays( thisApp.solday ), str(biological_mother) ) )
+        return
 
     m = models.Martian()
 
-    m.initialize( solday )
+    m.initialize( thisApp.solday )
 
-    # \TODO set productivity=100 when they get to 18years ???
+    m.biological_father = biological_father
+    m.biological_mother = biological_mother
 
-    session.commit()
+    m.family_name = father.family_name
 
+
+    saved = m.save()
+
+    # create the parent <-> child relationship
+    r1 = models.Relationship()
+
+    r1.relationship_id=str(uuid.uuid4())
+    r1.first=mother.colonist_id
+    r1.second=m.colonist_id
+    r1.relationship=models.RelationshipEnum.child
+    r1.begin_solday=thisApp.solday
+
+    r1.save()
+
+    r2 = models.Relationship()
+
+    r2.relationship_id=str(uuid.uuid4())
+    r2.first=father.colonist_id
+    r2.second=m.colonist_id
+    r2.relationship=models.RelationshipEnum.child
+    r2.begin_solday=thisApp.solday
+
+    r2.save()
+
+    logging.log( thisApp.NOTICE, '{}.{} Martian {} {} ({}) born'.format( *utils.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id ) )
+
+    # TODO trying to provide some falloff with age - but this is too simple
+    # This should take into account mothers age.
+    # dramtic falloff in fertility after 35 ???
+    mothers_age = int( (thisApp.solday - mother.birth_solday) / 680 )
+    if random.randrange(0,99) < ( 20 - mothers_age )  :
+        register_callback( 
+            # handle the "cool off" period...
+            when= thisApp.solday + random.randrange( 330, 1090),
+            callback_func=colonist_born,
+            kwargs= { "biological_mother" : mother, "biological_father": father }
+        )
 
 ##
-# A new lander arrives with #adults
+# A new lander arrives with #colonists
 # 
-# TODO handle children (imagine aged 10-18, younger than that might be difficult)
-def mission_lands(solday, solyear, sol, **kwargs):
+# TODO handle children (imagine aged 10-18, younger than that might be real world difficult)
+def mission_lands(**kwargs):
 
-    adults = kwargs['adults'] 
+    colonists = kwargs['colonists'] 
 
-    logging.info("Mission landed with {} adults at {}.{} ({})".format( adults, solyear, sol, solday) )
+    logging.log( thisApp.NOTICE, "{}.{} Mission landed with {} colonists".format( *utils.from_soldays( thisApp.solday ), colonists) )
 
-    session = thisApp.Session()
-
-    for i in range(adults):
+    for i in range(colonists):
 
         a = models.Astronaut()
 
-        a.initialize( solday )
+        a.initialize( thisApp.solday )
+
+        saved = a.save()
+
+        logging.info( '{}.{} Astronaut {} {} ({}) landed'.format(*utils.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id ) )
 
         # TODO make the max age of death configurable - 80
+        # TODO model women outliving men
         register_callback( 
-            when=solday + random.randrange( 1, int( (80*365.25*1.02749125) - a.birth_solday)),
-            callback_func=person_dies,
-            kwargs= { "id" : a.id }
+            when=(thisApp.solday - a.birth_solday) + random.randrange( 1, int( (80*365.25*1.02749125) )),
+            callback_func=colonist_dies,
+            kwargs= { "id" : a.colonist_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
-
-        session.add(a)
-
-    session.commit()
 
     # schedule the next landing
     # TODO make the mission size configurable
     # Possible need a growth and random factor
     # - expect for people to travel over time...
     #
-    # There is a minimum energy launch window every
-    # 780 days =~ 759 sols
+    # There is a minimum energy launch window every 780 days =~ 759 sols
+    # Assume a commercial organization would want to use it
+    # to reduce propellent required for a given payload
     register_callback( 
-        when = solday + 759,
+        when =  thisApp.solday + 759,
         callback_func = mission_lands,
-        kwargs = { "adults" : random.randrange(40, 80) }
+        kwargs = { 
+            "colonists" : random.randrange(40, 80)
+        }
     )
 
+##
+# Break a relationship
+# 
+# 
+def end_relationship(**kwargs):
+
+    id = kwargs['relationship_id'] 
+
+    logging.info("{}.{} Relationship {} ended".format( *utils.from_soldays( thisApp.solday ), id ) )
+
+
+    rel = models.Relationship.get( models.Relationship.relationship_id == id )
+
+    rel.end_solday = thisApp.solday

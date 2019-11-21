@@ -5,14 +5,14 @@ import uuid
 
 import peewee
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
-import models
+import censere.models as MODELS
 
-import utils
+import censere.utils as UTILS
 
-import events.store
-import events.callbacks
+import censere.events.store as EVENTS
+import censere.events.callbacks as CALLBACKS
 
 ##
 # Make a single new family out of two singles
@@ -20,39 +20,39 @@ import events.callbacks
 # appropriate times...
 def make( ):
 
-    #logging.info( '{}.{} ({}) Trying to make a new family'.format( *utils.from_soldays( thisApp.solday ), thisApp.solday) )
+    #logging.info( '{}.{} ({}) Trying to make a new family'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday) )
 
-    partner = models.Colonist.alias()
+    partner = MODELS.Colonist.alias()
     
     # TODO how to avoid "incest" ?
-    query = models.Colonist.select( 
-            models.Colonist.colonist_id.alias('userid1'),
+    query = MODELS.Colonist.select( 
+            MODELS.Colonist.colonist_id.alias('userid1'),
             partner.colonist_id.alias('userid2'), 
-            models.Colonist.first_name.alias('first_name1'),
+            MODELS.Colonist.first_name.alias('first_name1'),
             partner.first_name.alias('first_name2'),
-            models.Colonist.family_name.alias('family_name1'),
+            MODELS.Colonist.family_name.alias('family_name1'),
             partner.family_name.alias('family_name2'),
-            models.Colonist.sex.alias('sex1'),
+            MODELS.Colonist.sex.alias('sex1'),
             partner.sex.alias('sex2')
         ).join(
-            partner, on=( partner.simulation == models.Colonist.simulation ), attr="partner" 
+            partner, on=( partner.simulation == MODELS.Colonist.simulation ), attr="partner" 
         ).where(
                 # no self-partnering
-                ( models.Colonist.colonist_id != partner.colonist_id ) &
+                ( MODELS.Colonist.colonist_id != partner.colonist_id ) &
                 # - both persons must be single - so currently no extended families
-                ( models.Colonist.state == 'single' ) &
+                ( MODELS.Colonist.state == 'single' ) &
                 ( partner.state == 'single' ) &
                 # compatible sexuality
-                ( models.Colonist.orientation.contains( partner.sex ) ) &
-                ( partner.orientation.contains( models.Colonist.sex ) ) &
+                ( MODELS.Colonist.orientation.contains( partner.sex ) ) &
+                ( partner.orientation.contains( MODELS.Colonist.sex ) ) &
                 # both over 18 earth years years
-                ( models.Colonist.birth_solday < thisApp.solday - ( 18 * 365.25 * 1.02749125 ) ) &
+                ( MODELS.Colonist.birth_solday < thisApp.solday - ( 18 * 365.25 * 1.02749125 ) ) &
                 ( partner.birth_solday < thisApp.solday - ( 18 * 365.25 * 1.02749125 ) ) &
                 # still alive
-                ( models.Colonist.death_solday == 0 ) &
+                ( MODELS.Colonist.death_solday == 0 ) &
                 ( partner.death_solday == 0 ) &
                 # part of this execution run
-                ( models.Colonist.simulation == thisApp.simulation ) &
+                ( MODELS.Colonist.simulation == thisApp.simulation ) &
                 ( partner.simulation == thisApp.simulation )
             ).order_by( 
                 peewee.fn.random() 
@@ -62,16 +62,16 @@ def make( ):
 
         # rely on triggers to update colonist state to couple 
 
-        r = models.Relationship()
+        r = MODELS.Relationship()
 
         r.relationship_id=str(uuid.uuid4())
         r.first=row['userid1']
         r.second=row['userid2']
-        r.relationship=models.RelationshipEnum.partner
+        r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
         logging.info( '{}.{} Creating family between {} {} and {} {}'.format(
-            *utils.from_soldays( thisApp.solday ),
+            *UTILS.from_soldays( thisApp.solday ),
             row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2']) )
 
         r.save()
@@ -116,22 +116,23 @@ def make( ):
                 birth_day = thisApp.solday + random.randrange( 1, 760)
 
                 logging.info( '{}.{} {} {} and {} {} are expecting a child on {}.{}'.format(
-                    *utils.from_soldays( thisApp.solday ),
+                    *UTILS.from_soldays( thisApp.solday ),
                     row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'],
-                    *utils.from_soldays( birth_day )
+                    *UTILS.from_soldays( birth_day )
                 ) )
 
-                events.store.register_callback( 
+                # register a function to be called at `when`
+                EVENTS.register_callback( 
                     when= birth_day,
-                    callback_func=events.callbacks.colonist_born,
+                    callback_func=CALLBACKS.colonist_born,
                     kwargs= { "biological_mother" : mother, "biological_father": father }
                 )
 
             else:
 
-                events.store.register_callback( 
+                EVENTS.register_callback( 
                     when= thisApp.solday + random.randrange( 1, 760),
-                    callback_func=events.callbacks.end_relationship,
+                    callback_func=CALLBACKS.end_relationship,
                     kwargs= { "relationship_id" : r.relationship_id }
                 )
 

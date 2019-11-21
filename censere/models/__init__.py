@@ -1,6 +1,4 @@
 
-#from .base import Base as Base
-
 from .colonist import Colonist as Colonist
 from .astronaut import Astronaut as Astronaut
 from .martian import Martian as Martian

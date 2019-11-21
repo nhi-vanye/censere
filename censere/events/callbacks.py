@@ -11,11 +11,11 @@ import logging
 import random
 import uuid
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
-import models
+import censere.models as MODELS
 
-import utils
+import censere.utils as UTILS
 
 from .store import register_callback as register_callback
 
@@ -33,10 +33,10 @@ def colonist_dies(**kwargs):
         logging.error( "colonist_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "{}.{} Colonist {} dies ".format( *utils.from_soldays( thisApp.solday ), id ) )
+    logging.log( thisApp.NOTICE, "{}.{} Colonist {} dies ".format( *UTILS.from_soldays( thisApp.solday ), id ) )
 
     # Call the instance method to trigger callback handling.
-    for c in models.Colonist().select().filter( models.Colonist.colonist_id == id ):
+    for c in MODELS.Colonist().select().filter( MODELS.Colonist.colonist_id == id ):
 
         c.death_solday = thisApp.solday
 
@@ -63,8 +63,8 @@ def colonist_born(**kwargs):
     mother = None
 
     try:
-        father = models.Colonist.get( models.Colonist.colonist_id == str(biological_father) ) 
-        mother = models.Colonist.get( models.Colonist.colonist_id == str(biological_mother) ) 
+        father = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(biological_father) ) 
+        mother = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(biological_mother) ) 
 
     except Exception as e:
 
@@ -73,10 +73,10 @@ def colonist_born(**kwargs):
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        logging.error( '{}.{} Mother {} died while pregnant.'.format( *utils.from_soldays( thisApp.solday ), str(biological_mother) ) )
+        logging.error( '{}.{} Mother {} died while pregnant.'.format( *UTILS.from_soldays( thisApp.solday ), str(biological_mother) ) )
         return
 
-    m = models.Martian()
+    m = MODELS.Martian()
 
     m.initialize( thisApp.solday )
 
@@ -89,27 +89,27 @@ def colonist_born(**kwargs):
     saved = m.save()
 
     # create the parent <-> child relationship
-    r1 = models.Relationship()
+    r1 = MODELS.Relationship()
 
     r1.relationship_id=str(uuid.uuid4())
     r1.first=mother.colonist_id
     r1.second=m.colonist_id
-    r1.relationship=models.RelationshipEnum.child
+    r1.relationship=MODELS.RelationshipEnum.child
     r1.begin_solday=thisApp.solday
 
     r1.save()
 
-    r2 = models.Relationship()
+    r2 = MODELS.Relationship()
 
     r2.relationship_id=str(uuid.uuid4())
     r2.first=father.colonist_id
     r2.second=m.colonist_id
-    r2.relationship=models.RelationshipEnum.child
+    r2.relationship=MODELS.RelationshipEnum.child
     r2.begin_solday=thisApp.solday
 
     r2.save()
 
-    logging.log( thisApp.NOTICE, '{}.{} Martian {} {} ({}) born'.format( *utils.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id ) )
+    logging.log( thisApp.NOTICE, '{}.{} Martian {} {} ({}) born'.format( *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id ) )
 
     # TODO trying to provide some falloff with age - but this is too simple
     # This should take into account mothers age.
@@ -131,17 +131,17 @@ def mission_lands(**kwargs):
 
     colonists = kwargs['colonists'] 
 
-    logging.log( thisApp.NOTICE, "{}.{} Mission landed with {} colonists".format( *utils.from_soldays( thisApp.solday ), colonists) )
+    logging.log( thisApp.NOTICE, "{}.{} Mission landed with {} colonists".format( *UTILS.from_soldays( thisApp.solday ), colonists) )
 
     for i in range(colonists):
 
-        a = models.Astronaut()
+        a = MODELS.Astronaut()
 
         a.initialize( thisApp.solday )
 
         saved = a.save()
 
-        logging.info( '{}.{} Astronaut {} {} ({}) landed'.format(*utils.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id ) )
+        logging.info( '{}.{} Astronaut {} {} ({}) landed'.format(*UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id ) )
 
         # TODO make the max age of death configurable - 80
         # TODO model women outliving men
@@ -175,9 +175,9 @@ def end_relationship(**kwargs):
 
     id = kwargs['relationship_id'] 
 
-    logging.info("{}.{} Relationship {} ended".format( *utils.from_soldays( thisApp.solday ), id ) )
+    logging.info("{}.{} Relationship {} ended".format( *UTILS.from_soldays( thisApp.solday ), id ) )
 
 
-    rel = models.Relationship.get( models.Relationship.relationship_id == id )
+    rel = MODELS.Relationship.get( MODELS.Relationship.relationship_id == id )
 
     rel.end_solday = thisApp.solday

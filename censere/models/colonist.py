@@ -13,9 +13,9 @@ import logging
 import peewee
 import playhouse.signals
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
-import db
+import censere.db as DB
 
 ##
 # The Colonist is the base class for `Martian` or `Astronaut`
@@ -26,7 +26,7 @@ import db
 class Colonist(playhouse.signals.Model):
 
     class Meta:
-        database = db.db
+        database = DB.db
 
         table_name = 'colonists'
 

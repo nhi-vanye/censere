@@ -1,17 +1,20 @@
 
 import peewee
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
 
 db = peewee.SqliteDatabase( None )
 
-import models
+import censere.models
 
 
+## 
+# Each model (in models/) needs to have its table created
+# so there should be an entry here.
 def create_tables():
 
-    models.Astronaut.create_table()
-    models.Relationship.create_table()
-    models.Simulation.create_table()
-    models.Summary.create_table()
+    censere.models.Astronaut.create_table()
+    censere.models.Relationship.create_table()
+    censere.models.Simulation.create_table()
+    censere.models.Summary.create_table()

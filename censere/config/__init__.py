@@ -57,10 +57,10 @@ class CommonOptions:
 
     def register(self, parser):
 
-        parser.add_argument( '--database-url', action="store",
-            metavar="URL",
-            **check_env_for_default( 'CENSERE_DATABASE_URL', 'sqlite:///censere.db' ),
-            help='URL of database (CENSERE_DATABASE_URL)' )
+        parser.add_argument( '--database', action="store",
+            metavar="FILE",
+            **check_env_for_default( 'CENSERE_DATABASE', 'censere.db' ),
+            help='Path to database (CENSERE_DATABASE)' )
 
         parser.add_argument( '--debug', action="store_true",
             **check_env_for_default( 'CENSERE_DEBUG', False ),

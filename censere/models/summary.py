@@ -14,9 +14,9 @@ import uuid
 import peewee
 import playhouse.signals
 
-import db
+import censere.db as DB
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
 ##
 # Collect summary details
@@ -29,7 +29,7 @@ from config import Generator as thisApp
 class Summary(playhouse.signals.Model):
     
     class Meta:
-        database = db.db
+        database = DB.db
 
         table_name = 'summary'
 

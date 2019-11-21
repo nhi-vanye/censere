@@ -1,6 +1,7 @@
 # Ignore any left over DB siles
 
 # virtual env
+.dev/*
 pyhome/*
 
 # any local sqlite files

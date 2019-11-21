@@ -12,9 +12,10 @@ import logging
 import random
 import uuid
 
-import db
+from censere.config import Generator as thisApp
 
-from config import Generator as thisApp
+import censere.db as DB
+
 
 from .colonist import Colonist as Colonist
 
@@ -25,7 +26,7 @@ from .names import get_random_family_name
 class Astronaut(Colonist):
 
     class Meta:
-        database = db.db
+        database = DB.db
 
         table_name = 'colonists'
     

@@ -7,25 +7,26 @@ import random
 import sys
 import uuid
 
-from config import Generator as thisApp
-from config import GeneratorOptions as Options
-
 import peewee
 
-import db
+#make it easy to identify local modules
+from censere.config import Generator as thisApp
+from censere.config import GeneratorOptions as OPTIONS
 
-import events
+import censere.db as DB
 
-import models
+import censere.events as EVENTS
+
+import censere.models as MODELS
 # Import the database triggers to handle automation inside the DB
-# only needed once 
-import models.triggers
+# Not called directly, but still needed 
+import censere.models.triggers as TRIGGERS
 
-import actions
+import censere.actions as ACTIONS
 
-import utils
+import censere.utils as UTILS
 
-import version
+import censere.version as VERSION
 
 ## Initialize the parsing of any command line arguments
 #
@@ -42,7 +43,7 @@ specify arguments to the program - ONE ARGUMENT PER LINE.
 The Database should be on a local disk - not in Dropbox etc.
 """)
 
-    Options().register( parser )
+    OPTIONS().register( parser )
 
     args = parser.parse_args( namespace = thisApp )
 
@@ -77,14 +78,14 @@ The Database should be on a local disk - not in Dropbox etc.
 # creating the tables
 def initialize_database():
 
-    db.db.init( thisApp.database_url ) 
+    DB.db.init( thisApp.database ) 
 
-    db.create_tables()
+    DB.create_tables()
 
 
 def initial_landing():
 
-    events.callbacks.mission_lands( colonists=20 )
+    EVENTS.callbacks.mission_lands( colonists=20 )
 
 
 def get_limit_count( limit="population" ):
@@ -96,9 +97,9 @@ def get_limit_count( limit="population" ):
 
         if limit == "population":
 
-            count = models.Colonist.select().where( 
-                ( models.Colonist.simulation == thisApp.simulation ) &
-                ( models.Colonist.death_solday == 0 )
+            count = MODELS.Colonist.select().where( 
+                ( MODELS.Colonist.simulation == thisApp.simulation ) &
+                ( MODELS.Colonist.death_solday == 0 )
             ).count()
 
     except Exception as e:
@@ -112,10 +113,10 @@ def get_singles_count( ):
     count = 0
 
     try:
-        count = models.Colonist.select().where(
-            ( models.Colonist.simulation == thisApp.simulation ) &
-            ( models.Colonist.death_solday == 0 ) &
-            ( models.Colonist.state == 'single' )
+        count = MODELS.Colonist.select().where(
+            ( MODELS.Colonist.simulation == thisApp.simulation ) &
+            ( MODELS.Colonist.death_solday == 0 ) &
+            ( MODELS.Colonist.state == 'single' )
         ).count()
 
     except Exception as e:
@@ -126,85 +127,85 @@ def get_singles_count( ):
 
 def add_summary_entry():
 
-    adults = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
-        ( models.Colonist.death_solday == 0 )
+    adults = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    children = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.birth_solday >= ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
-        ( models.Colonist.death_solday == 0 )
+    children = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.birth_solday >= ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    singles = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.state == 'single' ) & 
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( models.Colonist.death_solday == 0 )
+    singles = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.state == 'single' ) & 
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    couples = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.state == 'couple' ) & 
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( models.Colonist.death_solday == 0 )
+    couples = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.state == 'couple' ) & 
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    males = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.sex == 'm' ) & 
-        ( models.Colonist.death_solday == 0 )
+    males = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.sex == 'm' ) & 
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    females = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.sex == 'f' ) & 
-        ( models.Colonist.death_solday == 0 )
+    females = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.sex == 'f' ) & 
+        ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
-    hetrosexual = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( ( ( models.Colonist.sex == 'm' ) & 
-          ( models.Colonist.orientation == 'f' ) ) | 
-        ( ( models.Colonist.sex == 'f' ) & 
-          ( models.Colonist.orientation == 'm' ) ) ) &
-        ( models.Colonist.death_solday == 0 ) &
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    hetrosexual = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( ( ( MODELS.Colonist.sex == 'm' ) & 
+          ( MODELS.Colonist.orientation == 'f' ) ) | 
+        ( ( MODELS.Colonist.sex == 'f' ) & 
+          ( MODELS.Colonist.orientation == 'm' ) ) ) &
+        ( MODELS.Colonist.death_solday == 0 ) &
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    homosexual = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.sex == models.Colonist.orientation ) & 
-        ( models.Colonist.death_solday == 0 ) &
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    homosexual = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.sex == MODELS.Colonist.orientation ) & 
+        ( MODELS.Colonist.death_solday == 0 ) &
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    bisexual = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.orientation == 'mf' ) & 
-        ( models.Colonist.death_solday == 0 ) &
-        ( models.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    bisexual = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.orientation == 'mf' ) & 
+        ( MODELS.Colonist.death_solday == 0 ) &
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    deaths = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.death_solday != 0 )
+    deaths = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.death_solday != 0 )
     ).count()
 
-    earth_born = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.birth_location == 'Earth' )
+    earth_born = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.birth_location == 'Earth' )
     ).count()
 
-    mars_born = models.Colonist.select().where( 
-        ( models.Colonist.simulation == thisApp.simulation ) &
-        ( models.Colonist.birth_location == 'Mars' )
+    mars_born = MODELS.Colonist.select().where( 
+        ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.birth_location == 'Mars' )
     ).count()
 
 
-    s = models.Summary()
+    s = MODELS.Summary()
 
     s.simulation_id = thisApp.simulation
 
@@ -243,13 +244,13 @@ def main( argv ):
 
     thisApp.solday = 1
 
-    logging.log( thisApp.NOTICE, 'Mars Censere {}'.format( version.__version__ ) )
-    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Started. Goal {} = {}'.format( *utils.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count ) )
+    logging.log( thisApp.NOTICE, 'Mars Censere {}'.format( VERSION.__version__ ) )
+    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Started. Goal {} = {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count ) )
 
     initialize_database()
 
     # TODO save the paramters into the simulation table for reference.
-    s = models.Simulation( )
+    s = MODELS.Simulation( )
     s.simulation_id = thisApp.simulation
     s.begin_datetime = datetime.datetime.now()
     s.limit = thisApp.limit
@@ -258,11 +259,11 @@ def main( argv ):
 
     initial_landing()
 
-    actions.make_families( )
+    ACTIONS.make_families( )
 
     while get_limit_count( thisApp.limit ) < thisApp.limit_count:
 
-        ( solyear, sol ) = utils.from_soldays( thisApp.solday )
+        ( solyear, sol ) = UTILS.from_soldays( thisApp.solday )
 
         current_singles_count = get_singles_count()
 
@@ -270,14 +271,14 @@ def main( argv ):
         # Invoke actions every day...
 
         # Run any callback scheduled for this solday
-        events.invoke_callbacks( )
+        EVENTS.invoke_callbacks( )
 
         # Poulation building
         # TODO make this more flexible
         # Assume: On any given day there is 1% chance of a specific person initiating a relationship
         # there are N singles, so make a family if chance is 0.1 * N or less
         if random.randrange(0,99) < int ( 1 * current_singles_count * 0.5  ):
-            actions.make_families( )
+            ACTIONS.make_families( )
         # TODO need a model for relationship breakdown
         # break_families()
 
@@ -293,7 +294,7 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 688:
-            logging.log( thisApp.NOTICE, '{}.{} ({}) #Colonists {}'.format( *utils.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") ) )
+            logging.log( thisApp.NOTICE, '{}.{} ({}) #Colonists {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") ) )
 
             add_summary_entry()
             
@@ -303,13 +304,13 @@ def main( argv ):
     add_summary_entry()
 
     ( 
-        models.Simulation.update( { models.Simulation.end_datetime: datetime.datetime.now() } 
+        MODELS.Simulation.update( { MODELS.Simulation.end_datetime: datetime.datetime.now() } 
             ).where( 
-                ( models.Simulation.simulation_id == thisApp.simulation )
+                ( MODELS.Simulation.simulation_id == thisApp.simulation )
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Complete. {} {} >= {}'.format( *utils.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count ) )
+    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Complete. {} {} >= {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count ) )
 
 if __name__ == '__main__':
 

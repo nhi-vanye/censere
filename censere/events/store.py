@@ -2,9 +2,9 @@
 import collections
 import logging
 
-from config import Generator as thisApp
+from censere.config import Generator as thisApp
 
-import utils
+import censere.utils as UTILS
 
 store = collections.defaultdict(list)
 
@@ -14,7 +14,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs={}):
 
         logging.error("Missing required arguments in call to register_callback()")
 
-    logging.debug( "{}.{} Registering callback {}() to be run at {} ({}.{})".format( *utils.from_soldays( thisApp.solday ), callback_func.__name__, when, *utils.from_soldays( when ), kwargs ) )
+    logging.debug( "{}.{} Registering callback {}() to be run at {} ({}.{})".format( *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, when, *UTILS.from_soldays( when ), kwargs ) )
     logging.debug( "{}".format( kwargs ) )
 
     store[ when ].append( {
@@ -27,7 +27,7 @@ def invoke_callbacks( ):
 
     if thisApp.solday in store:
 
-        logging.info( '{}.{} Processing scheduled events'.format( *utils.from_soldays( thisApp.solday ) ) )
+        logging.info( '{}.{} Processing scheduled events'.format( *UTILS.from_soldays( thisApp.solday ) ) )
         for entry in store[thisApp.solday]:
 
             name = ""
@@ -41,7 +41,7 @@ def invoke_callbacks( ):
 
             if "func" in entry:
 
-                logging.debug( '{}.{}   Processing event {}'.format( *utils.from_soldays( thisApp.solday ), name ) )
+                logging.debug( '{}.{}   Processing event {}'.format( *UTILS.from_soldays( thisApp.solday ), name ) )
                 entry["func"](**kwargs )
 
 

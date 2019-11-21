@@ -5,9 +5,9 @@ import logging
 import peewee
 import playhouse.signals
 
-import db
+from censere.config import Generator as thisApp
 
-from config import Generator as thisApp
+import censere.db as DB
 
 from .colonist import Colonist as Colonist
 
@@ -19,7 +19,7 @@ class RelationshipEnum():
 class Relationship( playhouse.signals.Model ):
 
     class Meta:
-        database = db.db
+        database = DB.db
 
         table_name = 'relationships'
 

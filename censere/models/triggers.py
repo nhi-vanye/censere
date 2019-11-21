@@ -4,8 +4,8 @@ import logging
 import peewee
 import playhouse.signals 
 
-from config import Generator as thisApp
-import utils
+from censere.config import Generator as thisApp
+import censere.utils as UTILS
 
 from .colonist import Colonist as Colonist
 from .astronaut import Astronaut as Astronaut
@@ -15,7 +15,8 @@ from .relationship import RelationshipEnum as RelationshipEnum
 ##
 # Be careful here between a class update (Colonist.update().where() and
 # calling the instance.save() method.
-# Class methods do NOT trigger pre- and post triggers. So know what you want
+#
+# Class methods do NOT trigger pre- and post triggers. So know what you want - and document it.
 
 
 ##
@@ -40,7 +41,7 @@ def colonist_post_save(sender, instance, created):
         
         if i.name == "death_solday":
 
-            logging.debug( "{}.{} Updated death_solday for {} {} ({})".format( *utils.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.colonist_id))
+            logging.debug( "{}.{} Updated death_solday for {} {} ({})".format( *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.colonist_id))
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
@@ -58,7 +59,7 @@ def colonist_post_save(sender, instance, created):
                 r.end_solday = thisApp.solday
 
                 logging.info( "{}.{} Relationship {} ended. Death of {} {}".format( 
-                    *utils.from_soldays( thisApp.solday ),
+                    *UTILS.from_soldays( thisApp.solday ),
                     r.relationship_id,
                     instance.first_name,
                     instance.family_name))
@@ -92,8 +93,8 @@ def relationship_post_save(sender, instance, created):
             ).execute()
         )
 
-        logging.info('{}.{} Created new family {}'.format( *utils.from_soldays( thisApp.solday ), instance.relationship_id ) )
-        logging.debug('{}.{} Created new family between {} and {}'.format( *utils.from_soldays( thisApp.solday ), instance.relationship_id, instance.first, instance.second ) )
+        logging.info('{}.{} Created new family {}'.format( *UTILS.from_soldays( thisApp.solday ), instance.relationship_id ) )
+        logging.debug('{}.{} Created new family between {} and {}'.format( *UTILS.from_soldays( thisApp.solday ), instance.relationship_id, instance.first, instance.second ) )
 
     else:
 

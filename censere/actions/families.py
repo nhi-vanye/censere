@@ -20,7 +20,7 @@ import censere.events.callbacks as CALLBACKS
 # appropriate times...
 def make( ):
 
-    #logging.info( '{}.{} ({}) Trying to make a new family'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday) )
+    #logging.info( '%.% (%) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
     partner = MODELS.Colonist.alias()
     
@@ -70,9 +70,9 @@ def make( ):
         r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
-        logging.info( '{}.{} Creating family between {} {} and {} {}'.format(
+        logging.info( '%.% Creating family between % % and % %',
             *UTILS.from_soldays( thisApp.solday ),
-            row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2']) )
+            row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
 
         r.save()
 
@@ -115,11 +115,11 @@ def make( ):
 
                 birth_day = thisApp.solday + random.randrange( 1, 760)
 
-                logging.info( '{}.{} {} {} and {} {} are expecting a child on {}.{}'.format(
+                logging.info( '%.% % % and % % are expecting a child on %.%',
                     *UTILS.from_soldays( thisApp.solday ),
                     row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'],
                     *UTILS.from_soldays( birth_day )
-                ) )
+                )
 
                 # register a function to be called at `when`
                 EVENTS.register_callback( 

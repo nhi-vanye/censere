@@ -1,3 +1,4 @@
+#pylint: disable=unused-import
 
 from .colonist import Colonist as Colonist
 from .astronaut import Astronaut as Astronaut

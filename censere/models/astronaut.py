@@ -8,14 +8,12 @@ Created on Fri Mar 29 17:30:50 2019
 # Module gonverning the attributes of the colonists
 
 
-import logging
 import random
 import uuid
 
 from censere.config import Generator as thisApp
 
 import censere.db as DB
-
 
 from .colonist import Colonist as Colonist
 
@@ -52,7 +50,8 @@ class Astronaut(Colonist):
 
         self.family_name = get_random_family_name()
 
-        self.birth_location = 'Earth'
+        # prefer lower case for all strings (except names)
+        self.birth_location = 'earth'
 
         # add dummy biological parents to make consanguinity 
         # easier (no special cases)

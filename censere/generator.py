@@ -7,8 +7,6 @@ import random
 import sys
 import uuid
 
-import peewee
-
 #make it easy to identify local modules
 from censere.config import Generator as thisApp
 from censere.config import GeneratorOptions as OPTIONS
@@ -20,7 +18,7 @@ import censere.events as EVENTS
 import censere.models as MODELS
 # Import the database triggers to handle automation inside the DB
 # Not called directly, but still needed 
-import censere.models.triggers as TRIGGERS
+import censere.models.triggers as TRIGGERS #pylint: disable=unused-import
 
 import censere.actions as ACTIONS
 
@@ -244,8 +242,8 @@ def main( argv ):
 
     thisApp.solday = 1
 
-    logging.log( thisApp.NOTICE, 'Mars Censere {}'.format( VERSION.__version__ ) )
-    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Started. Goal {} = {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count ) )
+    logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
+    logging.log( thisApp.NOTICE, '%.% (%) Simulation % Started. Goal % = %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
 
     initialize_database()
 
@@ -255,7 +253,7 @@ def main( argv ):
     s.begin_datetime = datetime.datetime.now()
     s.limit = thisApp.limit
     s.limit_count = thisApp.limit_count
-    logging.debug( 'Adding {} rows to simulations table'.format( s.save() ) )
+    logging.debug( 'Adding % rows to simulations table', s.save() )
 
     initial_landing()
 
@@ -294,7 +292,7 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 688:
-            logging.log( thisApp.NOTICE, '{}.{} ({}) #Colonists {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") ) )
+            logging.log( thisApp.NOTICE, '%.% (%) #Colonists %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             add_summary_entry()
             
@@ -310,7 +308,7 @@ def main( argv ):
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '{}.{} ({}) Simulation {} Complete. {} {} >= {}'.format( *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count ) )
+    logging.log( thisApp.NOTICE, '%.% (%) Simulation % Complete. % % >= %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
 
 if __name__ == '__main__':
 

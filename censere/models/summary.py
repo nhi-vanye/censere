@@ -1,22 +1,15 @@
-
 # -*- coding: utf-8 -*-
 """
 
 @author: Richard Offer
 """
 
-# Stores monthly summary status
-
-import logging
-import random
-import uuid
+# Stores summary results
 
 import peewee
 import playhouse.signals
 
 import censere.db as DB
-
-from censere.config import Generator as thisApp
 
 ##
 # Collect summary details

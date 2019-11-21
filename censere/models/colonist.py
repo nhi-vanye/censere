@@ -8,12 +8,8 @@ Created on Fri Mar 29 17:30:50 2019
 # Module governing the attributes of the colonists
 # Updated to use an ORM for storage in database 
 
-import logging
-
 import peewee
 import playhouse.signals
-
-from censere.config import Generator as thisApp
 
 import censere.db as DB
 
@@ -35,7 +31,6 @@ class Colonist(playhouse.signals.Model):
     # to make debugging easeir
     def __repr__(self):
         return "{} {} ({})".format( self.first_name, self.family_name, self.colonist_id ) 
-
 
     # Unique identifier for a person - names are not unique
     colonist_id = peewee.UUIDField( unique=True )
@@ -66,7 +61,7 @@ class Colonist(playhouse.signals.Model):
     orientation = peewee.CharField(3)
 
     # Is the person `single` or a `couple`
-    # TODO is `couple` the best word
+    # TODO is `couple` the best word ?
     # Currently only `single` people can start a new family
     # That would need to change to handle extended families
     state = peewee.CharField( 8, default='single' )

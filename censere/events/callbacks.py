@@ -7,6 +7,8 @@ in the future
 
 """
 
+from __future__ import division
+
 import logging
 import random
 import uuid
@@ -33,7 +35,7 @@ def colonist_dies(**kwargs):
         logging.error( "colonist_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "{}.{} Colonist {} dies ".format( *UTILS.from_soldays( thisApp.solday ), id ) )
+    logging.log( thisApp.NOTICE, "%.% Colonist % dies ", *UTILS.from_soldays( thisApp.solday ), id )
 
     # Call the instance method to trigger callback handling.
     for c in MODELS.Colonist().select().filter( MODELS.Colonist.colonist_id == id ):
@@ -68,12 +70,12 @@ def colonist_born(**kwargs):
 
     except Exception as e:
 
-        logging.error( 'Failed to find parents {} or {}'.format( str(biological_father), str(biological_mother) ) )
+        logging.error( 'Failed to find parents % or %s', str(biological_father), str(biological_mother) )
         return
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        logging.error( '{}.{} Mother {} died while pregnant.'.format( *UTILS.from_soldays( thisApp.solday ), str(biological_mother) ) )
+        logging.error( '%.% Mother % died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
         return
 
     m = MODELS.Martian()
@@ -109,7 +111,7 @@ def colonist_born(**kwargs):
 
     r2.save()
 
-    logging.log( thisApp.NOTICE, '{}.{} Martian {} {} ({}) born'.format( *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id ) )
+    logging.log( thisApp.NOTICE, '%.% Martian % % (%) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id )
 
     # TODO trying to provide some falloff with age - but this is too simple
     # This should take into account mothers age.
@@ -131,7 +133,7 @@ def mission_lands(**kwargs):
 
     colonists = kwargs['colonists'] 
 
-    logging.log( thisApp.NOTICE, "{}.{} Mission landed with {} colonists".format( *UTILS.from_soldays( thisApp.solday ), colonists) )
+    logging.log( thisApp.NOTICE, "%.% Mission landed with % colonists", *UTILS.from_soldays( thisApp.solday ), colonists )
 
     for i in range(colonists):
 
@@ -141,7 +143,7 @@ def mission_lands(**kwargs):
 
         saved = a.save()
 
-        logging.info( '{}.{} Astronaut {} {} ({}) landed'.format(*UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id ) )
+        logging.info( '%.% Astronaut % % (%) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id )
 
         # TODO make the max age of death configurable - 80
         # TODO model women outliving men
@@ -175,9 +177,11 @@ def end_relationship(**kwargs):
 
     id = kwargs['relationship_id'] 
 
-    logging.info("{}.{} Relationship {} ended".format( *UTILS.from_soldays( thisApp.solday ), id ) )
+    logging.info("%.% Relationship % ended", *UTILS.from_soldays( thisApp.solday ), id )
 
 
     rel = MODELS.Relationship.get( MODELS.Relationship.relationship_id == id )
 
     rel.end_solday = thisApp.solday
+
+    re.save()

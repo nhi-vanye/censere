@@ -1,9 +1,6 @@
 
 import peewee
 
-from censere.config import Generator as thisApp
-
-
 db = peewee.SqliteDatabase( None )
 
 import censere.models

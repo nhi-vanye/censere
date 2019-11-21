@@ -7,7 +7,6 @@ Created on Fri Mar 29 17:30:50 2019
 
 # Module gonverning the attributes of the colonists
 
-import logging
 import random
 import uuid
 
@@ -48,8 +47,8 @@ class Martian(Colonist):
 
             self.orientation = random.choices( [ 'm', 'f', 'mf' ], [ 90, 6, 4 ] )[0]
 
-
-        self.birth_location = 'Mars'
+        # prefer lower case for all "enums"
+        self.birth_location = 'mars'
 
 
         # earth age in earth days converted to sols, then backdated from now

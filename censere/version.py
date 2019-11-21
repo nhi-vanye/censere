@@ -15,5 +15,5 @@ import datetime
 __version__ = "{}{}{}".format(datetime.date.today().strftime("%Y.%j"), __release_phase__, __release_phase_build__)
 try:
     __version__ =  pkg_resources.get_distribution('censere').version
-except:
+except Exception:
     pass

@@ -1,16 +1,8 @@
 
-import enum
-import logging
-
 import peewee
 import playhouse.signals
 
-from censere.config import Generator as thisApp
-
 import censere.db as DB
-
-from .colonist import Colonist as Colonist
-
 
 class RelationshipEnum():
     partner = 1
@@ -28,12 +20,9 @@ class Relationship( playhouse.signals.Model ):
 
     relationship_id = peewee.UUIDField( unique=True)
 
-    # TODO - make these foreign key or not ?
+    # 
     first = peewee.UUIDField()
     second = peewee.UUIDField()
-    # 
-    #first = peewee.ForeignKeyField(Colonist, field="colonist_id", backref='partner')
-    #second = peewee.ForeignKeyField(Colonist, field="colonist_id", backref='partner')
 
     relationship = peewee.IntegerField()
 

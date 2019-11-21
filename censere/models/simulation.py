@@ -6,16 +6,11 @@
 
 # Stores details on a given simulation run.
 
-import logging
-import random
-import uuid
-
 import peewee
 import playhouse.signals
 
 import censere.db as DB
 
-from censere.config import Generator as thisApp
 
 ##
 # Store details about the simulation

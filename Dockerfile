@@ -4,10 +4,12 @@ RUN mkdir -p /BUILD/censere
 
 ADD requirements.txt  /BUILD/censere/
 
+# Keep this early to maximize the docker layer cache re-use
 RUN cd /BUILD/censere \
-    && ls -l \
+    && ls -al \
     && apk add --no-cache --virtual .gcc.deps \
         build-base \
+        freetype-dev \
         gcc \
         libffi-dev \
         make \

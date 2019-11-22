@@ -11,8 +11,10 @@ variables:
 services:
   - docker:19.03.0-dind
 
+# lint requires a lot of packages to be _compiled_
+#  - burns a lot of CPU minutes on the shared runners.
+#  - lint
 stages:
-  - lint
   - build
 # publish updates to web site
 #  - publish
@@ -26,15 +28,15 @@ before_script:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   - ls -l
 
-lint:
-  stage: lint
-  script:
-    - apk update
-    - apk upgrade
-    - apk add --no-cache build-base gcc make musl-dev python3 python3-dev py3-pip
-    - pip3 install pylint
-    - pip3 install --requirement requirements.txt
-    - scripts/lint.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
+#lint:
+#  stage: lint
+#  script:
+#    - apk update
+#    - apk upgrade
+#    - apk add --no-cache build-base freetype-dev gcc make musl-dev python3 python3-dev py3-pip
+#    - pip3 install pylint
+#    - pip3 install --requirement requirements.txt
+#    - scripts/lint.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
 
 build:
   stage: build

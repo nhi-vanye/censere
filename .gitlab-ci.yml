@@ -31,8 +31,9 @@ lint:
   script:
     - apk update
     - apk upgrade
-    - apk add --no-cache python3 py3-pip
+    - apk add --no-cache build-base gcc make musl-dev python3 python3-dev py3-pip
     - pip3 install pylint
+    - pip3 install --requirement requirements.txt
     - scripts/lint.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
 
 build:

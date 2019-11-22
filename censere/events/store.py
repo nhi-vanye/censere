@@ -14,7 +14,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
 
         logging.error("Missing required arguments in call to register_callback()")
 
-    logging.log( thisApp.DETAILS, "%.% Registering callback %() to be run at % (%.%)", *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, when, *UTILS.from_soldays( when ) )
+    logging.log( thisApp.DETAILS, "%d.%d Registering callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, when, *UTILS.from_soldays( when ) )
     logging.debug( kwargs )
 
     store[ when ].append( {
@@ -41,7 +41,7 @@ def invoke_callbacks( ):
 
             if "func" in entry:
 
-                logging.debug( '%.%   Processing event %', *UTILS.from_soldays( thisApp.solday ), name )
+                logging.debug( '%d.%d   Processing event %s', *UTILS.from_soldays( thisApp.solday ), name )
                 entry["func"](**kwargs )
 
 

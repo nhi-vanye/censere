@@ -26,6 +26,8 @@ class Simulation(playhouse.signals.Model):
     # Unique identifier for the simulation
     simulation_id = peewee.UUIDField( unique=True)
 
+    initial_mission_lands = peewee.DateTimeField()
+
     # record the wall time we ran the simulation
     begin_datetime = peewee.DateTimeField( )
     end_datetime = peewee.DateTimeField( null=True )
@@ -35,4 +37,9 @@ class Simulation(playhouse.signals.Model):
 
     # how many days did the simulation run for
     soldays_elapsed = peewee.IntegerField( null=True)
+
+    # add a column for storing simulation notes
+    # Nothing in generator will add to this column, its for
+    # storing descriptive text found during analysis
+    notes = peewee.BlobField( null=True )
 

@@ -30,6 +30,11 @@ class Summary(playhouse.signals.Model):
     simulation_id = peewee.UUIDField( )
 
     solday = peewee.IntegerField( )
+    # All the calculations are based on soldays
+    # but that is not very easy to plot
+    # so provide convert to a datetime
+    # based on inital_mission_lands date
+    earth_datetime = peewee.DateTimeField()
 
     adults = peewee.IntegerField( default=0 )
     children = peewee.IntegerField( default=0 )

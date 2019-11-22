@@ -20,7 +20,7 @@ import censere.events.callbacks as CALLBACKS
 # appropriate times...
 def make( ):
 
-    #logging.info( '%.% (%) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
+    #logging.info( '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
     partner = MODELS.Colonist.alias()
     
@@ -70,7 +70,7 @@ def make( ):
         r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
-        logging.info( '%.% Creating family between % % and % %',
+        logging.info( '%d.%d Creating family between %s %s and %s %s',
             *UTILS.from_soldays( thisApp.solday ),
             row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
 
@@ -113,9 +113,9 @@ def make( ):
             # radiation impact ???
             if random.randrange(0,99) < 40:
 
-                birth_day = thisApp.solday + random.randrange( 1, 760)
+                birth_day = thisApp.solday + random.randrange( 400, 1100)
 
-                logging.info( '%.% % % and % % are expecting a child on %.%',
+                logging.info( '%d.%d %s %s and %s %s are expecting a child on %d.%d',
                     *UTILS.from_soldays( thisApp.solday ),
                     row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'],
                     *UTILS.from_soldays( birth_day )

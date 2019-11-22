@@ -208,6 +208,7 @@ def add_summary_entry():
     s.simulation_id = thisApp.simulation
 
     s.solday = thisApp.solday
+    s.earth_datetime = thisApp.earth_time
     s.adults = adults
     s.children = children
 
@@ -243,19 +244,24 @@ def main( argv ):
     thisApp.solday = 1
 
     logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    logging.log( thisApp.NOTICE, '%.% (%) Simulation % Started. Goal % = %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Started. Goal %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
 
     initialize_database()
 
     # TODO save the paramters into the simulation table for reference.
     s = MODELS.Simulation( )
     s.simulation_id = thisApp.simulation
+    s.initial_mission_lands = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
     s.begin_datetime = datetime.datetime.now()
     s.limit = thisApp.limit
     s.limit_count = thisApp.limit_count
     logging.debug( 'Adding % rows to simulations table', s.save() )
 
     initial_landing()
+
+    # all calculations are done in sols (integers from day of landing)
+    # but convert to earth datetime to make elapsed time easier to comprehend
+    thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
 
     ACTIONS.make_families( )
 
@@ -264,7 +270,6 @@ def main( argv ):
         ( solyear, sol ) = UTILS.from_soldays( thisApp.solday )
 
         current_singles_count = get_singles_count()
-
 
         # Invoke actions every day...
 
@@ -292,12 +297,15 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 688:
-            logging.log( thisApp.NOTICE, '%.% (%) #Colonists %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
+            logging.log( thisApp.NOTICE, '%d.%d (%d) #Colonists %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             add_summary_entry()
             
 
         thisApp.solday += 1
+        # from wikipedia
+        # https://en.wikipedia.org/wiki/Timekeeping_on_Mars#Sols
+        thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147) 
 
     add_summary_entry()
 
@@ -308,7 +316,7 @@ def main( argv ):
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '%.% (%) Simulation % Complete. % % >= %', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Complete. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
 
 if __name__ == '__main__':
 

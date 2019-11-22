@@ -91,6 +91,10 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_ASTRONAUT_AGE_RANGE', '32,45' ),
             help='Age range of arriving astronauts (CENSERE_ASTRONAUT_AGE_RANGE)' )
 
+        parser.add_argument( '--initial-mission-lands', action="store",
+            **check_env_for_default( 'CENSERE_INITIAL_MISSION_LANDS', '2024-01-01 00:00:00.000+00:00' ),
+            help='Earth date that initial mission lands on Mars (CENSERE_INITIAL_MISSION_LANDS)' )
+
         parser.add_argument( '--limit', action="store",
             choices=['sols','population'],
             **check_env_for_default( 'CENSERE_LIMIT', 'population' ),

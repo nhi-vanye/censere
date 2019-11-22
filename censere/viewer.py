@@ -5,12 +5,13 @@ import logging
 import sys
 import urllib
 
+import matplotlib.dates as dates
 import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
 
-from config import Viewer as thisApp
-from config import ViewerOptions as Options
+from censere.config import Viewer as thisApp
+from censere.config import ViewerOptions as OPTIONS
 
 ## Initialize the parsing of any command line arguments
 #
@@ -27,7 +28,7 @@ specify arguments to the program - ONE ARGUMENT PER LINE.
 The Database should be on a local disk - not in Dropbox etc.
 """)
 
-    Options().register( parser )
+    OPTIONS().register( parser )
 
     args = parser.parse_args( namespace = thisApp )
 
@@ -56,18 +57,28 @@ The Database should be on a local disk - not in Dropbox etc.
 # TODO - turn this funtion into a module
 def main( argv ):
 
-    db_url = urllib.parse.urlparse( thisApp.database_url )
+    cnx = sqlite3.connect( thisApp.database )
 
-    cnx = sqlite3.connect( db_url.path )
-
-    df = pd.read_sql_query("SELECT * FROM summary", cnx)
+    df = pd.read_sql_query("SELECT * FROM summary", cnx, parse_dates=['earth_datetime'] )
 
     print( df.groupby("simulation_id").last() )
 
     fig, ax = plt.subplots()
 
+
     for key, grp in df.groupby('simulation_id'):
-        ax = grp.plot(ax=ax, kind='line', x='solday', y='population', label=key)
+        ax = grp.plot(ax=ax, kind='line', x='earth_datetime', y='population', label=key)
+
+    ax.set_xticks(df.earth_datetime)
+    ax.xaxis.set_major_formatter(dates.DateFormatter("%Y-%m"))
+
+    loc = dates.AutoDateLocator() 
+    ax.xaxis.set_major_locator(loc)
+
+    plt.xticks(rotation='vertical')
+
+    plt.xlabel('Date')
+    plt.ylabel('Population')
 
     plt.show()
 

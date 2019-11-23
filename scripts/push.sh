@@ -2,7 +2,7 @@
 
 topdir=$( cd "$( dirname "$0" )/../" && pwd )
 
-NAME=censere
+NAME=mars-censere
 
 . ${topdir}/scripts/standard-args.sh
 ParseArgs $*

@@ -2,7 +2,7 @@
 
 topdir=$( cd "$( dirname "$0" )/../" && pwd )
 
-NAME=censere
+NAME=mars-censere
 
 # process the options
 

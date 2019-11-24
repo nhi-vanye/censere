@@ -41,6 +41,7 @@ before_script:
 build:
   stage: build
   script:
+    - scripts/test.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/build.sh   -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/tag.sh     -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/push.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}

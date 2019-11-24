@@ -24,6 +24,10 @@ cache:
 
 before_script:
 #  - env | sort
+  - apk update
+  - apk upgrade
+  - apk add --no-cache python3 py3-pip
+  - pip3 install peewee pytest
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   - ls -l

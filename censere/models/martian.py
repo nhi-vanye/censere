@@ -27,14 +27,17 @@ class Martian(Colonist):
 
         table_name = 'colonists'
     
-    def initialize(self, solday):
+    def initialize(self, solday, sex=None, config=None):
 
         self.colonist_id = str(uuid.uuid4())
 
         self.simulation = thisApp.simulation
 
         # might want to bias Astronaut sex beyond 50:50
-        self.sex = random.choices( [ 'm', 'f'], [50, 50] )[0]
+        if sex == None:
+            self.sex = random.choices( [ 'm', 'f'], [50, 50] )[0]
+        else:
+            self.sex = sex
 
         if self.sex == 'm':
             self.first_name = get_random_male_first_name()

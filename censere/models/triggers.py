@@ -91,8 +91,8 @@ def relationship_post_save(sender, instance, created):
             ).execute()
         )
 
-        logging.info('%.% Created new family %', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-        logging.log( thisApp.DETAILS, '%.% Created new family between % and %', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id, instance.first, instance.second )
+        logging.info('%d.%d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
+        logging.log( thisApp.DETAILS, '%d.%d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
 
     else:
 

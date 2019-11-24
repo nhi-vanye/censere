@@ -28,14 +28,20 @@ class Astronaut(Colonist):
 
         table_name = 'colonists'
     
-    def initialize(self, solday):
+    def initialize(self, solday, sex=None, config=None):
+
+        if config == None:
+            config = thisApp
 
         self.colonist_id = str(uuid.uuid4())
 
-        self.simulation = thisApp.simulation
+        self.simulation = config.simulation
 
         # might want to bias Astronaut sex beyond 50:50
-        self.sex = random.choices( [ 'm', 'f'], [50, 50] )[0]
+        if sex == None:
+            self.sex = random.choices( [ 'm', 'f'], [50, 50] )[0]
+        else:
+            self.sex = sex
 
         if self.sex == 'm':
             self.first_name = get_random_male_first_name()
@@ -63,7 +69,7 @@ class Astronaut(Colonist):
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  solday - (
              int(random.choice( 
-                thisApp.astronaut_age_range.split(",") ) ) * 365.25 * 1.02749125 )
+                config.astronaut_age_range.split(",") ) ) * 365.25 * 1.02749125 )
 
         self.productivity = 100
 

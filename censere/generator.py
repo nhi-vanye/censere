@@ -19,6 +19,8 @@ import censere.models as MODELS
 # Import the database triggers to handle automation inside the DB
 # Not called directly, but still needed 
 import censere.models.triggers as TRIGGERS #pylint: disable=unused-import
+import censere.models.functions as FUNC
+
 
 import censere.actions as ACTIONS
 
@@ -77,6 +79,8 @@ The Database should be on a local disk - not in Dropbox etc.
 def initialize_database():
 
     DB.db.init( thisApp.database ) 
+
+    FUNC.register_all( DB.db )
 
     DB.create_tables()
 

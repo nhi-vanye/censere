@@ -27,7 +27,7 @@ def invoke_callbacks( ):
 
     if thisApp.solday in store:
 
-        logging.info( '%.% Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
+        logging.info( '%d.%d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
         for entry in store[thisApp.solday]:
 
             name = ""

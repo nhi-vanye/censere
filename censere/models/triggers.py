@@ -1,5 +1,6 @@
 
 import logging
+import uuid
 
 import playhouse.signals 
 
@@ -33,6 +34,31 @@ def colonist_pre_save(sender, instance, created):
 def colonist_post_save(sender, instance, created):
 
     if created:
+        # special case of astronaut saved
+        # add a dummy relationship of their offworld parents
+
+        if instance.birth_location == "earth":
+
+            s1 = Relationship()
+
+            s1.relationship_id=str(uuid.uuid4())
+            s1.first = instance.colonist_id
+            s1.second = instance.biological_father
+            s1.relationship = RelationshipEnum.parent
+            s1.begin_solday = thisApp.solday
+
+            s1.save()
+
+            s2 = Relationship()
+
+            s2.relationship_id=str(uuid.uuid4())
+            s2.first = instance.colonist_id
+            s2.second = instance.biological_mother
+            s2.relationship = RelationshipEnum.parent
+            s2.begin_solday = thisApp.solday
+
+            s2.save()
+
         return
 
     for i in instance._dirty_field_cache:
@@ -77,47 +103,74 @@ def relationship_pre_save(sender, instance, created):
 @playhouse.signals.post_save(sender=Relationship)
 def relationship_post_save(sender, instance, created):
 
-    if instance.relationship != RelationshipEnum.partner:
-        return
+    if instance.relationship == RelationshipEnum.parent:
 
-    if created:
+        # new parent child relationship created
+        # so add the parent's relationships onto this as well
+        # while incrementing the relationship value
+        if created:
 
-        ( 
-            Colonist.update( 
-                { Colonist.state: 'couple'} 
-            ).where( 
-                ( Colonist.colonist_id == instance.first ) |
-                ( Colonist.colonist_id == instance.second ) 
-            ).execute()
-        )
+            # instance.second is one of the biological parents of instance.first
+            # so look at reltionships that are on that parent
+            for row in Relationship.select().where( 
+                ( Relationship.first == instance.second ) &
+                # not a partner relationship
+                ( Relationship.relationship > 0 ) ) : 
 
-        logging.info('%d.%d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-        logging.log( thisApp.DETAILS, '%d.%d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+                r = Relationship()
 
-    else:
+                r.relationship_id=str(uuid.uuid4())
+                r.first = instance.first
+                r.second = row.second
 
-        # iterate over dirty fields
+                # increase the relationship level
+                r.relationship = row.relationship + 1
 
-        for i in instance._dirty_field_cache:
+                r.begin_solday = thisApp.solday
+
+                r.save()
+
+            return
+
+    if instance.relationship == RelationshipEnum.partner:
+        if created:
+
+            ( 
+                Colonist.update( 
+                    { Colonist.state: 'couple'} 
+                ).where( 
+                    ( Colonist.colonist_id == instance.first ) |
+                    ( Colonist.colonist_id == instance.second ) 
+                ).execute()
+            )
+
+            logging.log( logging.INFO, '%d.%d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
+            logging.log( thisApp.DETAILS, '%d.%d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+
+        else:
+
+            # iterate over dirty fields
+
+            for i in instance._dirty_field_cache:
         
-            if i.name == "end_solday":
+                if i.name == "end_solday":
 
-                # relationship has ended
-                if instance.end_solday != 0:
+                    # relationship has ended
+                    if instance.end_solday != 0:
 
-                    ## By making this a class update it wont initiate any
-                    # triggers (pre_save or post_save)
-                    # update each of the partners to make them single again
-                    # if they are not dead.
-                    ( 
-                        Colonist.update( 
-                            { Colonist.state: 'single'} 
-                        ).where( 
-                            ( ( Colonist.colonist_id == instance.first ) |
-                            ( Colonist.colonist_id == instance.second ) ) &
-                            ( Colonist.death_solday == 0 )
-                        ).execute()
-                    )
+                        ## By making this a class update it wont initiate any
+                        # triggers (pre_save or post_save)
+                        # update each of the partners to make them single again
+                        # if they are not dead.
+                        ( 
+                            Colonist.update( 
+                                { Colonist.state: 'single'} 
+                            ).where( 
+                                ( ( Colonist.colonist_id == instance.first ) |
+                                ( Colonist.colonist_id == instance.second ) ) &
+                                ( Colonist.death_solday == 0 )
+                            ).execute()
+                        )
 
 
 ###

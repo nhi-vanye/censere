@@ -235,6 +235,8 @@ def add_summary_entry():
 
     s.save()
 
+    return { "solday" : s.solday, "earth_datetime" : s.earth_datetime, "population": s.population }
+
 
 
 ## 
@@ -303,7 +305,8 @@ def main( argv ):
         if ( sol % 28 ) == 0 or sol == 688:
             logging.log( thisApp.NOTICE, '%d.%d (%d) #Colonists %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
-            add_summary_entry()
+            # returned data not used
+            res = add_summary_entry()
             
 
         thisApp.solday += 1
@@ -311,10 +314,16 @@ def main( argv ):
         # https://en.wikipedia.org/wiki/Timekeeping_on_Mars#Sols
         thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147) 
 
-    add_summary_entry()
+    res = add_summary_entry()
 
     ( 
-        MODELS.Simulation.update( { MODELS.Simulation.end_datetime: datetime.datetime.now() } 
+        MODELS.Simulation.update( 
+                { 
+                    MODELS.Simulation.end_datetime: datetime.datetime.now(),
+                    MODELS.Simulation.mission_ends: res["earth_datetime"],
+                    MODELS.Simulation.final_soldays: res["solday"],
+                    MODELS.Simulation.final_population: res["population"],
+                } 
             ).where( 
                 ( MODELS.Simulation.simulation_id == thisApp.simulation )
             ).execute()

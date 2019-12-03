@@ -61,7 +61,8 @@ def make(*args ):
                 # Call out to application policy to decide if this is allowed
                 ( peewee.fn.app_family_policy( MODELS.Colonist.colonist_id, partner.colonist_id ) == True)
             ).order_by(
-                peewee.fn.random()
+# a UUID is close to random and doesn't need to be calculated
+                MODELS.Colonist.colonist_id
             ).limit(1).dicts()
 
     for row in query.execute():

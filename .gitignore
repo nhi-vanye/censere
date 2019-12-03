@@ -1,0 +1,20 @@
+
+# python suggestions
+
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+
+
+# richards editor files
+*~
+*.pre-rmo
+*.swp
+*.svn

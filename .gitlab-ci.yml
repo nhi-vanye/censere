@@ -24,6 +24,10 @@ cache:
 
 before_script:
 #  - env | sort
+  - apk update
+  - apk upgrade
+  - apk add --no-cache python3 py3-pip
+  - pip3 install peewee pytest
   - docker info
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   - ls -l
@@ -41,6 +45,7 @@ before_script:
 build:
   stage: build
   script:
+    - scripts/test.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/build.sh   -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/tag.sh     -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}
     - scripts/push.sh    -p ${CI_PROJECT_NAMESPACE} -r ${CI_REGISTRY}

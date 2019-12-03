@@ -18,9 +18,11 @@ import censere.events.callbacks as CALLBACKS
 # Make a single new family out of two singles
 # the caller is responsible for calling this at
 # appropriate times...
-def make( ):
+#
+# \param args - not normally used, but required for pytest benchmarking
+def make(*args ):
 
-    #logging.info( '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
+    logging.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
     partner = MODELS.Colonist.alias()
     
@@ -58,8 +60,8 @@ def make( ):
                 ( partner.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 # Call out to application policy to decide if this is allowed
                 ( peewee.fn.app_family_policy( MODELS.Colonist.colonist_id, partner.colonist_id ) == True)
-            ).order_by( 
-                peewee.fn.random() 
+            ).order_by(
+                peewee.fn.random()
             ).limit(1).dicts()
 
     for row in query.execute():
@@ -74,7 +76,7 @@ def make( ):
         r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
-        logging.info( '%d.%d Creating family between %s %s and %s %s',
+        logging.log( logging.INFO, '%d.%d Creating family between %s %s and %s %s',
             *UTILS.from_soldays( thisApp.solday ),
             row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
 

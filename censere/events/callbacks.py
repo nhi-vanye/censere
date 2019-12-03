@@ -113,6 +113,12 @@ def colonist_born(**kwargs):
 
     logging.log( thisApp.NOTICE, '%d.%d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id )
 
+    register_callback(
+        when=thisApp.solday + random.gauss( UTILS.years_to_sols(60), UTILS.years_to_sols(10) ),
+        callback_func=colonist_dies,
+        kwargs= { "id" : m.colonist_id, "name":"{} {}".format( m.first_name, m.family_name) }
+    )
+
     # TODO trying to provide some falloff with age - but this is too simple
     # This should take into account mothers age.
     # dramtic falloff in fertility after 35 ???
@@ -145,10 +151,18 @@ def mission_lands(**kwargs):
 
         logging.info( '%d.%d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id )
 
-        # TODO make the max age of death configurable - 80
+        # TODO make the max age of death configurable
         # TODO model women outliving men
+        # TODO gauss is not a good distribution for modelling human lifetimes
+        # TODO life is not evenly distributed about a mean - but its better than a random distribution
+        # TODO consider https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3356396/
+        # TODO or http://lifetable.de
+        # TODO 60 and 10 are just made up...
+        # don't let death day be before today or they will never die.
+        current_age = thisApp.solday - a.birth_solday
         register_callback( 
-            when=(thisApp.solday - a.birth_solday) + random.randrange( 1, int( (80*365.25*1.02749125) )),
+            #when= thisApp.solday + max( random.randrange( 1, UTILS.years_to_sols(80) ) - a.birth_solday, 1),
+            when= max( random.gauss( UTILS.years_to_sols(60), UTILS.years_to_sols(10) ) - current_age, thisApp.solday+1),
             callback_func=colonist_dies,
             kwargs= { "id" : a.colonist_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )

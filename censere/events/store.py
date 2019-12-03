@@ -8,6 +8,8 @@ import censere.utils as UTILS
 
 store = collections.defaultdict(list)
 
+##
+# \param when - absolute solday to execute the function.
 def register_callback( when=0, name="", callback_func=None, kwargs=None ):
 
     if when == 0 or callback_func == None:

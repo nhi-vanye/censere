@@ -28,7 +28,8 @@ class TestCreatingFamilies:
     def test_create_two_straight_male_astronauts(self, database):
         database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
-        database.create_tables( [ censere.models.Astronaut ] )
+        # triggers on colonists table now require relationships table to be created
+        database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
         assert database.table_exists( "colonists" )
 
         a = censere.models.Astronaut()
@@ -66,9 +67,10 @@ class TestCreatingFamilies:
         database.create_tables( [ censere.models.Relationship ] )
         assert database.table_exists( "relationships" )
 
+        self._caplog.set_level(logging.DEBUG)
         censere.actions.make_families( )
 
-        assert censere.models.Relationship.select().count() == 0
+        assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 0
 
         male1 = censere.models.Colonist.get( 
                 censere.models.Colonist.colonist_id == "aaaaaaaa-1111-0000-0000-000000000000" ) 
@@ -120,7 +122,7 @@ class TestCreatingFamilies:
 
         censere.actions.make_families( )
 
-        assert censere.models.Relationship.select().count() == 1
+        assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 1
 
         assert censere.models.Colonist.select().where( 
                     ( censere.models.Colonist.state == 'couple' )
@@ -138,7 +140,7 @@ class TestCreatingFamilies:
 
         censere.actions.make_families( )
 
-        assert censere.models.Relationship.select().count() == 2
+        assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 2
 
         assert censere.models.Colonist.select().where( 
                     ( censere.models.Colonist.state == 'couple' )
@@ -161,7 +163,7 @@ class TestCreatingFamilies:
 
         # id is a hidden field - normally prefer
         # relationship_id but that is random
-        family = censere.models.Relationship.get( censere.models.Relationship.id == 1 ) 
+        family = censere.models.Relationship.get( censere.models.Relationship.id == 10 ) 
 
         assert family.relationship == censere.models.RelationshipEnum.partner
 
@@ -185,16 +187,17 @@ class TestCreatingFamilies:
         # Call main processing code to create a new born person
         censere.events.callbacks.colonist_born( **kwargs )
 
-        assert censere.models.Colonist.select().count() == 5
+        assert censere.models.Relationship.select().where(censere.models.Relationship.relationship != censere.models.RelationshipEnum.partner).count() == 14
 
         child = censere.models.Colonist.get( censere.models.Colonist.birth_solday == thisApp.solday )
 
         assert child.biological_father == father
         assert child.biological_mother == mother
 
-        # mother and father both have a child relationship
+        # a child has a mother and father relationship
         assert censere.models.Relationship.select().where( 
-                    ( censere.models.Relationship.relationship == censere.models.RelationshipEnum.child )
+                    ( censere.models.Relationship.first == child.colonist_id ) & 
+                    ( censere.models.Relationship.relationship == censere.models.RelationshipEnum.parent )
                ).count() == 2
 
     def test_start_paternity_leave(self, database):

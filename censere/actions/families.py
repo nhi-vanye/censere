@@ -27,37 +27,41 @@ def make( ):
     # TODO how to avoid "incest" ?
     query = MODELS.Colonist.select( 
             MODELS.Colonist.colonist_id.alias('userid1'),
-            partner.colonist_id.alias('userid2'), 
             MODELS.Colonist.first_name.alias('first_name1'),
-            partner.first_name.alias('first_name2'),
             MODELS.Colonist.family_name.alias('family_name1'),
-            partner.family_name.alias('family_name2'),
             MODELS.Colonist.sex.alias('sex1'),
+            partner.colonist_id.alias('userid2'),
+            partner.first_name.alias('first_name2'),
+            partner.family_name.alias('family_name2'),
             partner.sex.alias('sex2')
         ).join(
             partner, on=( partner.simulation == MODELS.Colonist.simulation ), attr="partner" 
         ).where(
+                # part of this execution run
+                ( MODELS.Colonist.simulation == thisApp.simulation ) &
+                ( partner.simulation == thisApp.simulation ) &
                 # no self-partnering
                 ( MODELS.Colonist.colonist_id != partner.colonist_id ) &
+                # still alive
+                ( MODELS.Colonist.death_solday == 0 ) &
+                ( partner.death_solday == 0 ) &
                 # - both persons must be single - so currently no extended families
+                # TODO - this should probably be pushed into the app_family_policy() code
                 ( MODELS.Colonist.state == 'single' ) &
                 ( partner.state == 'single' ) &
+                #
                 # compatible sexuality
                 ( MODELS.Colonist.orientation.contains( partner.sex ) ) &
                 ( partner.orientation.contains( MODELS.Colonist.sex ) ) &
                 # both over 18 earth years years
-                ( MODELS.Colonist.birth_solday < thisApp.solday - ( 18 * 365.25 * 1.02749125 ) ) &
-                ( partner.birth_solday < thisApp.solday - ( 18 * 365.25 * 1.02749125 ) ) &
-                # still alive
-                ( MODELS.Colonist.death_solday == 0 ) &
-                ( partner.death_solday == 0 ) &
-                # part of this execution run
-                ( MODELS.Colonist.simulation == thisApp.simulation ) &
-                ( partner.simulation == thisApp.simulation )
+                ( MODELS.Colonist.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
+                ( partner.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
+                # Call out to application policy to decide if this is allowed
+                ( peewee.fn.app_family_policy( MODELS.Colonist.colonist_id, partner.colonist_id ) == True)
             ).order_by( 
                 peewee.fn.random() 
             ).limit(1).dicts()
-    
+
     for row in query.execute():
 
         # rely on triggers to update colonist state to couple 

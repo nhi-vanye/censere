@@ -5,8 +5,18 @@ import playhouse.signals
 import censere.db as DB
 
 class RelationshipEnum():
-    partner = 1
-    child = 2
+    partner = 0
+    parent = 1
+    # These are generational
+    grandparent = 2
+    great_grandparent = 3
+    great_great_grandparent = 4
+    great_great_great_grandparent = 5
+    great_great_great_great_grandparent = 6
+    great_great_great_great_great_grandparent = 7
+    great_great_great_great_great_great_grandparent = 8
+    great_great_great_great_great_great_great_grandparent = 9
+    great_great_great_great_great_great_great_great_grandparent = 10
 
 class Relationship( playhouse.signals.Model ):
 

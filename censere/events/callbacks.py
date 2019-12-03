@@ -94,9 +94,9 @@ def colonist_born(**kwargs):
     r1 = MODELS.Relationship()
 
     r1.relationship_id=str(uuid.uuid4())
-    r1.first=mother.colonist_id
-    r1.second=m.colonist_id
-    r1.relationship=MODELS.RelationshipEnum.child
+    r1.first=m.colonist_id
+    r1.second=mother.colonist_id
+    r1.relationship=MODELS.RelationshipEnum.parent
     r1.begin_solday=thisApp.solday
 
     r1.save()
@@ -104,9 +104,9 @@ def colonist_born(**kwargs):
     r2 = MODELS.Relationship()
 
     r2.relationship_id=str(uuid.uuid4())
-    r2.first=father.colonist_id
-    r2.second=m.colonist_id
-    r2.relationship=MODELS.RelationshipEnum.child
+    r2.first=m.colonist_id
+    r2.second=father.colonist_id
+    r2.relationship=MODELS.RelationshipEnum.parent
     r2.begin_solday=thisApp.solday
 
     r2.save()

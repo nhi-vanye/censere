@@ -36,7 +36,10 @@ class Simulation(playhouse.signals.Model):
     limit_count = peewee.IntegerField( )
 
     # how many days did the simulation run for
-    soldays_elapsed = peewee.IntegerField( null=True)
+    mission_ends = peewee.DateTimeField( null=True )
+
+    final_soldays = peewee.IntegerField( null=True)
+    final_population = peewee.IntegerField( null=True)
 
     # add a column for storing simulation notes
     # Nothing in generator will add to this column, its for

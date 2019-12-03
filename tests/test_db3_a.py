@@ -240,3 +240,7 @@ class TestCreateUnacceptableFamilies:
     def test_make_family_from_second_cousins(self, database):
         pytest.skip("Not implemented yet")
 
+
+    def test_close(self, database):
+        database.close()
+

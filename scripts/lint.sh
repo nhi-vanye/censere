@@ -9,14 +9,7 @@ NAME=mars-censere
 . ${topdir}/scripts/standard-args.sh
 ParseArgs $*
 
-if [ -n "${REGISTRY}" ]
-then
-    PULL=--pull
-fi
-
-set -x
-docker build -t ${TAG} .
+pylint censere
 st=$?
-docker image ls "${TAG}"
 set +x
 exit $st

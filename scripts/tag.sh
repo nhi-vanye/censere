@@ -5,18 +5,17 @@ topdir=$( cd "$( dirname "$0" )/../" && pwd )
 NAME=mars-censere
 
 # process the options
-
 . ${topdir}/scripts/standard-args.sh
 ParseArgs $*
 
-if [ -n "${REGISTRY}" ]
+if [ -z "$REGISTRY" ]
 then
-    PULL=--pull
+    echo "tag.sh: Ignoring request to tag image, --registry not set"
+    exit 0
 fi
 
 set -x
-docker build -t ${TAG} .
+docker tag ${TAG} ${REGISTRY}/${TAG}
 st=$?
-docker image ls "${TAG}"
 set +x
 exit $st

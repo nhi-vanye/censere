@@ -3,7 +3,6 @@
 import argparse
 import logging
 import sys
-import urllib
 
 import matplotlib.dates as dates
 import matplotlib.pyplot as plt

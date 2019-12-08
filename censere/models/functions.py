@@ -5,8 +5,6 @@
 
 import logging
 
-from censere.config import Generator as thisApp
-
 import censere.models
 
 ##

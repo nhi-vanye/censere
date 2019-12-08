@@ -15,6 +15,8 @@ from censere.config import Generator as thisApp
 
 import censere.db as DB
 
+import censere.utils as UTILS
+
 from .colonist import Colonist as Colonist
 from .colonist import LocationEnum as LocationEnum
 
@@ -71,7 +73,7 @@ class Astronaut(Colonist):
 
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  solday - ( 
-            UTILS.years_to_sols( random.choice( config.astronaut_age_range.split(",") ) ) )
+            UTILS.years_to_sols( int( random.choice( config.astronaut_age_range.split(",") ) ) ) )
 
         self.productivity = 100
 

@@ -16,6 +16,7 @@ import censere.db as DB
 
 
 from .colonist import Colonist as Colonist
+from .colonist import LocationEnum as LocationEnum
 
 from .names import get_random_male_first_name
 from .names import get_random_female_first_name
@@ -51,7 +52,9 @@ class Martian(Colonist):
             self.orientation = random.choices( [ 'm', 'f', 'mf' ], [ 90, 6, 4 ] )[0]
 
         # prefer lower case for all "enums"
-        self.birth_location = 'mars'
+        self.birth_location = LocationEnum.Mars
+
+        self.current_location = LocationEnum.Mars
 
 
         # earth age in earth days converted to sols, then backdated from now

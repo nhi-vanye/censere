@@ -101,6 +101,7 @@ def get_limit_count( limit="population" ):
 
             count = MODELS.Colonist.select().where( 
                 ( MODELS.Colonist.simulation == thisApp.simulation ) &
+                ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
                 ( MODELS.Colonist.death_solday == 0 )
             ).count()
 
@@ -117,6 +118,7 @@ def get_singles_count( ):
     try:
         count = MODELS.Colonist.select().where(
             ( MODELS.Colonist.simulation == thisApp.simulation ) &
+            ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
             ( MODELS.Colonist.death_solday == 0 ) &
             ( MODELS.Colonist.state == 'single' )
         ).count()
@@ -131,18 +133,21 @@ def add_summary_entry():
 
     adults = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Colonist.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
         ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
     children = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.birth_solday >= ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Colonist.birth_solday >= ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
         ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
     singles = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.state == 'single' ) & 
         ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
         ( MODELS.Colonist.death_solday == 0 )
@@ -150,6 +155,7 @@ def add_summary_entry():
 
     couples = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.state == 'couple' ) & 
         ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
         ( MODELS.Colonist.death_solday == 0 )
@@ -157,18 +163,21 @@ def add_summary_entry():
 
     males = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.sex == 'm' ) & 
         ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
     females = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.sex == 'f' ) & 
         ( MODELS.Colonist.death_solday == 0 )
     ).count()
 
     hetrosexual = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( ( ( MODELS.Colonist.sex == 'm' ) & 
           ( MODELS.Colonist.orientation == 'f' ) ) | 
         ( ( MODELS.Colonist.sex == 'f' ) & 
@@ -179,6 +188,7 @@ def add_summary_entry():
 
     homosexual = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.sex == MODELS.Colonist.orientation ) & 
         ( MODELS.Colonist.death_solday == 0 ) &
         ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
@@ -186,6 +196,7 @@ def add_summary_entry():
 
     bisexual = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.orientation == 'mf' ) & 
         ( MODELS.Colonist.death_solday == 0 ) &
         ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
@@ -193,17 +204,20 @@ def add_summary_entry():
 
     deaths = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
         ( MODELS.Colonist.death_solday != 0 )
     ).count()
 
     earth_born = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.birth_location == 'Earth' )
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Colonist.birth_location == MODELS.LocationEnum.Earth )
     ).count()
 
     mars_born = MODELS.Colonist.select().where( 
         ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.birth_location == 'Mars' )
+        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Colonist.birth_location == MODELS.LocationEnum.Mars )
     ).count()
 
 

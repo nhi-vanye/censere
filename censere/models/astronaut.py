@@ -16,6 +16,7 @@ from censere.config import Generator as thisApp
 import censere.db as DB
 
 from .colonist import Colonist as Colonist
+from .colonist import LocationEnum as LocationEnum
 
 from .names import get_random_male_first_name
 from .names import get_random_female_first_name
@@ -57,7 +58,9 @@ class Astronaut(Colonist):
         self.family_name = get_random_family_name()
 
         # prefer lower case for all strings (except names)
-        self.birth_location = 'earth'
+        self.birth_location = LocationEnum.Earth
+
+        self.current_location = LocationEnum.Mars
 
         # add dummy biological parents to make consanguinity 
         # easier (no special cases)
@@ -67,9 +70,8 @@ class Astronaut(Colonist):
         self.biological_mother = str(uuid.uuid4())
 
         # earth age in earth days converted to sols, then backdated from now
-        self.birth_solday =  solday - (
-             int(random.choice( 
-                config.astronaut_age_range.split(",") ) ) * 365.25 * 1.02749125 )
+        self.birth_solday =  solday - ( 
+            UTILS.years_to_sols( random.choice( config.astronaut_age_range.split(",") ) ) )
 
         self.productivity = 100
 

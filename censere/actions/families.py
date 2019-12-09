@@ -1,4 +1,6 @@
 
+from __future__ import division
+
 import logging
 import random
 import uuid
@@ -114,26 +116,33 @@ def make(*args ):
             pass
 
         if mother and father:
-            # TODO
-            # This should take into account mothers age.
-            # dramtic falloff in fertility after 35 ???
-            # radiation impact ???
+            m = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(mother) ) 
+
+            mothers_age = int( (thisApp.solday - m.birth_solday) / 680 )
+
+            # TODO What rate of relationships have children
             if random.randrange(0,99) < 40:
+                r = random.random()
 
-                birth_day = thisApp.solday + random.randrange( 400, 1100)
+                if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
 
-                logging.info( '%d.%d %s %s and %s %s are expecting a child on %d.%d',
-                    *UTILS.from_soldays( thisApp.solday ),
-                    row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'],
-                    *UTILS.from_soldays( birth_day )
-                )
+                    delay = [int(i) for i in thisApp.initial_child_delay.split(",") ]
+                    birth_day = thisApp.solday + random.randrange( delay[0], delay[1])
 
-                # register a function to be called at `when`
-                EVENTS.register_callback( 
-                    when= birth_day,
-                    callback_func=CALLBACKS.colonist_born,
-                    kwargs= { "biological_mother" : mother, "biological_father": father }
-                )
+                    logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
+                        *UTILS.from_soldays( thisApp.solday ),
+                        row['first_name1'], row['family_name1'],
+                        row['first_name2'], row['family_name2'],
+                        mother, father,
+                        *UTILS.from_soldays( birth_day )
+                    )
+
+                    # register a function to be called at `when`
+                    EVENTS.register_callback( 
+                        when= birth_day,
+                        callback_func=CALLBACKS.colonist_born,
+                        kwargs= { "biological_mother" : mother, "biological_father": father }
+                    )
 
             else:
 

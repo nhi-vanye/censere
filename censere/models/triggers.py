@@ -64,7 +64,7 @@ def colonist_post_save(sender, instance, created):
         
         if i.name == "death_solday":
 
-            logging.debug( "%d.%d Updated death_solday for %s %s (%d)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.colonist_id )
+            logging.debug( "%d.%03d Updated death_solday for %s %s (%d)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.colonist_id )
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
@@ -81,7 +81,7 @@ def colonist_post_save(sender, instance, created):
                 # the surviving partner to single - so call any triggers...
                 r.end_solday = thisApp.solday
 
-                logging.info( "%d.%d Relationship %s ended. Death of %s %s",
+                logging.info( "%d.%03d Relationship %s ended. Death of %s %s",
                     *UTILS.from_soldays( thisApp.solday ),
                     r.relationship_id,
                     instance.first_name,
@@ -143,8 +143,8 @@ def relationship_post_save(sender, instance, created):
                 ).execute()
             )
 
-            logging.log( logging.INFO, '%d.%d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-            logging.log( thisApp.DETAILS, '%d.%d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+            logging.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
+            logging.log( thisApp.DETAILS, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
 
         else:
 

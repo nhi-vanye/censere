@@ -35,7 +35,7 @@ def colonist_dies(**kwargs):
         logging.error( "colonist_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "%d.%d Colonist %s dies ", *UTILS.from_soldays( thisApp.solday ), id )
+    logging.log( thisApp.NOTICE, "%d.%03d Colonist %s dies ", *UTILS.from_soldays( thisApp.solday ), id )
 
     # Call the instance method to trigger callback handling.
     for c in MODELS.Colonist().select().filter( MODELS.Colonist.colonist_id == id ):
@@ -70,12 +70,12 @@ def colonist_born(**kwargs):
 
     except Exception as e:
 
-        logging.error( 'Failed to find parents %s or %s', str(biological_father), str(biological_mother) )
+        logging.error( '%d.%03d Failed to find parents %s (%s) or %s (%s)', *UTILS.from_soldays( thisApp.solday ), father, str(biological_father), mother, str(biological_mother) )
         return
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        logging.error( '%d.%d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
+        logging.error( '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
         return
 
     m = MODELS.Martian()
@@ -111,7 +111,7 @@ def colonist_born(**kwargs):
 
     r2.save()
 
-    logging.log( thisApp.NOTICE, '%d.%d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id )
+    logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id )
 
     register_callback(
         when=thisApp.solday + random.gauss( UTILS.years_to_sols(70), UTILS.years_to_sols(7) ),
@@ -119,16 +119,30 @@ def colonist_born(**kwargs):
         kwargs= { "id" : m.colonist_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
-    # TODO trying to provide some falloff with age - but this is too simple
-    # This should take into account mothers age.
-    # dramtic falloff in fertility after 35 ???
     mothers_age = int( (thisApp.solday - mother.birth_solday) / 680 )
-    if random.randrange(0,99) < ( 20 - mothers_age )  :
+
+    r = random.random()
+
+    # TODO trying to provide some falloff with age - but this is too simple
+    # dramtic falloff in fertility after 35 ???
+    # It would probably make sense to store eggs from before launch
+    # to increase the success rate
+    # TODO
+    # This is only looking at age, should include a choice component
+    # maybe a family only wants one child...
+    if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
+
+        gap = [int(i) for i in thisApp.gap_between_children.split(",") ]
+
+
+        when = thisApp.solday + random.randrange( gap[0], gap[1])
+
+        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id, *UTILS.from_soldays( when )  )
         register_callback( 
             # handle the "cool off" period...
-            when= thisApp.solday + random.randrange( 330, 1090),
+            when=when,
             callback_func=colonist_born,
-            kwargs= { "biological_mother" : mother, "biological_father": father }
+            kwargs= { "biological_mother" : mother.colonist_id, "biological_father": father.colonist_id}
         )
 
 ##
@@ -139,7 +153,7 @@ def mission_lands(**kwargs):
 
     colonists = kwargs['colonists'] 
 
-    logging.log( thisApp.NOTICE, "%d.%d Mission landed with %d colonists", *UTILS.from_soldays( thisApp.solday ), colonists )
+    logging.log( thisApp.NOTICE, "%d.%03d Mission landed with %d colonists", *UTILS.from_soldays( thisApp.solday ), colonists )
 
     for i in range(colonists):
 
@@ -149,7 +163,7 @@ def mission_lands(**kwargs):
 
         saved = a.save()
 
-        logging.info( '%d.%d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id )
+        logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id )
 
         # TODO make the max age of death configurable
         # TODO model women outliving men
@@ -192,7 +206,7 @@ def end_relationship(**kwargs):
 
     id = kwargs['relationship_id'] 
 
-    logging.info("%d.%d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
+    logging.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
 
 
     rel = MODELS.Relationship.get( MODELS.Relationship.relationship_id == id )

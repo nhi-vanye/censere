@@ -47,16 +47,18 @@ The Database should be on a local disk - not in Dropbox etc.
 
     args = parser.parse_args( namespace = thisApp )
 
-    log_msg_format = '%(asctime)s %(levelname)5s %(message)s'
+    log_msg_format = '%(asctime)s %(levelname)6s %(message)s'
 
     logging.addLevelName(thisApp.NOTICE, "NOTICE")
+    logging.addLevelName(thisApp.DETAILS, "DETAIL")
+    logging.addLevelName(thisApp.TRACE, "TRACE")
 
     log_level = thisApp.NOTICE
 
     # shortcut
     if thisApp.debug:
 
-        log_msg_format='%(asctime)s.%(msecs)03d %(levelname)5s %(filename)s#%(lineno)-3d %(message)s'
+        log_msg_format='%(asctime)s.%(msecs)03d %(levelname)6s %(filename)s#%(lineno)-3d %(message)s'
 
         log_level = logging.DEBUG    
 
@@ -275,6 +277,7 @@ def main( argv ):
     s.begin_datetime = datetime.datetime.now()
     s.limit = thisApp.limit
     s.limit_count = thisApp.limit_count
+    s.args = thisApp.args(thisApp)
     logging.debug( 'Adding % rows to simulations table', s.save() )
 
     initial_landing()
@@ -317,7 +320,7 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 688:
-            logging.log( thisApp.NOTICE, '%d.%d (%d) #Colonists %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
+            logging.log( thisApp.NOTICE, '%d.%03d (%d) #Colonists %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             # returned data not used
             res = add_summary_entry()
@@ -343,7 +346,7 @@ def main( argv ):
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Complete. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Complete. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
 
 if __name__ == '__main__':
 

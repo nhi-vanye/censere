@@ -33,22 +33,22 @@ class TestCreatingFamilies:
     def test_create_two_straight_male_astronauts(self, database):
         database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
-        # triggers on colonists table now require relationships table to be created
+        # triggers on settlers table now require relationships table to be created
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
         a = censere.models.Astronaut()
 
         a.initialize( 1, sex='m', config=thisApp )
 
         # use a well known ID to make it easier to find
-        a.colonist_id = "aaaaaaaa-1111-0000-0000-000000000000"
+        a.settler_id = "aaaaaaaa-1111-0000-0000-000000000000"
         a.orientation = 'f'
 
         assert a.save() == 1
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-1111-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" )
                ).count() == 1
 
         b = censere.models.Astronaut()
@@ -57,12 +57,12 @@ class TestCreatingFamilies:
         b.orientation = 'f'
 
         # use a well known ID to make it easier to find
-        b.colonist_id = "aaaaaaaa-2222-0000-0000-000000000000"
+        b.settler_id = "aaaaaaaa-2222-0000-0000-000000000000"
 
         assert b.save() == 1
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-2222-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" )
                ).count() == 1
 
 
@@ -77,11 +77,11 @@ class TestCreatingFamilies:
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 0
 
-        male1 = censere.models.Colonist.get( 
-                censere.models.Colonist.colonist_id == "aaaaaaaa-1111-0000-0000-000000000000" ) 
+        male1 = censere.models.Settler.get( 
+                censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" ) 
 
-        male2 = censere.models.Colonist.get( 
-                censere.models.Colonist.colonist_id == "aaaaaaaa-2222-0000-0000-000000000000" ) 
+        male2 = censere.models.Settler.get( 
+                censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" ) 
 
         assert male1.state == 'single'
         assert male2.state == 'single'
@@ -90,20 +90,20 @@ class TestCreatingFamilies:
         database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Astronaut ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
         a = censere.models.Astronaut()
 
         a.initialize( 1, sex='f', config=thisApp )
 
         # use a well known ID to make it easier to find
-        a.colonist_id = "aaaaaaaa-3333-0000-0000-000000000000"
+        a.settler_id = "aaaaaaaa-3333-0000-0000-000000000000"
         a.orientation = 'm'
 
         assert a.save() == 1
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-3333-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-3333-0000-0000-000000000000" )
                ).count() == 1
 
         b = censere.models.Astronaut()
@@ -112,12 +112,12 @@ class TestCreatingFamilies:
         b.orientation = 'm'
 
         # use a well known ID to make it easier to find
-        b.colonist_id = "aaaaaaaa-4444-0000-0000-000000000000"
+        b.settler_id = "aaaaaaaa-4444-0000-0000-000000000000"
 
         assert b.save() == 1
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-4444-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-4444-0000-0000-000000000000" )
                ).count() == 1
 
     def test_make_one_family(self, database):
@@ -129,12 +129,12 @@ class TestCreatingFamilies:
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 1
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.state == 'couple' )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.state == 'couple' )
                ).count() == 2
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.state == 'single' )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.state == 'single' )
                ).count() == 2
 
     def test_make_second_family(self, database):
@@ -147,21 +147,21 @@ class TestCreatingFamilies:
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 2
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.state == 'couple' )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.state == 'couple' )
                ).count() == 4
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.state == 'single' )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.state == 'single' )
                ).count() == 0
 
-    def test_colonist_pregnant(self, database):
+    def test_settler_pregnant(self, database):
         pytest.skip("Event pipeline not present yet")
 
     def test_maternity_leave(self, database):
         pytest.skip("Event pipeline not present yet")
 
-    def test_colonist_born(self, database):
+    def test_settler_born(self, database):
         database.bind( [ censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         assert database.table_exists( "relationships" )
@@ -172,8 +172,8 @@ class TestCreatingFamilies:
 
         assert family.relationship == censere.models.RelationshipEnum.partner
 
-        first = censere.models.Colonist.get( censere.models.Colonist.colonist_id == str(family.first) )
-        second = censere.models.Colonist.get( censere.models.Colonist.colonist_id == str(family.second) )
+        first = censere.models.Settler.get( censere.models.Settler.settler_id == str(family.first) )
+        second = censere.models.Settler.get( censere.models.Settler.settler_id == str(family.second) )
 
         mother = None
         father = None
@@ -181,27 +181,27 @@ class TestCreatingFamilies:
         assert first.sex != second.sex
 
         if first.sex == 'm':
-            father = first.colonist_id
-            mother = second.colonist_id
+            father = first.settler_id
+            mother = second.settler_id
         else:
-            mother = first.colonist_id
-            father = second.colonist_id
+            mother = first.settler_id
+            father = second.settler_id
 
         kwargs = { "biological_mother" : mother, "biological_father": father }
 
         # Call main processing code to create a new born person
-        censere.events.callbacks.colonist_born( **kwargs )
+        censere.events.callbacks.settler_born( **kwargs )
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship != censere.models.RelationshipEnum.partner).count() == 14
 
-        child = censere.models.Colonist.get( censere.models.Colonist.birth_solday == thisApp.solday )
+        child = censere.models.Settler.get( censere.models.Settler.birth_solday == thisApp.solday )
 
         assert child.biological_father == father
         assert child.biological_mother == mother
 
         # a child has a mother and father relationship
         assert censere.models.Relationship.select().where( 
-                    ( censere.models.Relationship.first == child.colonist_id ) & 
+                    ( censere.models.Relationship.first == child.settler_id ) & 
                     ( censere.models.Relationship.relationship == censere.models.RelationshipEnum.parent )
                ).count() == 2
 

@@ -23,7 +23,7 @@ from .store import register_callback as register_callback
 
 ## A person dies
 #
-def colonist_dies(**kwargs):
+def settler_dies(**kwargs):
 
     id = None
 
@@ -32,13 +32,13 @@ def colonist_dies(**kwargs):
             id = v
 
     if id == None:
-        logging.error( "colonist_dies event called with no person identifier")
+        logging.error( "settler_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "%d.%03d Colonist %s dies ", *UTILS.from_soldays( thisApp.solday ), id )
+    logging.log( thisApp.NOTICE, "%d.%03d Settler %s dies ", *UTILS.from_soldays( thisApp.solday ), id )
 
     # Call the instance method to trigger callback handling.
-    for c in MODELS.Colonist().select().filter( MODELS.Colonist.colonist_id == id ):
+    for c in MODELS.Settler().select().filter( MODELS.Settler.settler_id == id ):
 
         c.death_solday = thisApp.solday
 
@@ -46,7 +46,7 @@ def colonist_dies(**kwargs):
 
 ## A person is born
 #
-def colonist_born(**kwargs):
+def settler_born(**kwargs):
 
     biological_mother = None
     biological_father = None
@@ -58,15 +58,15 @@ def colonist_born(**kwargs):
             biological_father = v
 
     if biological_mother == None or biological_father == None:
-        logging.error( "colonist_born event called with no biological parents specified")
+        logging.error( "settler_born event called with no biological parents specified")
         return
 
     father = None
     mother = None
 
     try:
-        father = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(biological_father) ) 
-        mother = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(biological_mother) ) 
+        father = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_father) ) 
+        mother = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_mother) ) 
 
     except Exception as e:
 
@@ -94,8 +94,8 @@ def colonist_born(**kwargs):
     r1 = MODELS.Relationship()
 
     r1.relationship_id=str(uuid.uuid4())
-    r1.first=m.colonist_id
-    r1.second=mother.colonist_id
+    r1.first=m.settler_id
+    r1.second=mother.settler_id
     r1.relationship=MODELS.RelationshipEnum.parent
     r1.begin_solday=thisApp.solday
 
@@ -104,19 +104,19 @@ def colonist_born(**kwargs):
     r2 = MODELS.Relationship()
 
     r2.relationship_id=str(uuid.uuid4())
-    r2.first=m.colonist_id
-    r2.second=father.colonist_id
+    r2.first=m.settler_id
+    r2.second=father.settler_id
     r2.relationship=MODELS.RelationshipEnum.parent
     r2.begin_solday=thisApp.solday
 
     r2.save()
 
-    logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id )
+    logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
 
     register_callback(
         when=thisApp.solday + random.gauss( UTILS.years_to_sols(70), UTILS.years_to_sols(7) ),
-        callback_func=colonist_dies,
-        kwargs= { "id" : m.colonist_id, "name":"{} {}".format( m.first_name, m.family_name) }
+        callback_func=settler_dies,
+        kwargs= { "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
     mothers_age = int( (thisApp.solday - mother.birth_solday) / 680 )
@@ -137,25 +137,25 @@ def colonist_born(**kwargs):
 
         when = thisApp.solday + random.randrange( gap[0], gap[1])
 
-        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.colonist_id, *UTILS.from_soldays( when )  )
+        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
         register_callback( 
             # handle the "cool off" period...
             when=when,
-            callback_func=colonist_born,
-            kwargs= { "biological_mother" : mother.colonist_id, "biological_father": father.colonist_id}
+            callback_func=settler_born,
+            kwargs= { "biological_mother" : mother.settler_id, "biological_father": father.settler_id}
         )
 
 ##
-# A new lander arrives with #colonists
+# A new lander arrives with #settlers
 # 
 # TODO handle children (imagine aged 10-18, younger than that might be real world difficult)
 def mission_lands(**kwargs):
 
-    colonists = kwargs['colonists'] 
+    settlers = kwargs['settlers'] 
 
-    logging.log( thisApp.NOTICE, "%d.%03d Mission landed with %d colonists", *UTILS.from_soldays( thisApp.solday ), colonists )
+    logging.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
 
-    for i in range(colonists):
+    for i in range(settlers):
 
         a = MODELS.Astronaut()
 
@@ -163,7 +163,7 @@ def mission_lands(**kwargs):
 
         saved = a.save()
 
-        logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.colonist_id )
+        logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
 
         # TODO make the max age of death configurable
         # TODO model women outliving men
@@ -178,8 +178,8 @@ def mission_lands(**kwargs):
         register_callback( 
             #when= thisApp.solday + max( random.randrange( 1, UTILS.years_to_sols(80) ) - a.birth_solday, 1),
             when= max( random.gauss( UTILS.years_to_sols(72), UTILS.years_to_sols(7) ) - current_age, thisApp.solday+ random.randrange(1, 680)),
-            callback_func=colonist_dies,
-            kwargs= { "id" : a.colonist_id, "name":"{} {}".format( a.first_name, a.family_name) }
+            callback_func=settler_dies,
+            kwargs= { "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
 
     # schedule the next landing
@@ -194,7 +194,7 @@ def mission_lands(**kwargs):
         when =  thisApp.solday + 759,
         callback_func = mission_lands,
         kwargs = { 
-            "colonists" : random.randrange(40, 80)
+            "settlers" : random.randrange(40, 80)
         }
     )
 

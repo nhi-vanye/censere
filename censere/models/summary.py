@@ -57,13 +57,3 @@ class Summary(playhouse.signals.Model):
     mars_born = peewee.IntegerField( default=0 )
 
 
-    population = peewee.IntegerField( default=0 )
-
-    singles = peewee.IntegerField( default=0 )
-    couples = peewee.IntegerField( default=0 )
-
-    deaths = peewee.IntegerField( default=0 )
-
-    earth_born = peewee.IntegerField( default=0 )
-    mars_born = peewee.IntegerField( default=0 )
-

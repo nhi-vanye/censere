@@ -5,7 +5,7 @@ Created on Fri Mar 29 17:30:50 2019
 @author: matej
 """
 
-# Module gonverning the attributes of the colonists
+# Module governing the attributes of the settlers
 
 import random
 import uuid
@@ -15,22 +15,27 @@ from censere.config import Generator as thisApp
 import censere.db as DB
 
 
-from .colonist import Colonist as Colonist
-from .colonist import LocationEnum as LocationEnum
+from .settler import Settler as Settler
+from .settler import LocationEnum as LocationEnum
 
 from .names import get_random_male_first_name
 from .names import get_random_female_first_name
 
-class Martian(Colonist):
+## 
+# class Martian
+#
+# Someone who was born on Mars
+#
+class Martian(Settler):
     
     class Meta:
         database = DB.db
 
-        table_name = 'colonists'
+        table_name = 'settlers'
     
     def initialize(self, solday, sex=None, config=None):
 
-        self.colonist_id = str(uuid.uuid4())
+        self.settler_id = str(uuid.uuid4())
 
         self.simulation = thisApp.simulation
 

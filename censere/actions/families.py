@@ -26,50 +26,50 @@ def make(*args ):
 
     logging.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
-    partner = MODELS.Colonist.alias()
+    partner = MODELS.Settler.alias()
     
     # TODO how to avoid "incest" ?
-    query = MODELS.Colonist.select( 
-            MODELS.Colonist.colonist_id.alias('userid1'),
-            MODELS.Colonist.first_name.alias('first_name1'),
-            MODELS.Colonist.family_name.alias('family_name1'),
-            MODELS.Colonist.sex.alias('sex1'),
-            partner.colonist_id.alias('userid2'),
+    query = MODELS.Settler.select( 
+            MODELS.Settler.settler_id.alias('userid1'),
+            MODELS.Settler.first_name.alias('first_name1'),
+            MODELS.Settler.family_name.alias('family_name1'),
+            MODELS.Settler.sex.alias('sex1'),
+            partner.settler_id.alias('userid2'),
             partner.first_name.alias('first_name2'),
             partner.family_name.alias('family_name2'),
             partner.sex.alias('sex2')
         ).join(
-            partner, on=( partner.simulation == MODELS.Colonist.simulation ), attr="partner" 
+            partner, on=( partner.simulation == MODELS.Settler.simulation ), attr="partner" 
         ).where(
                 # part of this execution run
-                ( MODELS.Colonist.simulation == thisApp.simulation ) &
+                ( MODELS.Settler.simulation == thisApp.simulation ) &
                 ( partner.simulation == thisApp.simulation ) &
                 # no self-partnering
-                ( MODELS.Colonist.colonist_id != partner.colonist_id ) &
+                ( MODELS.Settler.settler_id != partner.settler_id ) &
                 # still alive
-                ( MODELS.Colonist.death_solday == 0 ) &
+                ( MODELS.Settler.death_solday == 0 ) &
                 ( partner.death_solday == 0 ) &
                 # - both persons must be single - so currently no extended families
                 # TODO - this should probably be pushed into the app_family_policy() code
-                ( MODELS.Colonist.state == 'single' ) &
+                ( MODELS.Settler.state == 'single' ) &
                 ( partner.state == 'single' ) &
                 #
                 # compatible sexuality
-                ( MODELS.Colonist.orientation.contains( partner.sex ) ) &
-                ( partner.orientation.contains( MODELS.Colonist.sex ) ) &
+                ( MODELS.Settler.orientation.contains( partner.sex ) ) &
+                ( partner.orientation.contains( MODELS.Settler.sex ) ) &
                 # both over 18 earth years years
-                ( MODELS.Colonist.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
+                ( MODELS.Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 ( partner.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 # Call out to application policy to decide if this is allowed
-                ( peewee.fn.app_family_policy( MODELS.Colonist.colonist_id, partner.colonist_id ) == True)
+                ( peewee.fn.app_family_policy( MODELS.Settler.settler_id, partner.settler_id ) == True)
             ).order_by(
 # a UUID is close to random and doesn't need to be calculated
-                MODELS.Colonist.colonist_id
+                MODELS.Settler.settler_id
             ).limit(1).dicts()
 
     for row in query.execute():
 
-        # rely on triggers to update colonist state to couple 
+        # rely on triggers to update settler state to couple 
 
         r = MODELS.Relationship()
 
@@ -98,7 +98,7 @@ def make(*args ):
         #   reduce productivity after Y months
         #   maternity leave after 8 - for X time
         #   reset productivity after Z as ML ends
-        #   paternity leave ? what impact for "frontier" colony ?
+        #   paternity leave ? what impact for "frontier" settlements ?
         # those should all be configurable - we don't trigger them all here
         # so that we can model early failures (mothers death or miscariages)
 
@@ -116,7 +116,7 @@ def make(*args ):
             pass
 
         if mother and father:
-            m = MODELS.Colonist.get( MODELS.Colonist.colonist_id == str(mother) ) 
+            m = MODELS.Settler.get( MODELS.Settler.settler_id == str(mother) ) 
 
             mothers_age = int( (thisApp.solday - m.birth_solday) / 680 )
 
@@ -140,7 +140,7 @@ def make(*args ):
                     # register a function to be called at `when`
                     EVENTS.register_callback( 
                         when= birth_day,
-                        callback_func=CALLBACKS.colonist_born,
+                        callback_func=CALLBACKS.settler_born,
                         kwargs= { "biological_mother" : mother, "biological_father": father }
                     )
 

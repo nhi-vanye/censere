@@ -89,7 +89,7 @@ def initialize_database():
 
 def initial_landing():
 
-    EVENTS.callbacks.mission_lands( colonists=20 )
+    EVENTS.callbacks.mission_lands( settlers=20 )
 
 
 def get_limit_count( limit="population" ):
@@ -101,10 +101,10 @@ def get_limit_count( limit="population" ):
 
         if limit == "population":
 
-            count = MODELS.Colonist.select().where( 
-                ( MODELS.Colonist.simulation == thisApp.simulation ) &
-                ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-                ( MODELS.Colonist.death_solday == 0 )
+            count = MODELS.Settler.select().where( 
+                ( MODELS.Settler.simulation == thisApp.simulation ) &
+                ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+                ( MODELS.Settler.death_solday == 0 )
             ).count()
 
     except Exception as e:
@@ -118,11 +118,11 @@ def get_singles_count( ):
     count = 0
 
     try:
-        count = MODELS.Colonist.select().where(
-            ( MODELS.Colonist.simulation == thisApp.simulation ) &
-            ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-            ( MODELS.Colonist.death_solday == 0 ) &
-            ( MODELS.Colonist.state == 'single' )
+        count = MODELS.Settler.select().where(
+            ( MODELS.Settler.simulation == thisApp.simulation ) &
+            ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+            ( MODELS.Settler.death_solday == 0 ) &
+            ( MODELS.Settler.state == 'single' )
         ).count()
 
     except Exception as e:
@@ -133,93 +133,93 @@ def get_singles_count( ):
 
 def add_summary_entry():
 
-    adults = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
-        ( MODELS.Colonist.death_solday == 0 )
+    adults = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    children = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.birth_solday >= ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
-        ( MODELS.Colonist.death_solday == 0 )
+    children = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.birth_solday >= ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    singles = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.state == 'single' ) & 
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( MODELS.Colonist.death_solday == 0 )
+    singles = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.state == 'single' ) & 
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    couples = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.state == 'couple' ) & 
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( MODELS.Colonist.death_solday == 0 )
+    couples = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.state == 'couple' ) & 
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    males = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.sex == 'm' ) & 
-        ( MODELS.Colonist.death_solday == 0 )
+    males = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.sex == 'm' ) & 
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    females = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.sex == 'f' ) & 
-        ( MODELS.Colonist.death_solday == 0 )
+    females = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.sex == 'f' ) & 
+        ( MODELS.Settler.death_solday == 0 )
     ).count()
 
-    hetrosexual = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( ( ( MODELS.Colonist.sex == 'm' ) & 
-          ( MODELS.Colonist.orientation == 'f' ) ) | 
-        ( ( MODELS.Colonist.sex == 'f' ) & 
-          ( MODELS.Colonist.orientation == 'm' ) ) ) &
-        ( MODELS.Colonist.death_solday == 0 ) &
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    hetrosexual = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( ( ( MODELS.Settler.sex == 'm' ) & 
+          ( MODELS.Settler.orientation == 'f' ) ) | 
+        ( ( MODELS.Settler.sex == 'f' ) & 
+          ( MODELS.Settler.orientation == 'm' ) ) ) &
+        ( MODELS.Settler.death_solday == 0 ) &
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    homosexual = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.sex == MODELS.Colonist.orientation ) & 
-        ( MODELS.Colonist.death_solday == 0 ) &
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    homosexual = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.sex == MODELS.Settler.orientation ) & 
+        ( MODELS.Settler.death_solday == 0 ) &
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    bisexual = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.orientation == 'mf' ) & 
-        ( MODELS.Colonist.death_solday == 0 ) &
-        ( MODELS.Colonist.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
+    bisexual = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.orientation == 'mf' ) & 
+        ( MODELS.Settler.death_solday == 0 ) &
+        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
     ).count()
 
-    deaths = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.death_solday != 0 )
+    deaths = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.death_solday != 0 )
     ).count()
 
-    earth_born = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.birth_location == MODELS.LocationEnum.Earth )
+    earth_born = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.birth_location == MODELS.LocationEnum.Earth )
     ).count()
 
-    mars_born = MODELS.Colonist.select().where( 
-        ( MODELS.Colonist.simulation == thisApp.simulation ) &
-        ( MODELS.Colonist.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Colonist.birth_location == MODELS.LocationEnum.Mars )
+    mars_born = MODELS.Settler.select().where( 
+        ( MODELS.Settler.simulation == thisApp.simulation ) &
+        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
+        ( MODELS.Settler.birth_location == MODELS.LocationEnum.Mars )
     ).count()
 
 
@@ -320,7 +320,7 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 688:
-            logging.log( thisApp.NOTICE, '%d.%03d (%d) #Colonists %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
+            logging.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             # returned data not used
             res = add_summary_entry()

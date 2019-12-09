@@ -1,7 +1,7 @@
 #pylint: disable=unused-import
 
-from .colonist import Colonist as Colonist
-from .colonist import LocationEnum as LocationEnum
+from .settler import Settler as Settler
+from .settler import LocationEnum as LocationEnum
 from .astronaut import Astronaut as Astronaut
 from .martian import Martian as Martian
 

@@ -35,14 +35,14 @@ class TestBenchmarkMakeFamilies:
         p = censere.models.Astronaut()
 
         p.initialize( thisApp.solday )
-        p.colonist_id = uuid.uuid4()
+        p.settler_id = uuid.uuid4()
 
         assert p.save() == 1
 
         r1 = censere.models.Relationship()
 
         r1.relationship_id = uuid.uuid4()
-        r1.first = p.colonist_id
+        r1.first = p.settler_id
         r1.second = father_id
         r1.relationship = censere.models.RelationshipEnum.parent
         r1.begin_solday = thisApp.solday
@@ -52,7 +52,7 @@ class TestBenchmarkMakeFamilies:
         r2 = censere.models.Relationship()
 
         r2.relationship_id = uuid.uuid4()
-        r2.first = p.colonist_id
+        r2.first = p.settler_id
         r2.second = mother_id
         r2.relationship = censere.models.RelationshipEnum.parent
         r2.begin_solday = 1
@@ -64,17 +64,17 @@ class TestBenchmarkMakeFamilies:
         database.bind( [ censere.models.Astronaut, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
 
         for i in range(10):
             self.make_astronaut( str(uuid.uuid4()), str(uuid.uuid4()))
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation )
                ).count() == 10
 
-    def test_make_family_with_10_colonists(self, database, benchmark):
+    def test_make_family_with_10_settlers(self, database, benchmark):
         database.bind( [ censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Relationship ] )
@@ -93,17 +93,17 @@ class TestBenchmarkMakeFamilies:
         database.bind( [ censere.models.Astronaut, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
 
         for i in range(90):
             self.make_astronaut( str(uuid.uuid4()), str(uuid.uuid4()))
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation )
                ).count() == 100
 
-    def test_make_family_with_100_colonists(self, database, benchmark):
+    def test_make_family_with_100_settlers(self, database, benchmark):
         database.bind( [ censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Relationship ] )
@@ -119,17 +119,17 @@ class TestBenchmarkMakeFamilies:
         database.bind( [ censere.models.Astronaut, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
 
         for i in range(150):
             self.make_astronaut( str(uuid.uuid4()), str(uuid.uuid4()))
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation )
                ).count() == 250
 
-    def test_make_family_with_250_colonists(self, database, benchmark):
+    def test_make_family_with_250_settlers(self, database, benchmark):
         database.bind( [ censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Relationship ] )

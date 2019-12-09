@@ -9,6 +9,11 @@ import censere.actions
 thisApp.simulation = "00000000-0000-0000-0000-000000000000"
 thisApp.astronaut_age_range = "32,45"
 thisApp.solday = 1
+thisApp.orientation = "90,6,4"
+thisApp.astronaut_gender_ratio = "50,50"
+thisApp.martian_gender_ratio = "50,50"
+thisApp.initial_child_delay = "400,700"
+thisApp.gap_between_children = "380,1000"
 
 
 class TestCreatingFamilies:

@@ -42,6 +42,21 @@ class Generator:
     DETAILS = 15    # info + additional details
     TRACE = 1
 
+    def args(self):
+
+        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'log_level', 'simulation' ]
+
+        res=""
+
+
+        for v in sorted(self.__dict__.keys()):
+
+            if v not in excludes:
+
+                res += "{}={} ".format( v, self.__dict__[v] )
+
+        return res
+
 ##
 # Dummy class to hold configuration details for the generator
 class Viewer:
@@ -94,6 +109,34 @@ class GeneratorOptions(CommonOptions):
         parser.add_argument( '--initial-mission-lands', action="store",
             **check_env_for_default( 'CENSERE_INITIAL_MISSION_LANDS', '2024-01-01 00:00:00.000+00:00' ),
             help='Earth date that initial mission lands on Mars (CENSERE_INITIAL_MISSION_LANDS)' )
+
+        parser.add_argument( '--orientation', action="store",
+            metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
+            **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
+            help='Sexual orientation percentagea, Should add up to 100 (CENSERE_OREINTATION)' )
+
+        parser.add_argument( '--astronout-gender-ratio', action="store",
+            metavar="MALE,FEMALE",
+            **check_env_for_default( 'CENSERE_ASTRONAUT_GENDER_RATIO', '50,50' ),
+            help='Male:Female ratio for astronauts, Should add up to 100 (CENSERE_ASTRONAUT_GENDER_RATIO)' )
+
+        parser.add_argument( '--martian-gender-ratio', action="store",
+            metavar="MALE,FEMALE",
+            **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', '50,50' ),
+            help='Male:Female ratio for new born martians, Should add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
+
+        parser.add_argument( '--initial-child-delay', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_INITIAL_CHILD_DELAY', '400,700' ),
+            help='Delay between relationship start and first child (CENSERE_INITIAL_CHILD_DELAY)' )
+
+        parser.add_argument( '--gap-between-children', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_GAP_BETWEEN_CHILDREN', '380,1000' ),
+            help='Gap between sibling births (CENSERE_GAP_BETWEEN_CHILDREN)' )
+
+
+
 
         parser.add_argument( '--limit', action="store",
             choices=['sols','population'],

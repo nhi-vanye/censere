@@ -42,7 +42,7 @@ class Astronaut(Colonist):
 
         # might want to bias Astronaut sex beyond 50:50
         if sex == None:
-            self.sex = random.choices( [ 'm', 'f'], [50, 50] )[0]
+            self.sex = random.choices( [ 'm', 'f'], [int(i) for i in thisApp.astronaut_gender_ratio.split(",") ] )[0]
         else:
             self.sex = sex
 
@@ -50,12 +50,12 @@ class Astronaut(Colonist):
             self.first_name = get_random_male_first_name()
 
             # \TODO straight:homosexual:bisexual = 90:6:4 
-            self.orientation = random.choices( [ 'f', 'm', 'mf' ], [ 90, 6, 4 ] )[0]
+            self.orientation = random.choices( [ 'f', 'm', 'mf' ], [int(i) for i in thisApp.orientation.split(",") ] )[0]
 
         else:
             self.first_name = get_random_female_first_name()
 
-            self.orientation = random.choices( [ 'm', 'f', 'mf' ], [ 90, 6, 4 ] )[0]
+            self.orientation = random.choices( [ 'm', 'f', 'mf' ], [int(i) for i in thisApp.orientation.split(",") ] )[0]
 
         self.family_name = get_random_family_name()
 
@@ -71,9 +71,12 @@ class Astronaut(Colonist):
         self.biological_father = str(uuid.uuid4())
         self.biological_mother = str(uuid.uuid4())
 
+        # age min and max
+        age_range = [int(i) for i in thisApp.astronaut_age_range.split(",") ]
+
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  solday - ( 
-            UTILS.years_to_sols( int( random.choice( config.astronaut_age_range.split(",") ) ) ) )
+            UTILS.years_to_sols( random.randrange( age_range[0], age_range[1] ) ) )
 
         self.productivity = 100
 

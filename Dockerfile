@@ -14,6 +14,9 @@ RUN cd /BUILD/censere \
         libffi-dev \
         make \
         musl-dev \
+    && pip3 install Cython==0.29.14 \
+    && pip3 install numpy==1.17.4 \
+    && pip3 install pandas==0.25.3 \
     && pip3 install \
         --requirement requirements.txt \
     && apk del .gcc.deps

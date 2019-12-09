@@ -13,6 +13,13 @@ import playhouse.signals
 
 import censere.db as DB
 
+class LocationEnum():
+    other = 'other'
+    Earth = 'earth'
+    Mars = 'mars'
+    space = 'space'
+
+
 ##
 # The Colonist is the base class for `Martian` or `Astronaut`
 # As such it holds all the data fields
@@ -73,7 +80,9 @@ class Colonist(playhouse.signals.Model):
     # how to track health state ???
 
     # Track Martian or Earther
-    birth_location = peewee.CharField(16)
+    birth_location = peewee.CharField( 8 )
+    # and where they are now
+    current_location = peewee.CharField( 8 )
 
     # all calculations are done using soldays with
     # conversions as needed (pregnany etc)
@@ -83,15 +92,4 @@ class Colonist(playhouse.signals.Model):
     # How productive is person ??
     productivity = peewee.IntegerField( default=50 )
 
-    """
-    def getWorkHours(self):
-        ageYrs = self.getAge()
-        if (ageYrs < self.params.getCOLONIST_DEPENDENT_AGE()):
-            return self.params.getCOLONIST_DEPENDENT_WORK()
-        elif (ageYrs < self.params.getCOLONIST_PRODUCTIVE_AGE()):
-            return self.params.getCOLONIST_NONPROD_WORK()
-        elif (ageYrs < self.params.getCOLONIST_ELDERLY_AGE()):
-            return self.params.getCOLONIST_PRODUCTIVE_WORK()
-        else:
-            return self.params.getCOLONIST_ELDERLY_WORK()
-"""
+

@@ -8,6 +8,7 @@ from censere.config import Generator as thisApp
 import censere.utils as UTILS
 
 from .colonist import Colonist as Colonist
+from .colonist import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
 
@@ -27,8 +28,6 @@ def colonist_pre_save(sender, instance, created):
         instance._dirty_field_cache = instance.dirty_fields
 
 ##
-# When a person dies we need to close out any PARTNER relationships
-# they were in.
 #
 @playhouse.signals.post_save(sender=Colonist)
 def colonist_post_save(sender, instance, created):
@@ -37,7 +36,7 @@ def colonist_post_save(sender, instance, created):
         # special case of astronaut saved
         # add a dummy relationship of their offworld parents
 
-        if instance.birth_location == "earth":
+        if instance.birth_location == LocationEnum.Earth:
 
             s1 = Relationship()
 

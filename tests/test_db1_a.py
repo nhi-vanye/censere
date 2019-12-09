@@ -3,13 +3,13 @@ import pytest
 import censere.models
 
 class TestCreateTables:
-    def test_create_colonist_table(self, database):
+    def test_create_settler_table(self, database):
 
-        database.bind( [ censere.models.Colonist ], bind_refs=False, bind_backrefs=False)
+        database.bind( [ censere.models.Settler ], bind_refs=False, bind_backrefs=False)
 
         database.connect( reuse_if_open=True )
-        database.create_tables( [ censere.models.Colonist ] )
-        assert database.table_exists( "colonists" )
+        database.create_tables( [ censere.models.Settler ] )
+        assert database.table_exists( "settlers" )
 
     def test_create_relationship_table(self, database):
 
@@ -41,6 +41,7 @@ class TestCreateTables:
 
         database.connect( reuse_if_open=True )
         assert len( database.get_tables( ) ) == 4
-        assert database.get_tables( ) == [ 'colonists', 'relationships', 'simulations', 'summary' ] 
+        # These need to be in alphabetical order
+        assert database.get_tables( ) == [  'relationships', 'settlers', 'simulations', 'summary' ] 
 
 

@@ -5,7 +5,7 @@ Created on Fri Mar 29 17:30:50 2019
 @author: matej
 """
 
-# Module governing the attributes of the colonists
+# Module governing the attributes of the settlers
 # Updated to use an ORM for storage in database 
 
 import peewee
@@ -21,26 +21,25 @@ class LocationEnum():
 
 
 ##
-# The Colonist is the base class for `Martian` or `Astronaut`
+# The Settler is the base class for `Martian` or `Astronaut`
 # As such it holds all the data fields
 # The subclasses are expected to override any value for their
 # class.
-#class Colonist(playhouse.signals.Model):
-class Colonist(playhouse.signals.Model):
+class Settler(playhouse.signals.Model):
 
     class Meta:
         database = DB.db
 
-        table_name = 'colonists'
+        table_name = 'settlers'
 
 
     ## provide a internal representation function
-    # to make debugging easeir
+    # to make debugging easier
     def __repr__(self):
-        return "{} {} ({})".format( self.first_name, self.family_name, self.colonist_id ) 
+        return "{} {} ({})".format( self.first_name, self.family_name, self.settler_id ) 
 
     # Unique identifier for a person - names are not unique
-    colonist_id = peewee.UUIDField( unique=True )
+    settler_id = peewee.UUIDField( unique=True )
 
     # allow the same database to be used for multple executions
     simulation = peewee.UUIDField()
@@ -55,7 +54,7 @@ class Colonist(playhouse.signals.Model):
 
     # record biological parents to avoid future close-relationships
     # TODO - use this data
-    # These cannot be foreign keys, because there may not be a Colonist row with
+    # These cannot be foreign keys, because there may not be a Settler row with
     # that id. Think astronaut whose parents are still on Earth
     biological_father = peewee.UUIDField()
     biological_mother = peewee.UUIDField()
@@ -74,6 +73,7 @@ class Colonist(playhouse.signals.Model):
     state = peewee.CharField( 8, default='single' )
 
     # obviously only valid for `f`
+    # TODO - nothing uses this yet
     pregnant = peewee.BooleanField( default=False )
 
     # TODO 

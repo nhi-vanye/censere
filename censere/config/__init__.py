@@ -104,39 +104,27 @@ class GeneratorOptions(CommonOptions):
         parser.add_argument( '--astronaut-age-range', action="store",
             metavar="MIN,MAX",
             **check_env_for_default( 'CENSERE_ASTRONAUT_AGE_RANGE', '32,45' ),
-            help='Age range of arriving astronauts (CENSERE_ASTRONAUT_AGE_RANGE)' )
+            help='Age range (years) of arriving astronauts (CENSERE_ASTRONAUT_AGE_RANGE)' )
 
-        parser.add_argument( '--initial-mission-lands', action="store",
-            **check_env_for_default( 'CENSERE_INITIAL_MISSION_LANDS', '2024-01-01 00:00:00.000+00:00' ),
-            help='Earth date that initial mission lands on Mars (CENSERE_INITIAL_MISSION_LANDS)' )
-
-        parser.add_argument( '--orientation', action="store",
-            metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
-            **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
-            help='Sexual orientation percentagea, Should add up to 100 (CENSERE_OREINTATION)' )
-
-        parser.add_argument( '--astronout-gender-ratio', action="store",
+        parser.add_argument( '--astronaut-gender-ratio', action="store",
             metavar="MALE,FEMALE",
             **check_env_for_default( 'CENSERE_ASTRONAUT_GENDER_RATIO', '50,50' ),
-            help='Male:Female ratio for astronauts, Should add up to 100 (CENSERE_ASTRONAUT_GENDER_RATIO)' )
-
-        parser.add_argument( '--martian-gender-ratio', action="store",
-            metavar="MALE,FEMALE",
-            **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', '50,50' ),
-            help='Male:Female ratio for new born martians, Should add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
-
-        parser.add_argument( '--initial-child-delay', action="store",
-            metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_INITIAL_CHILD_DELAY', '400,700' ),
-            help='Delay between relationship start and first child (CENSERE_INITIAL_CHILD_DELAY)' )
+            help='Male:Female ratio for astronauts, MUST add up to 100 (CENSERE_ASTRONAUT_GENDER_RATIO)' )
 
         parser.add_argument( '--gap-between-children', action="store",
             metavar="MIN,MAX",
             **check_env_for_default( 'CENSERE_GAP_BETWEEN_CHILDREN', '380,1000' ),
-            help='Gap between sibling births (CENSERE_GAP_BETWEEN_CHILDREN)' )
+            help='Sols between sibling births (CENSERE_GAP_BETWEEN_CHILDREN)' )
 
+        parser.add_argument( '--initial-child-delay', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_INITIAL_CHILD_DELAY', '350,700' ),
+            help='Delay (sols) between relationship start and first child (CENSERE_INITIAL_CHILD_DELAY)' )
 
-
+        parser.add_argument( '--initial-mission-lands', action="store",
+            metavar="DATETIME",
+            **check_env_for_default( 'CENSERE_INITIAL_MISSION_LANDS', '2024-01-01 00:00:00.000+00:00' ),
+            help='Earth date that initial mission lands on Mars (CENSERE_INITIAL_MISSION_LANDS)' )
 
         parser.add_argument( '--limit', action="store",
             choices=['sols','population'],
@@ -148,6 +136,15 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_LIMIT_COUNT', 1000 ),
             help='Stop simulation when we hit a time or population limit (CENSERE_LIMIT_COUNT)' )
 
+        parser.add_argument( '--martian-gender-ratio', action="store",
+            metavar="MALE,FEMALE",
+            **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', '50,50' ),
+            help='Male:Female ratio for new born martians, Should add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
+
+        parser.add_argument( '--orientation', action="store",
+            metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
+            **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
+            help='Sexual orientation percentages, MUST add up to 100 (CENSERE_OREINTATION)' )
 
 ## Viewer-specific arguments
 #

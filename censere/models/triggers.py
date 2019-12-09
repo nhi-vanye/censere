@@ -7,13 +7,13 @@ import playhouse.signals
 from censere.config import Generator as thisApp
 import censere.utils as UTILS
 
-from .colonist import Colonist as Colonist
-from .colonist import LocationEnum as LocationEnum
+from .settler import Settler as Settler
+from .settler import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
 
 ##
-# Be careful here between a class update (Colonist.update().where() and
+# Be careful here between a class update (Settler.update().where() and
 # calling the instance.save() method.
 #
 # Class methods do NOT trigger pre- and post triggers. So know what you want - and document it.
@@ -21,16 +21,16 @@ from .relationship import RelationshipEnum as RelationshipEnum
 
 ##
 # make a local copy of the fields that are being modified
-@playhouse.signals.pre_save(sender=Colonist)
-def colonist_pre_save(sender, instance, created):
+@playhouse.signals.pre_save(sender=Settler)
+def settler_pre_save(sender, instance, created):
 
     if not created:
         instance._dirty_field_cache = instance.dirty_fields
 
 ##
 #
-@playhouse.signals.post_save(sender=Colonist)
-def colonist_post_save(sender, instance, created):
+@playhouse.signals.post_save(sender=Settler)
+def settler_post_save(sender, instance, created):
 
     if created:
         # special case of astronaut saved
@@ -41,7 +41,7 @@ def colonist_post_save(sender, instance, created):
             s1 = Relationship()
 
             s1.relationship_id=str(uuid.uuid4())
-            s1.first = instance.colonist_id
+            s1.first = instance.settler_id
             s1.second = instance.biological_father
             s1.relationship = RelationshipEnum.parent
             s1.begin_solday = thisApp.solday
@@ -51,7 +51,7 @@ def colonist_post_save(sender, instance, created):
             s2 = Relationship()
 
             s2.relationship_id=str(uuid.uuid4())
-            s2.first = instance.colonist_id
+            s2.first = instance.settler_id
             s2.second = instance.biological_mother
             s2.relationship = RelationshipEnum.parent
             s2.begin_solday = thisApp.solday
@@ -64,7 +64,7 @@ def colonist_post_save(sender, instance, created):
         
         if i.name == "death_solday":
 
-            logging.debug( "%d.%03d Updated death_solday for %s %s (%d)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.colonist_id )
+            logging.debug( "%d.%03d Updated death_solday for %s %s (%d)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
@@ -73,8 +73,8 @@ def colonist_post_save(sender, instance, created):
                 ( Relationship.relationship == RelationshipEnum.partner ) &
                 ( Relationship.end_solday == 0 ) &
                 ( 
-                    ( Relationship.first == instance.colonist_id ) | 
-                    ( Relationship.second == instance.colonist_id )
+                    ( Relationship.first == instance.settler_id ) | 
+                    ( Relationship.second == instance.settler_id )
                 )):
 
                 # in this case we want to treat this as a break up so we can reset
@@ -135,11 +135,11 @@ def relationship_post_save(sender, instance, created):
         if created:
 
             ( 
-                Colonist.update( 
-                    { Colonist.state: 'couple'} 
+                Settler.update( 
+                    { Settler.state: 'couple'} 
                 ).where( 
-                    ( Colonist.colonist_id == instance.first ) |
-                    ( Colonist.colonist_id == instance.second ) 
+                    ( Settler.settler_id == instance.first ) |
+                    ( Settler.settler_id == instance.second ) 
                 ).execute()
             )
 
@@ -162,12 +162,12 @@ def relationship_post_save(sender, instance, created):
                         # update each of the partners to make them single again
                         # if they are not dead.
                         ( 
-                            Colonist.update( 
-                                { Colonist.state: 'single'} 
+                            Settler.update( 
+                                { Settler.state: 'single'} 
                             ).where( 
-                                ( ( Colonist.colonist_id == instance.first ) |
-                                ( Colonist.colonist_id == instance.second ) ) &
-                                ( Colonist.death_solday == 0 )
+                                ( ( Settler.settler_id == instance.first ) |
+                                ( Settler.settler_id == instance.second ) ) &
+                                ( Settler.death_solday == 0 )
                             ).execute()
                         )
 

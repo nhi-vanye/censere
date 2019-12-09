@@ -5,7 +5,7 @@ Created on Fri Mar 29 17:30:50 2019
 @author: matej
 """
 
-# Module gonverning the attributes of the colonists
+# Module gonverning the attributes of the settlers
 
 
 import random
@@ -17,26 +17,26 @@ import censere.db as DB
 
 import censere.utils as UTILS
 
-from .colonist import Colonist as Colonist
-from .colonist import LocationEnum as LocationEnum
+from .settler import Settler as Settler
+from .settler import LocationEnum as LocationEnum
 
 from .names import get_random_male_first_name
 from .names import get_random_female_first_name
 from .names import get_random_family_name
 
-class Astronaut(Colonist):
+class Astronaut(Settler):
 
     class Meta:
         database = DB.db
 
-        table_name = 'colonists'
+        table_name = 'settlers'
     
     def initialize(self, solday, sex=None, config=None):
 
         if config == None:
             config = thisApp
 
-        self.colonist_id = str(uuid.uuid4())
+        self.settler_id = str(uuid.uuid4())
 
         self.simulation = config.simulation
 

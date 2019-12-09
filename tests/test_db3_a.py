@@ -32,7 +32,7 @@ class TestCreateUnacceptableFamilies:
 
     ##
     # helper to create a person and connected relationships
-    def make_martian(self, sex, colonist_id, orientation, father_id, mother_id, family_name ):
+    def make_martian(self, sex, settler_id, orientation, father_id, mother_id, family_name ):
 
         p = censere.models.Martian()
 
@@ -40,7 +40,7 @@ class TestCreateUnacceptableFamilies:
         p.orientation = orientation
 
         # use a well known ID to make it easier to find
-        p.colonist_id = colonist_id
+        p.settler_id = settler_id
 
         p.biological_father = str(father_id)
         p.biological_mother = str(mother_id)
@@ -51,8 +51,8 @@ class TestCreateUnacceptableFamilies:
 
         r1 = censere.models.Relationship()
 
-        r1.relationship_id = colonist_id.replace('a', 'A')
-        r1.first = colonist_id
+        r1.relationship_id = settler_id.replace('a', 'A')
+        r1.first = settler_id
         r1.second = father_id
         r1.relationship = censere.models.RelationshipEnum.parent
         r1.begin_solday = thisApp.solday
@@ -61,15 +61,15 @@ class TestCreateUnacceptableFamilies:
 
         r2 = censere.models.Relationship()
 
-        r2.relationship_id = colonist_id.replace('a', 'B')
-        r2.first = colonist_id
+        r2.relationship_id = settler_id.replace('a', 'B')
+        r2.first = settler_id
         r2.second = mother_id
         r2.relationship = censere.models.RelationshipEnum.parent
         r2.begin_solday = 1
 
         assert r2.save() == 1
 
-    def make_astronaut(self, sex, colonist_id, orientation, father_id, mother_id ):
+    def make_astronaut(self, sex, settler_id, orientation, father_id, mother_id ):
 
         p = censere.models.Astronaut()
 
@@ -77,7 +77,7 @@ class TestCreateUnacceptableFamilies:
         p.orientation = orientation
 
         # use a well known ID to make it easier to find
-        p.colonist_id = colonist_id
+        p.settler_id = settler_id
 
         p.biological_father = str(father_id)
         p.biological_mother = str(mother_id)
@@ -86,8 +86,8 @@ class TestCreateUnacceptableFamilies:
 
         r1 = censere.models.Relationship()
 
-        r1.relationship_id = colonist_id.replace('a', 'A')
-        r1.first = colonist_id
+        r1.relationship_id = settler_id.replace('a', 'A')
+        r1.first = settler_id
         r1.second = father_id
         r1.relationship = censere.models.RelationshipEnum.parent
         r1.begin_solday = thisApp.solday
@@ -96,8 +96,8 @@ class TestCreateUnacceptableFamilies:
 
         r2 = censere.models.Relationship()
 
-        r2.relationship_id = colonist_id.replace('a', 'B')
-        r2.first = colonist_id
+        r2.relationship_id = settler_id.replace('a', 'B')
+        r2.first = settler_id
         r2.second = mother_id
         r2.relationship = censere.models.RelationshipEnum.parent
         r2.begin_solday = 1
@@ -105,24 +105,24 @@ class TestCreateUnacceptableFamilies:
         assert r2.save() == 1
   
 
-    def test_create_gen1_colonists(self, database):
+    def test_create_gen1_settlers(self, database):
         database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
-        assert database.table_exists( "colonists" )
+        assert database.table_exists( "settlers" )
 
         self.make_astronaut( 'm', "aaaaaaaa-1111-0000-0000-000000000000", 'f', str(uuid.uuid4()), str(uuid.uuid4()))
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-1111-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" )
                ).count() == 1
 
         self.make_astronaut( 'f', "aaaaaaaa-2222-0000-0000-000000000000", 'm', str(uuid.uuid4()), str(uuid.uuid4()))
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.simulation == thisApp.simulation ) &
-                    ( censere.models.Colonist.colonist_id == "aaaaaaaa-2222-0000-0000-000000000000" )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" )
                ).count() == 1
 
 
@@ -138,12 +138,12 @@ class TestCreateUnacceptableFamilies:
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 1
 
-        assert censere.models.Colonist.select().where( 
-                    ( censere.models.Colonist.state == 'couple' )
+        assert censere.models.Settler.select().where( 
+                    ( censere.models.Settler.state == 'couple' )
                ).count() == 2
 
     def test_make_gen2_children(self, database):
-        database.bind( [ censere.models.Colonist, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
+        database.bind( [ censere.models.Settler, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
 
         family = censere.models.Relationship.get( 
@@ -154,8 +154,8 @@ class TestCreateUnacceptableFamilies:
 
         assert family.relationship == censere.models.RelationshipEnum.partner
 
-        first = censere.models.Colonist.get( censere.models.Colonist.colonist_id == str(family.first) )
-        second = censere.models.Colonist.get( censere.models.Colonist.colonist_id == str(family.second) )
+        first = censere.models.Settler.get( censere.models.Settler.settler_id == str(family.first) )
+        second = censere.models.Settler.get( censere.models.Settler.settler_id == str(family.second) )
 
         mother = None
         father = None
@@ -169,14 +169,14 @@ class TestCreateUnacceptableFamilies:
             mother = first
             father = second
 
-        self.make_martian( 'm', "aaaaaaaa-3333-0000-0000-000000000000", 'f', father.colonist_id, mother.colonist_id, father.family_name )
+        self.make_martian( 'm', "aaaaaaaa-3333-0000-0000-000000000000", 'f', father.settler_id, mother.settler_id, father.family_name )
 
-        self.make_martian( 'm', "aaaaaaaa-4444-0000-0000-000000000000", 'f', father.colonist_id, mother.colonist_id, father.family_name )
+        self.make_martian( 'm', "aaaaaaaa-4444-0000-0000-000000000000", 'f', father.settler_id, mother.settler_id, father.family_name )
 
 
-        self.make_martian( 'f', "aaaaaaaa-5555-0000-0000-000000000000", 'm', father.colonist_id, mother.colonist_id, father.family_name )
+        self.make_martian( 'f', "aaaaaaaa-5555-0000-0000-000000000000", 'm', father.settler_id, mother.settler_id, father.family_name )
 
-        self.make_martian( 'f', "aaaaaaaa-6666-0000-0000-000000000000", 'm', father.colonist_id, mother.colonist_id, father.family_name )
+        self.make_martian( 'f', "aaaaaaaa-6666-0000-0000-000000000000", 'm', father.settler_id, mother.settler_id, father.family_name )
 
     def test_dont_make_family_from_siblings(self, database):
         database.bind( [ censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
@@ -200,15 +200,15 @@ class TestCreateUnacceptableFamilies:
             ).count() == 1
 
     def test_make_gen3_children(self, database):
-        database.bind( [ censere.models.Colonist, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
+        database.bind( [ censere.models.Settler, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
 
-        father_1 = censere.models.Colonist.get( censere.models.Colonist.colonist_id == "aaaaaaaa-3333-0000-0000-000000000000" )
+        father_1 = censere.models.Settler.get( censere.models.Settler.settler_id == "aaaaaaaa-3333-0000-0000-000000000000" )
 
         self.make_martian( 'm', "aaaaaaaa-8888-0000-0000-000000000000", 'f', "aaaaaaaa-3333-0000-0000-000000000000",  "aaaaaaaa-5555-0000-0000-000000000000", father_1.family_name )
 
 
-        father_2 = censere.models.Colonist.get( censere.models.Colonist.colonist_id == "aaaaaaaa-3333-0000-0000-000000000000" )
+        father_2 = censere.models.Settler.get( censere.models.Settler.settler_id == "aaaaaaaa-3333-0000-0000-000000000000" )
         self.make_martian( 'm', "aaaaaaaa-9999-0000-0000-000000000000", 'f', "aaaaaaaa-4444-0000-0000-000000000000",  "aaaaaaaa-6666-0000-0000-000000000000", father_2.family_name )
 
 

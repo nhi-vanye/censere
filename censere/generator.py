@@ -89,7 +89,15 @@ def initialize_database():
 
 def initial_landing():
 
-    EVENTS.callbacks.mission_lands( settlers=20 )
+    ships_range = [int(i) for i in thisApp.ships_per_initial_mission.split(",") ]
+
+    for i in range(random.randint( ships_range[0], ships_range[1] ) ):
+
+        settlers_range = [int(i) for i in thisApp.settlers_per_initial_ship.split(",") ]
+
+        EVENTS.callbacks.mission_lands( 
+            settlers=random.randint(settlers_range[0], settlers_range[1])
+        )
 
 
 def get_limit_count( limit="population" ):

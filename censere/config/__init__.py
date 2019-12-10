@@ -111,15 +111,20 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_ASTRONAUT_GENDER_RATIO', '50,50' ),
             help='Male:Female ratio for astronauts, MUST add up to 100 (CENSERE_ASTRONAUT_GENDER_RATIO)' )
 
-        parser.add_argument( '--gap-between-children', action="store",
-            metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_GAP_BETWEEN_CHILDREN', '380,1000' ),
-            help='Sols between sibling births (CENSERE_GAP_BETWEEN_CHILDREN)' )
+        parser.add_argument( '--astronaut-life-expectancy', action="store",
+            metavar="MEAN,STDDEV",
+            **check_env_for_default( 'CENSERE_ASTRONAUT_LIFE_EXPECTANCY', '72,7' ),
+            help='Life expectancy of arriving astronauts mean=72, stddev=7 (CENSERE_ASTRONAUT_LIFE_EXPECTANCY)' )
 
-        parser.add_argument( '--initial-child-delay', action="store",
+        parser.add_argument( '--gap-between-siblings', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_INITIAL_CHILD_DELAY', '350,700' ),
-            help='Delay (sols) between relationship start and first child (CENSERE_INITIAL_CHILD_DELAY)' )
+            **check_env_for_default( 'CENSERE_GAP_BETWEEN_SIBLINGS', '380,1000' ),
+            help='Sols between sibling births (CENSERE_GAP_BETWEEN_SIBLINGS)' )
+
+        parser.add_argument( '--first-child-delay', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_FIRST_CHILD_DELAY', '350,700' ),
+            help='Delay (sols) between relationship start and first child (CENSERE_FIRST_CHILD_DELAY)' )
 
         parser.add_argument( '--initial-mission-lands', action="store",
             metavar="DATETIME",
@@ -139,12 +144,38 @@ class GeneratorOptions(CommonOptions):
         parser.add_argument( '--martian-gender-ratio', action="store",
             metavar="MALE,FEMALE",
             **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', '50,50' ),
-            help='Male:Female ratio for new born martians, Should add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
+            help='Male:Female ratio for new born martians, MUST add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
+
+        parser.add_argument( '--martian-life-expectancy', action="store",
+            metavar="MEAN,STDDEV",
+            **check_env_for_default( 'CENSERE_MARTIAN_LIFE_EXPECTANCY', '72,7' ),
+            help='Life expectancy of new born martians mean=72, stddev=7 (CENSERE_MARTIAN_LIFE_EXPECTANCY)' )
 
         parser.add_argument( '--orientation', action="store",
             metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
             **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
             help='Sexual orientation percentages, MUST add up to 100 (CENSERE_OREINTATION)' )
+
+        parser.add_argument( '--settlers-per-initial-ship', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,20' ),
+            help='Numbering of arriving astronauts for the initial landing (CENSERE_INITIAL_SETTLERS_PER_SHIP)' )
+
+        parser.add_argument( '--settlers-per-ship', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,40' ),
+            help='Numbering of arriving astronauts per ship (CENSERE_SETTLERS_PER_SHIP)' )
+
+        parser.add_argument( '--ships-per-initial-mission', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,1' ),
+            help='Numbering of ships per mission (CENSERE_SHIPS_PER_INITIAL_MISSION)' )
+
+        parser.add_argument( '--ships-per-mission', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,1' ),
+            help='Numbering of ships per mission (CENSERE_SHIPS_PER_MISSION)' )
+
 
 ## Viewer-specific arguments
 #

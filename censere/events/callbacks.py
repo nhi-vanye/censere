@@ -113,8 +113,9 @@ def settler_born(**kwargs):
 
     logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
 
+    life_expectancy = [int(i) for i in thisApp.martian_life_expectancy.split(",") ]
     register_callback(
-        when=thisApp.solday + random.gauss( UTILS.years_to_sols(70), UTILS.years_to_sols(7) ),
+        when=thisApp.solday + random.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
         callback_func=settler_dies,
         kwargs= { "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
@@ -132,7 +133,7 @@ def settler_born(**kwargs):
     # maybe a family only wants one child...
     if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
 
-        gap = [int(i) for i in thisApp.gap_between_children.split(",") ]
+        gap = [int(i) for i in thisApp.gap_between_siblings.split(",") ]
 
 
         when = thisApp.solday + random.randrange( gap[0], gap[1])
@@ -152,6 +153,11 @@ def settler_born(**kwargs):
 def mission_lands(**kwargs):
 
     settlers = kwargs['settlers'] 
+    # idx is the index of the function for this day to distinguish
+    # between multiple missions landing on the same day
+    idx = 0
+    if "idx" in kwargs:
+        idx = kwargs['idx'] 
 
     logging.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
 
@@ -175,9 +181,9 @@ def mission_lands(**kwargs):
         # TODO extra fudge `random.randrange(1, 680)` is to avoid the optics of a number of astronauts dying on the day they land
         # don't let death day be before today or they will never die.
         current_age = thisApp.solday - a.birth_solday
+        life_expectancy = [int(i) for i in thisApp.astronaut_life_expectancy.split(",") ]
         register_callback( 
-            #when= thisApp.solday + max( random.randrange( 1, UTILS.years_to_sols(80) ) - a.birth_solday, 1),
-            when= max( random.gauss( UTILS.years_to_sols(72), UTILS.years_to_sols(7) ) - current_age, thisApp.solday+ random.randrange(1, 680)),
+            when= max( random.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ) - current_age, thisApp.solday+ random.randrange(1, 680)),
             callback_func=settler_dies,
             kwargs= { "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
@@ -190,13 +196,23 @@ def mission_lands(**kwargs):
     # There is a minimum energy launch window every 780 days =~ 759 sols
     # Assume a commercial organization would want to use it
     # to reduce propellent required for a given payload
-    register_callback( 
-        when =  thisApp.solday + 759,
-        callback_func = mission_lands,
-        kwargs = { 
-            "settlers" : random.randrange(40, 80)
-        }
-    )
+
+    # only register next landing if this is the first landing on this day
+    # otherwise we get a cascading landings
+    if idx == 0:
+        ships_range = [int(i) for i in thisApp.ships_per_mission.split(",") ]
+
+        for i in range(random.randint( ships_range[0], ships_range[1] ) ):
+
+            settlers_range = [int(i) for i in thisApp.settlers_per_ship.split(",") ]
+
+            register_callback( 
+                when =  thisApp.solday + 759,
+                callback_func = mission_lands,
+                kwargs = { 
+                    "settlers" : random.randint(settlers_range[0], settlers_range[1])
+                }
+            )
 
 ##
 # Break a relationship

@@ -19,3 +19,4 @@ build
 *.swp
 *.svn
 .Rproj.user
+packrat/lib*/

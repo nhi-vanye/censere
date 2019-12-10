@@ -42,7 +42,7 @@ class Simulation(playhouse.signals.Model):
     final_population = peewee.IntegerField( null=True)
 
     ## record arguments used to configure simulation
-    args = peewee.BlobField( null=True )
+    args = peewee.TextField( null=True )
 
     # add a column for storing simulation notes
     # Nothing in generator will add to this column, its for

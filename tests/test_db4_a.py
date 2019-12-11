@@ -12,9 +12,11 @@ thisApp.astronaut_age_range = "32,45"
 thisApp.solday = 1
 thisApp.orientation = "90,6,4"
 thisApp.astronaut_gender_ratio = "50,50"
+thisApp.astronaut_life_expectancy = "72,7"
 thisApp.martian_gender_ratio = "50,50"
-thisApp.initial_child_delay = "400,700"
-thisApp.gap_between_children = "380,1000"
+thisApp.martian_life_expectancy = "72,7"
+thisApp.first_child_delay = "400,700"
+thisApp.gap_between_siblings = "380,1000"
 
 
 class TestBenchmarkMakeFamilies:

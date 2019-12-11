@@ -126,7 +126,7 @@ def make(*args ):
 
                 if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
 
-                    delay = [int(i) for i in thisApp.initial_child_delay.split(",") ]
+                    delay = [int(i) for i in thisApp.first_child_delay.split(",") ]
                     birth_day = thisApp.solday + random.randrange( delay[0], delay[1])
 
                     logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',

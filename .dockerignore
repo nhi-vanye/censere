@@ -4,6 +4,9 @@
 .dev/*
 pyhome/*
 
+# R packages
+packrat/*
+
 # any local sqlite files
 *.db
 *.sql*

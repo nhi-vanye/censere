@@ -1,7 +1,8 @@
 ## @package config
 #
-# Original Author: Richard Offer
-# Copyright (c) 2019
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 #
 # Application configuration utilities
 
@@ -42,6 +43,8 @@ class Generator:
     DETAILS = 15    # info + additional details
     TRACE = 1
 
+    # used to build a printable string of the "useful" class members
+    # 
     def args(self):
 
         excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'log_level', 'simulation' ]

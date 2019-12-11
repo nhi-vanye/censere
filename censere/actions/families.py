@@ -1,3 +1,6 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 
 from __future__ import division
 
@@ -20,6 +23,7 @@ import censere.events.callbacks as CALLBACKS
 # Make a single new family out of two singles
 # the caller is responsible for calling this at
 # appropriate times...
+# This may not create a family if there are no compatible singles
 #
 # \param args - not normally used, but required for pytest benchmarking
 def make(*args ):
@@ -28,7 +32,6 @@ def make(*args ):
 
     partner = MODELS.Settler.alias()
     
-    # TODO how to avoid "incest" ?
     query = MODELS.Settler.select( 
             MODELS.Settler.settler_id.alias('userid1'),
             MODELS.Settler.first_name.alias('first_name1'),
@@ -144,6 +147,8 @@ def make(*args ):
                         kwargs= { "biological_mother" : mother, "biological_father": father }
                     )
 
+            # TODO this is only breaking up relationships that don't have
+            # children - need to make this possible for all relationships
             else:
 
                 EVENTS.register_callback( 

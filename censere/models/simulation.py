@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-
-@author: Richard Offer
-"""
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 
 # Stores details on a given simulation run.
 

@@ -3,6 +3,7 @@
 Created on Fri Mar 29 17:30:50 2019
 
 @author: matej
+Completely re-written November 2019: Richard Offer
 """
 
 # Module governing the attributes of the settlers
@@ -42,6 +43,7 @@ class Settler(playhouse.signals.Model):
     settler_id = peewee.UUIDField( unique=True )
 
     # allow the same database to be used for multple executions
+    # TODO - the field should be renamed to append `_id`
     simulation = peewee.UUIDField()
 
     # reproductive sex - currently expected to be either

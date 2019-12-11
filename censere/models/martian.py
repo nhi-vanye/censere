@@ -3,6 +3,7 @@
 Created on Fri Mar 29 17:30:50 2019
 
 @author: matej
+Completely re-written November 2019: Richard Offer
 """
 
 # Module governing the attributes of the settlers

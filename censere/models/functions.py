@@ -1,5 +1,6 @@
-##
-# Original Author: Richard Offer
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 #
 # SQLite functions in Python
 
@@ -51,7 +52,7 @@ def family_policy( id_1, id_2):
         if relatives_1 == relatives_2:
             allowed = False
 
-        # this should block any overlap between the two people
+        # this will allow relationships that have no overlap between the two people
         if len(relatives_1 & relatives_2) == 0:
             allowed = True
 

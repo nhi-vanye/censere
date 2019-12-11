@@ -1,3 +1,7 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
+
 #pylint: disable=unused-import
 
 from .settler import Settler as Settler

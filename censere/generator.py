@@ -1,5 +1,9 @@
 #! /usr/bin/env python3
 
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
+
 import argparse
 import datetime
 import logging

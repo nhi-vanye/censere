@@ -1,3 +1,6 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 
 import peewee
 import playhouse.signals
@@ -30,7 +33,11 @@ class Relationship( playhouse.signals.Model ):
 
     relationship_id = peewee.UUIDField( unique=True)
 
-    # 
+    # These are not marked as foreign keys to allow relationships to people
+    # that do not exist in the database
+    # i.e. parents of astronauts
+    #
+    # TODO - we could tighten it up and make `first` a foreign key
     first = peewee.UUIDField()
     second = peewee.UUIDField()
 

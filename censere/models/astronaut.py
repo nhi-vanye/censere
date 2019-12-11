@@ -2,7 +2,9 @@
 """
 Created on Fri Mar 29 17:30:50 2019
 
-@author: matej
+Original Concept: matej
+
+Completely re-written November 2019: Richard Offer
 """
 
 # Module gonverning the attributes of the settlers

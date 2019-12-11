@@ -1,3 +1,6 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
 
 
 # Convenient function to map from earth years

@@ -1,5 +1,8 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
+
 """ @package events
-Original Author: Richard Offer
  
 This module implements common event callback functions, these are
 registered using `events.register_callback()` to be triggered at some point
@@ -44,7 +47,8 @@ def settler_dies(**kwargs):
 
         c.save()
 
-## A person is born
+## A person should be born - 
+# the new person object is created only if mother is still alive
 #
 def settler_born(**kwargs):
 

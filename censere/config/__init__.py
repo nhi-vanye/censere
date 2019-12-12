@@ -159,24 +159,30 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
             help='Sexual orientation percentages, MUST add up to 100 (CENSERE_OREINTATION)' )
 
+        parser.add_argument( '--random-seed', action="store",
+            type=int,
+            metavar="RAND",
+            **check_env_for_default( 'CENSERE_SEED', -1 ),
+            help='Seed to initialize random engine with (CENSERE_SEED)' )
+
         parser.add_argument( '--settlers-per-initial-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,20' ),
+            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,21' ),
             help='Numbering of arriving astronauts for the initial landing (CENSERE_INITIAL_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--settlers-per-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,40' ),
+            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,41' ),
             help='Numbering of arriving astronauts per ship (CENSERE_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--ships-per-initial-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,1' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,2' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_INITIAL_MISSION)' )
 
         parser.add_argument( '--ships-per-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,1' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,2' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_MISSION)' )
 
 

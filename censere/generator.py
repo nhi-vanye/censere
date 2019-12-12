@@ -7,7 +7,6 @@
 import argparse
 import datetime
 import logging
-import random
 import sys
 import uuid
 
@@ -29,6 +28,7 @@ import censere.models.functions as FUNC
 import censere.actions as ACTIONS
 
 import censere.utils as UTILS
+import censere.utils.random as RANDOM
 
 import censere.version as VERSION
 
@@ -95,12 +95,12 @@ def initial_landing():
 
     ships_range = [int(i) for i in thisApp.ships_per_initial_mission.split(",") ]
 
-    for i in range(random.randint( ships_range[0], ships_range[1] ) ):
+    for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
 
         settlers_range = [int(i) for i in thisApp.settlers_per_initial_ship.split(",") ]
 
         EVENTS.callbacks.mission_lands( 
-            settlers=random.randint(settlers_range[0], settlers_range[1])
+            settlers=RANDOM.randint(settlers_range[0], settlers_range[1])
         )
 
 
@@ -273,12 +273,21 @@ def add_summary_entry():
 # TODO - turn this funtion into a module
 def main( argv ):
 
+
+    if thisApp.random_seed == -1:
+    
+        thisApp.random_seed = datetime.datetime.now().microsecond
+
+    UTILS.random.seed( thisApp.random_seed )
+
+    # this is the only thing that needs to be unique
+    # the reset of the IDs should be derrived from the seed value.
     thisApp.simulation = str(uuid.uuid4())
 
     thisApp.solday = 1
 
     logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Started. Goal %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Started. Goal %s = %d, Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count, thisApp.random_seed )
 
     initialize_database()
 
@@ -315,7 +324,7 @@ def main( argv ):
         # TODO make this more flexible
         # Assume: On any given day there is 1% chance of a specific person initiating a relationship
         # there are N singles, so make a family if chance is 0.1 * N or less
-        if random.randrange(0,99) < int ( 1 * current_singles_count * 0.5  ):
+        if RANDOM.randrange(0,99) < int ( 1 * current_singles_count * 0.5  ):
             ACTIONS.make_families( )
         # TODO need a model for relationship breakdown
         # break_families()

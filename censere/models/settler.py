@@ -40,7 +40,7 @@ class Settler(playhouse.signals.Model):
         return "{} {} ({})".format( self.first_name, self.family_name, self.settler_id ) 
 
     # Unique identifier for a person - names are not unique
-    settler_id = peewee.UUIDField( unique=True )
+    settler_id = peewee.CharField(32, unique=True )
 
     # allow the same database to be used for multple executions
     # TODO - the field should be renamed to append `_id`
@@ -58,8 +58,8 @@ class Settler(playhouse.signals.Model):
     # TODO - use this data
     # These cannot be foreign keys, because there may not be a Settler row with
     # that id. Think astronaut whose parents are still on Earth
-    biological_father = peewee.UUIDField()
-    biological_mother = peewee.UUIDField()
+    biological_father = peewee.CharField(32)
+    biological_mother = peewee.CharField(32)
 
     # sexual orientation. acceptable values:
     #   m

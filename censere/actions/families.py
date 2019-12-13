@@ -5,7 +5,6 @@
 from __future__ import division
 
 import logging
-import random
 import uuid
 
 import peewee
@@ -15,6 +14,7 @@ from censere.config import Generator as thisApp
 import censere.models as MODELS
 
 import censere.utils as UTILS
+import censere.utils.random as RANDOM
 
 import censere.events.store as EVENTS
 import censere.events.callbacks as CALLBACKS
@@ -68,6 +68,7 @@ def make(*args ):
             ).order_by(
 # a UUID is close to random and doesn't need to be calculated
                 MODELS.Settler.settler_id
+                # MODELS.Settler.first_name, partner.first_name
             ).limit(1).dicts()
 
     for row in query.execute():
@@ -124,13 +125,13 @@ def make(*args ):
             mothers_age = int( (thisApp.solday - m.birth_solday) / 680 )
 
             # TODO What rate of relationships have children
-            if random.randrange(0,99) < 40:
-                r = random.random()
+            if RANDOM.randrange(0,99) < 40:
+                r = RANDOM.random()
 
                 if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
 
                     delay = [int(i) for i in thisApp.first_child_delay.split(",") ]
-                    birth_day = thisApp.solday + random.randrange( delay[0], delay[1])
+                    birth_day = thisApp.solday + RANDOM.randrange( delay[0], delay[1])
 
                     logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
                         *UTILS.from_soldays( thisApp.solday ),
@@ -152,7 +153,7 @@ def make(*args ):
             else:
 
                 EVENTS.register_callback( 
-                    when= thisApp.solday + random.randrange( 1, 760),
+                    when= thisApp.solday + RANDOM.randrange( 1, 760),
                     callback_func=CALLBACKS.end_relationship,
                     kwargs= { "relationship_id" : r.relationship_id }
                 )

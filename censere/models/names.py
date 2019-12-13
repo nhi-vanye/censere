@@ -2,7 +2,7 @@
 #
 # see LICENSE.md for license details
 
-import random
+import censere.utils.random as RANDOM
 
 # These are the top 100 male, female firstname and family names in the USA
 # TODO make the list more like the the world
@@ -321,12 +321,12 @@ family_names = [
 
 def get_random_male_first_name():
 
-    return random.choice( person_names[ 'm' ] )
+    return RANDOM.choice( person_names[ 'm' ] )
 
 def get_random_female_first_name():
 
-    return random.choice( person_names[ 'f' ] )
+    return RANDOM.choice( person_names[ 'f' ] )
 
 def get_random_family_name():
 
-    return random.choice( family_names )
+    return RANDOM.choice( family_names )

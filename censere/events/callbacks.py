@@ -13,7 +13,6 @@ in the future
 from __future__ import division
 
 import logging
-import random
 import uuid
 
 from censere.config import Generator as thisApp
@@ -21,6 +20,7 @@ from censere.config import Generator as thisApp
 import censere.models as MODELS
 
 import censere.utils as UTILS
+import censere.utils.random as RANDOM
 
 from .store import register_callback as register_callback
 
@@ -119,14 +119,14 @@ def settler_born(**kwargs):
 
     life_expectancy = [int(i) for i in thisApp.martian_life_expectancy.split(",") ]
     register_callback(
-        when=thisApp.solday + random.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
+        when=thisApp.solday + RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
         callback_func=settler_dies,
         kwargs= { "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
     mothers_age = int( (thisApp.solday - mother.birth_solday) / 680 )
 
-    r = random.random()
+    r = RANDOM.random()
 
     # TODO trying to provide some falloff with age - but this is too simple
     # dramtic falloff in fertility after 35 ???
@@ -140,7 +140,7 @@ def settler_born(**kwargs):
         gap = [int(i) for i in thisApp.gap_between_siblings.split(",") ]
 
 
-        when = thisApp.solday + random.randrange( gap[0], gap[1])
+        when = thisApp.solday + RANDOM.randrange( gap[0], gap[1])
 
         logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
         register_callback( 
@@ -187,7 +187,7 @@ def mission_lands(**kwargs):
         current_age = thisApp.solday - a.birth_solday
         life_expectancy = [int(i) for i in thisApp.astronaut_life_expectancy.split(",") ]
         register_callback( 
-            when= max( random.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ) - current_age, thisApp.solday+ random.randrange(1, 680)),
+            when= max( RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ) - current_age, thisApp.solday+ RANDOM.randrange(1, 680)),
             callback_func=settler_dies,
             kwargs= { "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
@@ -206,7 +206,7 @@ def mission_lands(**kwargs):
     if idx == 0:
         ships_range = [int(i) for i in thisApp.ships_per_mission.split(",") ]
 
-        for i in range(random.randint( ships_range[0], ships_range[1] ) ):
+        for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
 
             settlers_range = [int(i) for i in thisApp.settlers_per_ship.split(",") ]
 
@@ -214,7 +214,7 @@ def mission_lands(**kwargs):
                 when =  thisApp.solday + 759,
                 callback_func = mission_lands,
                 kwargs = { 
-                    "settlers" : random.randint(settlers_range[0], settlers_range[1])
+                    "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
                 }
             )
 

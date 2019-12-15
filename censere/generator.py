@@ -91,7 +91,7 @@ def initialize_database():
     DB.create_tables()
 
 
-def initial_landing():
+def register_initial_landing():
 
     ships_range = [int(i) for i in thisApp.ships_per_initial_mission.split(",") ]
 
@@ -99,8 +99,12 @@ def initial_landing():
 
         settlers_range = [int(i) for i in thisApp.settlers_per_initial_ship.split(",") ]
 
-        EVENTS.callbacks.mission_lands( 
-            settlers=RANDOM.randint(settlers_range[0], settlers_range[1])
+        EVENTS.register_callback(
+            when =  1,
+            callback_func=EVENTS.callbacks.mission_lands,
+            kwargs = {
+                "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
+            }
         )
 
 
@@ -284,10 +288,10 @@ def main( argv ):
     # the reset of the IDs should be derrived from the seed value.
     thisApp.simulation = str(uuid.uuid4())
 
-    thisApp.solday = 1
+    thisApp.solday = 0
 
     logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    logging.log( thisApp.NOTICE, '%d.%d (%d) Simulation %s Started. Goal %s = %d, Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count, thisApp.random_seed )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started. Goal %s = %d, Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count, thisApp.random_seed )
 
     initialize_database()
 
@@ -299,15 +303,14 @@ def main( argv ):
     s.limit = thisApp.limit
     s.limit_count = thisApp.limit_count
     s.args = thisApp.args(thisApp)
-    logging.debug( 'Adding % rows to simulations table', s.save() )
 
-    initial_landing()
+    register_initial_landing()
 
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
 
-    ACTIONS.make_families( )
+    #ACTIONS.make_families( )
 
     while get_limit_count( thisApp.limit ) < thisApp.limit_count:
 

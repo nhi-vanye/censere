@@ -1,3 +1,7 @@
+## Copyright (c) 2019 Richard Offer. All right reserved.
+#
+# see LICENSE.md for license details
+#
 ## Wrapper around random routines to make it easier to re-implement
 
 

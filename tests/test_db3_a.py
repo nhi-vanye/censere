@@ -32,6 +32,12 @@ class TestCreateUnacceptableFamilies:
     def add_access_to_logging(self, caplog):
         self._caplog = caplog
 
+    def test_create_events(self, database):
+        database.bind( [ censere.models.Event ], bind_refs=False, bind_backrefs=False)
+        database.connect( reuse_if_open=True )
+        database.create_tables( [ censere.models.Event ] )
+        assert database.table_exists( "events" )
+
     ##
     # helper to create a person and connected relationships
     def make_martian(self, sex, settler_id, orientation, father_id, mother_id, family_name ):

@@ -22,6 +22,8 @@ import censere.models as MODELS
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
 
+import censere.events as EVENTS
+
 from .store import register_callback as register_callback
 
 ## A person dies
@@ -120,7 +122,7 @@ def settler_born(**kwargs):
     life_expectancy = [int(i) for i in thisApp.martian_life_expectancy.split(",") ]
     register_callback(
         when=thisApp.solday + RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
-        callback_func=settler_dies,
+        callback_func=EVENTS.settler_dies,
         kwargs= { "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
@@ -146,7 +148,7 @@ def settler_born(**kwargs):
         register_callback( 
             # handle the "cool off" period...
             when=when,
-            callback_func=settler_born,
+            callback_func=EVENTS.settler_born,
             kwargs= { "biological_mother" : mother.settler_id, "biological_father": father.settler_id}
         )
 
@@ -188,7 +190,7 @@ def mission_lands(**kwargs):
         life_expectancy = [int(i) for i in thisApp.astronaut_life_expectancy.split(",") ]
         register_callback( 
             when= max( RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ) - current_age, thisApp.solday+ RANDOM.randrange(1, 680)),
-            callback_func=settler_dies,
+            callback_func=EVENTS.settler_dies,
             kwargs= { "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
 
@@ -212,7 +214,7 @@ def mission_lands(**kwargs):
 
             register_callback( 
                 when =  thisApp.solday + 759,
-                callback_func = mission_lands,
+                callback_func=EVENTS.mission_lands,
                 kwargs = { 
                     "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
                 }

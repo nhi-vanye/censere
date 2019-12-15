@@ -167,22 +167,22 @@ class GeneratorOptions(CommonOptions):
 
         parser.add_argument( '--settlers-per-initial-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,21' ),
+            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,20' ),
             help='Numbering of arriving astronauts for the initial landing (CENSERE_INITIAL_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--settlers-per-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,41' ),
+            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,40' ),
             help='Numbering of arriving astronauts per ship (CENSERE_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--ships-per-initial-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,2' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,1' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_INITIAL_MISSION)' )
 
         parser.add_argument( '--ships-per-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,2' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,1' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_MISSION)' )
 
 

@@ -32,6 +32,12 @@ class TestBenchmarkMakeFamilies:
     def add_access_to_logging(self, caplog):
         self._caplog = caplog
 
+    def test_create_events(self, database):
+        database.bind( [ censere.models.Event ], bind_refs=False, bind_backrefs=False)
+        database.connect( reuse_if_open=True )
+        database.create_tables( [ censere.models.Event ] )
+        assert database.table_exists( "events" )
+
     def make_astronaut(self, father_id, mother_id ):
 
         p = censere.models.Astronaut()

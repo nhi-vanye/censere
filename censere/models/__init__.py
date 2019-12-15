@@ -4,6 +4,7 @@
 
 #pylint: disable=unused-import
 
+from .events import Event as Event
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
 from .astronaut import Astronaut as Astronaut

@@ -1,58 +1,88 @@
 
-import collections
+import importlib
 import logging
+import json
 
 from censere.config import Generator as thisApp
 
 import censere.utils as UTILS
 
-store = collections.defaultdict(list)
+import censere.models as MODELS
 
 ##
 # \param when - absolute solday to execute the function.
+# \param callback_func - fully qualified function
 def register_callback( when=0, name="", callback_func=None, kwargs=None ):
 
     if when == 0 or callback_func == None:
 
         logging.error("Missing required arguments in call to register_callback()")
 
+        return
 
-    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, when, *UTILS.from_soldays( when ) )
+
+    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
     logging.debug( kwargs )
 
-    indices = collections.defaultdict(int)
-    indices[ callback_func.__name__] = 0
-    for entry in store[when]:
-        indices[ entry['func'].__name__  ] += 1
+    try:
+        idx = MODELS.Event.select().where(
+            ( MODELS.Event.simulation_id == thisApp.simulation ) &
+            ( MODELS.Event.when == when ) &
+            ( MODELS.Event.callback_func == "{}.{}".format( callback_func.__module__, callback_func.__name__ ) )
+        ).count()
 
-    store[ when ].append( {
-            "idx"  : indices[ callback_func.__name__],
-            "name" : name,
-            "func" : callback_func,
-            "kwargs" : kwargs
-        } )
+        e = MODELS.Event()
+
+        e.simulation_id = thisApp.simulation
+        e.when = when
+        e.idx = idx
+        # This allows us to pass a real function into the ergister function (rather then a string)
+        # but store the full name of the function for later execution
+        e.callback_func = "{}.{}".format( callback_func.__module__, callback_func.__name__ )
+        e.args =  json.dumps( kwargs )
+
+        e.save()
+    except Exception as e:
+        logging.log( logging.FATAL, "%d.%03d Failed to register callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
+
 
 def invoke_callbacks( ):
 
-    if thisApp.solday in store:
+    logging.info( '%d.%03d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
 
-        logging.info( '%d.%03d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
+    query = MODELS.Event.select(
+        MODELS.Event.callback_func,
+        MODELS.Event.idx,
+        MODELS.Event.args
+    ).filter(
+        ( MODELS.Event.simulation_id == thisApp.simulation ) &
+        ( MODELS.Event.when == thisApp.solday )
+    )
 
-        for entry in store[thisApp.solday]:
-            name = ""
-            kwargs = {}
+    for row in query.execute():
 
-            if "name" in entry:
-                name = entry['name']
+        logging.log( logging.DEBUG, '%d.%03d   Processing event %s()', *UTILS.from_soldays( thisApp.solday ), row.callback_func )
 
-            if "kwargs" in entry:
-                kwargs = entry['kwargs']
+        try:
 
-            kwargs['idx'] = entry['idx']
+            mod_name, func_name = row.callback_func.rsplit('.',1)
 
-            if "func" in entry:
+            mod = importlib.import_module(mod_name)
 
-                logging.debug( '%d.%03d   Processing event %s', *UTILS.from_soldays( thisApp.solday ), name )
-                entry["func"](**kwargs )
+            kwargs = json.loads( row.args )
+
+            kwargs['idx'] = row.idx
+
+            func = getattr(mod, func_name)
+
+            logging.log( thisApp.DETAILS, "%d.%03d Invoking callback %s( %s )", *UTILS.from_soldays( thisApp.solday ), row.callback_func, kwargs )
+
+            result = func( **kwargs )
+
+        except Exception as e:
+            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), entry.callback_func, str(e) )
+
+
+
 
 

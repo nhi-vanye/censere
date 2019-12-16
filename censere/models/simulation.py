@@ -47,3 +47,5 @@ class Simulation(playhouse.signals.Model):
     # storing descriptive text found during analysis
     notes = peewee.TextField( null=True )
 
+    random_seed = peewee.IntegerField( null=True )
+    random_state = peewee.TextField( null=True )

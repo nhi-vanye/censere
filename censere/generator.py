@@ -5,9 +5,11 @@
 # see LICENSE.md for license details
 
 import argparse
+import base64
 import datetime
 import logging
 import sys
+import pickle as ENC
 import uuid
 
 #make it easy to identify local modules
@@ -286,25 +288,42 @@ def main( argv ):
 
     # this is the only thing that needs to be unique
     # the reset of the IDs should be derrived from the seed value.
-    thisApp.simulation = str(uuid.uuid4())
+    if thisApp.continue_simulation == "":
+        thisApp.simulation = str(uuid.uuid4())
+    else:
+        thisApp.simulation = thisApp.continue_simulation
 
-    thisApp.solday = 0
+    initialize_database()
+
+    if thisApp.continue_simulation == "":
+
+        thisApp.solday = 0
+
+        s = MODELS.Simulation( )
+
+        s.simulation_id = thisApp.simulation
+        s.random_seed = thisApp.random_seed
+        s.initial_mission_lands = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+        s.begin_datetime = datetime.datetime.now()
+        s.limit = thisApp.limit
+        s.limit_count = thisApp.limit_count
+        s.args = thisApp.args(thisApp)
+        s.save()
+
+    else:
+
+        s = MODELS.Simulation.get( MODELS.Simulation.simulation_id == thisApp.simulation )
+
+        thisApp.solday = s.final_soldays
+
+        RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) )
 
     logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started. Goal %s = %d, Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count, thisApp.random_seed )
 
-    initialize_database()
 
-    # TODO save the paramters into the simulation table for reference.
-    s = MODELS.Simulation( )
-    s.simulation_id = thisApp.simulation
-    s.initial_mission_lands = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
-    s.begin_datetime = datetime.datetime.now()
-    s.limit = thisApp.limit
-    s.limit_count = thisApp.limit_count
-    s.args = thisApp.args(thisApp)
-
-    register_initial_landing()
+    if thisApp.continue_simulation == "":
+        register_initial_landing()
 
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
@@ -364,13 +383,14 @@ def main( argv ):
                     MODELS.Simulation.mission_ends: res["earth_datetime"],
                     MODELS.Simulation.final_soldays: res["solday"],
                     MODELS.Simulation.final_population: res["population"],
+                    MODELS.Simulation.random_state: base64.b64encode(ENC.dumps(RANDOM.get_state())),
                 } 
             ).where( 
                 ( MODELS.Simulation.simulation_id == thisApp.simulation )
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Complete. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Complete. Seed %d. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
 
 if __name__ == '__main__':
 

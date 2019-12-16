@@ -47,7 +47,8 @@ class Generator:
     # 
     def args(self):
 
-        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'log_level', 'simulation' ]
+        # random_seed has its own column
+        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'log_level', 'simulation', 'random_seed' ]
 
         res=""
 
@@ -119,6 +120,10 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_ASTRONAUT_LIFE_EXPECTANCY', '72,7' ),
             help='Life expectancy of arriving astronauts mean=72, stddev=7 (CENSERE_ASTRONAUT_LIFE_EXPECTANCY)' )
 
+        parser.add_argument( '--continue-simulation', action="store",
+            **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),
+            help='Continue the simulation to a new limit (CENSERE_CONTINUE_SIMULATION)' )
+
         parser.add_argument( '--gap-between-siblings', action="store",
             metavar="MIN,MAX",
             **check_env_for_default( 'CENSERE_GAP_BETWEEN_SIBLINGS', '380,1000' ),
@@ -163,7 +168,7 @@ class GeneratorOptions(CommonOptions):
             type=int,
             metavar="RAND",
             **check_env_for_default( 'CENSERE_SEED', -1 ),
-            help='Seed to initialize random engine with (CENSERE_SEED)' )
+            help='Seed used to initialize random engine (CENSERE_SEED)' )
 
         parser.add_argument( '--settlers-per-initial-ship', action="store",
             metavar="MIN,MAX",

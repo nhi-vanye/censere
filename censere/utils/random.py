@@ -12,6 +12,14 @@ def seed( seed ):
     return NPRND.seed( seed )
 
 
+def set_state( st ):
+
+    return NPRND.set_state( st )
+
+def get_state( ):
+
+    return NPRND.get_state( )
+
 # return a string of random bytes
 # We use this rather than UUID so that
 # we can get the same IDs if the same seed is used

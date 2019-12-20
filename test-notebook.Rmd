@@ -28,6 +28,7 @@ library(lubridate)
 library(reshape2)
 library(quantreg)
 library(kableExtra)
+library(lattice)
 database_path <- params$database_path #file.choose()
 database_info <- file.info(database_path, extra_cols = FALSE)
 database_size <- humanReadable(file.size(database_path), units="auto", standard="Unix", digits=0 )
@@ -42,6 +43,9 @@ It requires a database that has been already been generated.
 ```{r load_summary, include=FALSE}
 summary_table <- tbl( conn, "summary")
 simulations <- tbl( conn, "simulations")
+demographics <- tbl(conn, "demographics")
+populations <- tbl(conn, "populations")
+
 # use collect() to force execution of SQL so we don't carry forward the pending result
 # which doesn't cope well with being inserted into running text
 num_simulations <- collect(count(simulations))
@@ -209,3 +213,38 @@ multiplot(births_and_deaths, births_and_deaths_by_pop, avg_births_and_deaths, av
 
 ```
 
+
+
+```{r demographics_1, include=FALSE}
+
+birth_death_rates <- ggplot(data=demographics, 
+              aes(x=ymd_hms(earth_datetime)) ) + 
+      geom_line( aes( y = avg_annual_birth_rate ), color="#009E73" ) +
+      geom_line( aes( y = avg_annual_death_rate ), color="#000000" ) +
+      geom_hline( aes( yintercept=18.5), color="#009E73", linetype="dashed" ) +
+      geom_hline( aes( yintercept=7.5), color="#000000", linetype="dashed" ) +
+      
+      theme(legend.position="none") +
+      labs( x = "Date", y="Population", title="Annual Birth and Death Rates per 1000 population (cf. 2016 Global)", caption="https://en.wikipedia.org/wiki/Birth_rate") 
+```
+
+```{r plt_demographics_1, echo=FALSE}
+birth_death_rates
+```
+
+
+```{r population_breakdown, include=FALSE}
+
+
+population_breakdown <- ggplot( data=populations,
+                                aes( x=as.factor(sol_years), y=ifelse(test = sex == "m",  yes = -value, no = value), fill=sex)) +
+    geom_col() +
+    coord_flip() +
+    scale_y_continuous(labels = abs) +
+    labs( x = "Age", y="Population", title="Population Pyramid") +
+    facet_wrap(vars(year(earth_datetime)) )
+```
+
+```{r population_breakdown_plt, echo=FALSE}
+population_breakdown
+```

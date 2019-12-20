@@ -81,6 +81,11 @@ class CommonOptions:
             **check_env_for_default( 'CENSERE_DATABASE', 'censere.db' ),
             help='Path to database (CENSERE_DATABASE)' )
 
+        parser.add_argument( '--database-dir', action="store",
+            metavar="DIR",
+            **check_env_for_default( 'CENSERE_DATABASE_DIR', "" ),
+            help='Use a unique file in DIR. This takes priority over --database. Unique file is based on the simulation id (CENSERE_DATABASE_DIR)' )
+
         parser.add_argument( '--debug', action="store_true",
             **check_env_for_default( 'CENSERE_DEBUG', False ),
             help='Enable debug mode (CENSERE_DEBUG)' )
@@ -124,15 +129,20 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),
             help='Continue the simulation to a new limit (CENSERE_CONTINUE_SIMULATION)' )
 
-        parser.add_argument( '--gap-between-siblings', action="store",
-            metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_GAP_BETWEEN_SIBLINGS', '380,1000' ),
-            help='Sols between sibling births (CENSERE_GAP_BETWEEN_SIBLINGS)' )
-
         parser.add_argument( '--first-child-delay', action="store",
             metavar="MIN,MAX",
             **check_env_for_default( 'CENSERE_FIRST_CHILD_DELAY', '350,700' ),
             help='Delay (sols) between relationship start and first child (CENSERE_FIRST_CHILD_DELAY)' )
+
+        parser.add_argument( '--fraction-singles-pairing-per-day', action="store",
+            type=float,
+            **check_env_for_default( 'CENSERE_FRACTION_SINGLES_PAIRING', 0.01 ),
+            help='The fraction of singles that will start a relationship PER DAY (CENSERE_FRACTION_SINGLES_PAIRING)' )
+
+        parser.add_argument( '--gap-between-siblings', action="store",
+            metavar="MIN,MAX",
+            **check_env_for_default( 'CENSERE_GAP_BETWEEN_SIBLINGS', '380,1000' ),
+            help='Sols between sibling births (CENSERE_GAP_BETWEEN_SIBLINGS)' )
 
         parser.add_argument( '--initial-mission-lands', action="store",
             metavar="DATETIME",

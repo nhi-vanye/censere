@@ -80,7 +80,7 @@ def invoke_callbacks( ):
             result = func( **kwargs )
 
         except Exception as e:
-            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), entry.callback_func, str(e) )
+            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), row.callback_func, str(e) )
 
 
 

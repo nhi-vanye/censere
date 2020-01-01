@@ -70,21 +70,21 @@ class Summary(playhouse.signals.Model):
     def initialize( self):
 
         adults = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
             ( Settler.death_solday == 0 )
         ).count()
 
         children = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.birth_solday >= ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
             ( Settler.death_solday == 0 )
         ).count()
 
         singles = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.state == 'single' ) & 
             ( Settler.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) & 
@@ -92,7 +92,7 @@ class Summary(playhouse.signals.Model):
         ).count()
 
         couples = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.state == 'couple' ) & 
             ( Settler.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) & 
@@ -100,21 +100,21 @@ class Summary(playhouse.signals.Model):
         ).count()
 
         males = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.sex == 'm' ) & 
             ( Settler.death_solday == 0 )
         ).count()
 
         females = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.sex == 'f' ) & 
             ( Settler.death_solday == 0 )
         ).count()
 
         hetrosexual = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( ( ( Settler.sex == 'm' ) & 
                 ( Settler.orientation == 'f' ) ) | 
@@ -125,7 +125,7 @@ class Summary(playhouse.signals.Model):
         ).count()
 
         homosexual = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.sex == Settler.orientation ) & 
             ( Settler.death_solday == 0 ) &
@@ -133,7 +133,7 @@ class Summary(playhouse.signals.Model):
         ).count()
 
         bisexual = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.orientation == 'mf' ) & 
             ( Settler.death_solday == 0 ) &
@@ -141,19 +141,19 @@ class Summary(playhouse.signals.Model):
         ).count()
 
         deaths = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.death_solday != 0 )
         ).count()
 
         earth_born = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.birth_location == LocationEnum.Earth )
         ).count()
 
         mars_born = Settler.select().where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.current_location == LocationEnum.Mars ) &
             ( Settler.birth_location == LocationEnum.Mars )
         ).count()

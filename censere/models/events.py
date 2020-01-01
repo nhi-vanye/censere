@@ -25,6 +25,8 @@ class Event(playhouse.signals.Model):
     # Unique identifier for the simulation
     simulation_id = peewee.UUIDField( )
 
+    registered = peewee.IntegerField()
+
     when = peewee.IntegerField( index=True, unique=False )
 
     callback_func = peewee.CharField( 64 )

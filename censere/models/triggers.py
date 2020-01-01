@@ -1,11 +1,11 @@
 
 import logging
-import uuid
 
 import playhouse.signals 
 
 from censere.config import Generator as thisApp
 import censere.utils as UTILS
+import censere.utils.random as RANDOM
 
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
@@ -40,7 +40,9 @@ def settler_post_save(sender, instance, created):
 
             s1 = Relationship()
 
-            s1.relationship_id=str(uuid.uuid4())
+            s1.simulation_id=thisApp.simulation
+
+            s1.relationship_id= RANDOM.id()
             s1.first = instance.settler_id
             s1.second = instance.biological_father
             s1.relationship = RelationshipEnum.parent
@@ -50,7 +52,9 @@ def settler_post_save(sender, instance, created):
 
             s2 = Relationship()
 
-            s2.relationship_id=str(uuid.uuid4())
+            s2.simulation_id=thisApp.simulation
+
+            s2.relationship_id= RANDOM.id()
             s2.first = instance.settler_id
             s2.second = instance.biological_mother
             s2.relationship = RelationshipEnum.parent
@@ -118,7 +122,9 @@ def relationship_post_save(sender, instance, created):
 
                 r = Relationship()
 
-                r.relationship_id=str(uuid.uuid4())
+                r.simulation_id=thisApp.simulation
+
+                r.relationship_id= RANDOM.id()
                 r.first = instance.first
                 r.second = row.second
 

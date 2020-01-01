@@ -112,18 +112,18 @@ class GeneratorOptions(CommonOptions):
 
         parser.add_argument( '--astronaut-age-range', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_ASTRONAUT_AGE_RANGE', '32,45' ),
+            **check_env_for_default( 'CENSERE_ASTRONAUT_AGE_RANGE', 'randrange:32,46' ),
             help='Age range (years) of arriving astronauts (CENSERE_ASTRONAUT_AGE_RANGE)' )
 
         parser.add_argument( '--astronaut-gender-ratio', action="store",
             metavar="MALE,FEMALE",
-            **check_env_for_default( 'CENSERE_ASTRONAUT_GENDER_RATIO', '50,50' ),
+            **check_env_for_default( 'CENSERE_ASTRONAUT_GENDER_RATIO', 'randint:50,50' ),
             help='Male:Female ratio for astronauts, MUST add up to 100 (CENSERE_ASTRONAUT_GENDER_RATIO)' )
 
         parser.add_argument( '--astronaut-life-expectancy', action="store",
-            metavar="MEAN,STDDEV",
-            **check_env_for_default( 'CENSERE_ASTRONAUT_LIFE_EXPECTANCY', '72,7' ),
-            help='Life expectancy of arriving astronauts mean=72, stddev=7 (CENSERE_ASTRONAUT_LIFE_EXPECTANCY)' )
+            metavar="LIFE",
+            **check_env_for_default( 'CENSERE_ASTRONAUT_LIFE_EXPECTANCY', 'cdc:' ),
+            help='Life expectancy of arriving astronauts - default is "cdc:" (CENSERE_ASTRONAUT_LIFE_EXPECTANCY)' )
 
         parser.add_argument( '--continue-simulation', action="store",
             **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),
@@ -131,7 +131,7 @@ class GeneratorOptions(CommonOptions):
 
         parser.add_argument( '--first-child-delay', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_FIRST_CHILD_DELAY', '350,700' ),
+            **check_env_for_default( 'CENSERE_FIRST_CHILD_DELAY', 'randint:350,700' ),
             help='Delay (sols) between relationship start and first child (CENSERE_FIRST_CHILD_DELAY)' )
 
         parser.add_argument( '--fraction-singles-pairing-per-day', action="store",
@@ -139,10 +139,10 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_FRACTION_SINGLES_PAIRING', 0.01 ),
             help='The fraction of singles that will start a relationship PER DAY (CENSERE_FRACTION_SINGLES_PAIRING)' )
 
-        parser.add_argument( '--gap-between-siblings', action="store",
+        parser.add_argument( '--sols-between-siblings', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_GAP_BETWEEN_SIBLINGS', '380,1000' ),
-            help='Sols between sibling births (CENSERE_GAP_BETWEEN_SIBLINGS)' )
+            **check_env_for_default( 'CENSERE_SOLS_BETWEEN_SIBLINGS', 'randint:380,1000' ),
+            help='Gap between sibling births (CENSERE_SOLS_BETWEEN_SIBLINGS)' )
 
         parser.add_argument( '--initial-mission-lands', action="store",
             metavar="DATETIME",
@@ -161,13 +161,18 @@ class GeneratorOptions(CommonOptions):
 
         parser.add_argument( '--martian-gender-ratio', action="store",
             metavar="MALE,FEMALE",
-            **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', '50,50' ),
+            **check_env_for_default( 'CENSERE_MARTIAN_GENDER_RATIO', 'randint:50,50' ),
             help='Male:Female ratio for new born martians, MUST add up to 100 (CENSERE_MARTIAN_GENDER_RATIO)' )
 
         parser.add_argument( '--martian-life-expectancy', action="store",
+            metavar="LIFE",
+            **check_env_for_default( 'CENSERE_MARTIAN_LIFE_EXPECTANCY', 'cdc:' ),
+            help='Life expectancy of new born martians - default "cdc:" (CENSERE_MARTIAN_LIFE_EXPECTANCY)' )
+
+        parser.add_argument( '--mission-lands', action="store",
             metavar="MEAN,STDDEV",
-            **check_env_for_default( 'CENSERE_MARTIAN_LIFE_EXPECTANCY', '72,7' ),
-            help='Life expectancy of new born martians mean=72, stddev=7 (CENSERE_MARTIAN_LIFE_EXPECTANCY)' )
+            **check_env_for_default( 'CENSERE_MISSION_LANDS', 'randint:759,759' ),
+            help='Land a new mission every MEAN +- STDDEV sols (CENSERE_MISSION_LANDS)' )
 
         parser.add_argument( '--orientation', action="store",
             metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
@@ -182,23 +187,29 @@ class GeneratorOptions(CommonOptions):
 
         parser.add_argument( '--settlers-per-initial-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', '20,20' ),
+            **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', 'randint:20,20' ),
             help='Numbering of arriving astronauts for the initial landing (CENSERE_INITIAL_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--settlers-per-ship', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', '40,40' ),
+            **check_env_for_default( 'CENSERE_SETTLERS_PER_SHIP', 'randint:40,40' ),
             help='Numbering of arriving astronauts per ship (CENSERE_SETTLERS_PER_SHIP)' )
 
         parser.add_argument( '--ships-per-initial-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', '1,1' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_INITIAL_MISSION', 'randint:1,1' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_INITIAL_MISSION)' )
 
         parser.add_argument( '--ships-per-mission', action="store",
             metavar="MIN,MAX",
-            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', '1,1' ),
+            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', 'randint:1,1' ),
             help='Numbering of ships per mission (CENSERE_SHIPS_PER_MISSION)' )
+
+        parser.add_argument( '--use-ivf', action="store_true",
+            **check_env_for_default( 'CENSERE_SHIPS_PER_MISSION', False ),
+            help='Use IFV to extend fertility (CENSERE_USE_IFV)' )
+
+
 
 
 ## Viewer-specific arguments

@@ -40,7 +40,8 @@ class Population(playhouse.signals.Model):
     earth_datetime = peewee.DateTimeField()
 
 
-    sol_years = peewee.CharField( 8 )
+    bucket = peewee.CharField( 8 )
+    sol_years = peewee.IntegerField( 8 )
     sex = peewee.CharField( 1 )
     value = peewee.IntegerField( )
 
@@ -51,7 +52,7 @@ def get_population_histogram( ):
             thisApp.solday - Settler.birth_solday,
             Settler.sex
         ).where( 
-            ( Settler.simulation == thisApp.simulation ) &
+            ( Settler.simulation_id == thisApp.simulation ) &
             ( Settler.death_solday == 0 ) 
         ).tuples()
 
@@ -68,8 +69,8 @@ def get_population_histogram( ):
             f.append( int( i[0] / 668.0 ) )
 
 
-    # don't forget these are solyears, so 60 is old
-    bins = [0,5,10,15,20,25,30,35,40,45,50,55,60]
+    # don't forget these are solyears, so 50 is _old_
+    bins = [0,5,10,15,20,25,30,35,40,45,50]
     males = numpy.histogram( m, bins=bins )
     females = numpy.histogram( f, bins=bins )
 

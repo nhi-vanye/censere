@@ -28,10 +28,16 @@ class Relationship( playhouse.signals.Model ):
 
         table_name = 'relationships'
 
+        indexes = (
+            (('simulation_id', 'relationship_id'), True),
+        )
+
     def __repr__(self):
         return "{} {} <-> {}".format( self.relationship_id, self.first, self.second ) 
 
-    relationship_id = peewee.UUIDField( unique=True)
+    simulation_id = peewee.UUIDField()
+
+    relationship_id = peewee.CharField( 32 )
 
     # These are not marked as foreign keys to allow relationships to people
     # that do not exist in the database

@@ -33,18 +33,20 @@ class Settler(playhouse.signals.Model):
 
         table_name = 'settlers'
 
+        indexes = (
+            (('simulation_id', 'settler_id'), True),
+        )
 
     ## provide a internal representation function
     # to make debugging easier
     def __repr__(self):
         return "{} {} ({})".format( self.first_name, self.family_name, self.settler_id ) 
 
-    # Unique identifier for a person - names are not unique
-    settler_id = peewee.CharField(32, unique=True )
-
     # allow the same database to be used for multple executions
-    # TODO - the field should be renamed to append `_id`
-    simulation = peewee.UUIDField()
+    simulation_id = peewee.UUIDField( index=True, unique=False )
+
+    # Unique identifier for a person - names are not unique
+    settler_id = peewee.CharField( 32, index=True, unique=False )
 
     # reproductive sex - currently expected to be either
     # `m` or `f`. In the future this could include `t`
@@ -90,6 +92,8 @@ class Settler(playhouse.signals.Model):
     # conversions as needed (pregnany etc)
     birth_solday = peewee.IntegerField( )
     death_solday = peewee.IntegerField( default=0 )
+
+    cohort = peewee.IntegerField( default=0 )
 
     # How productive is person ??
     productivity = peewee.IntegerField( default=50 )

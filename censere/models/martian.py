@@ -37,7 +37,7 @@ class Martian(Settler):
 
         self.settler_id = RANDOM.id()
 
-        self.simulation = thisApp.simulation
+        self.simulation_id = thisApp.simulation
 
         # might want to bias Astronaut sex beyond 50:50
         if sex == None:
@@ -63,6 +63,8 @@ class Martian(Settler):
 
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  thisApp.solday
+
+        self.cohort =  thisApp.solday
 
         self.productivity = 0
 

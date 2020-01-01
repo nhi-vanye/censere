@@ -31,19 +31,22 @@ from .store import register_callback as register_callback
 def settler_dies(**kwargs):
 
     id = None
+    name = None
 
     for k,v in kwargs.items():
         if k == "id":
             id = v
+        if k == "name":
+            name = v
 
     if id == None:
         logging.error( "settler_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "%d.%03d Settler %s dies ", *UTILS.from_soldays( thisApp.solday ), id )
+    logging.log( thisApp.NOTICE, "%d.%03d Settler %s (%s) dies ", *UTILS.from_soldays( thisApp.solday ), name, id )
 
     # Call the instance method to trigger callback handling.
-    for c in MODELS.Settler().select().filter( MODELS.Settler.settler_id == id ):
+    for c in MODELS.Settler().select().filter( ( MODELS.Settler.settler_id == id ) & ( MODELS.Settler.simulation_id == thisApp.simulation ) ):
 
         c.death_solday = thisApp.solday
 
@@ -99,7 +102,9 @@ def settler_born(**kwargs):
     # create the parent <-> child relationship
     r1 = MODELS.Relationship()
 
-    r1.relationship_id=str(uuid.uuid4())
+    r1.simulation_id = thisApp.simulation
+
+    r1.relationship_id= RANDOM.id()
     r1.first=m.settler_id
     r1.second=mother.settler_id
     r1.relationship=MODELS.RelationshipEnum.parent
@@ -109,7 +114,9 @@ def settler_born(**kwargs):
 
     r2 = MODELS.Relationship()
 
-    r2.relationship_id=str(uuid.uuid4())
+    r2.simulation_id = thisApp.simulation
+
+    r2.relationship_id= RANDOM.id()
     r2.first=m.settler_id
     r2.second=father.settler_id
     r2.relationship=MODELS.RelationshipEnum.parent
@@ -119,14 +126,32 @@ def settler_born(**kwargs):
 
     logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
 
-    life_expectancy = [int(i) for i in thisApp.martian_life_expectancy.split(",") ]
+    life = thisApp.martian_life_expectancy.split(":")
+
+    age_at_death = 1
+
+    if life[0] == "tables":
+        age_at_death = UTILS.years_to_sols( RANDOM.life_expectancy() )
+
+    elif life[0] == "triangular":
+        life_expectancy = [int(i) for i in life[1].split(",") ]
+        age_at_death = RANDOM.triangle( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]), UTILS.years_to_sols(life_expectancy[2]) )
+
+    elif life[0] == "gauss":
+        life_expectancy = [int(i) for i in life[1].split(",") ]
+        age_at_death = RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
+
+    else:
+
+        logging.fatal( 'Invalid martian life expectancy {}', thisApp.martian_life_expectancy )
+
     register_callback(
-        when=thisApp.solday + RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
+        when=thisApp.solday + age_at_death,
         callback_func=EVENTS.settler_dies,
-        kwargs= { "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
+        kwargs= { "simulation": thisApp.simulation, "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
-    mothers_age = int( (thisApp.solday - mother.birth_solday) / 680 )
+    mothers_age = UTILS.sols_to_age(thisApp.solday - mother.birth_solday)
 
     r = RANDOM.random()
 
@@ -149,7 +174,7 @@ def settler_born(**kwargs):
             # handle the "cool off" period...
             when=when,
             callback_func=EVENTS.settler_born,
-            kwargs= { "biological_mother" : mother.settler_id, "biological_father": father.settler_id}
+            kwargs= { "simulation": thisApp.simulation, "biological_mother" : mother.settler_id, "biological_father": father.settler_id}
         )
 
 ##
@@ -183,15 +208,39 @@ def mission_lands(**kwargs):
         # TODO life is not evenly distributed about a mean - but its better than a random distribution
         # TODO consider https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3356396/
         # TODO or http://lifetable.de
-        # TODO 70 and 7 are just made up...
-        # TODO extra fudge `random.randrange(1, 680)` is to avoid the optics of a number of astronauts dying on the day they land
+        # TODO extra fudge `random.randrange(1, 200)` is to avoid the optics of a number of astronauts dying on the day they land
         # don't let death day be before today or they will never die.
         current_age = thisApp.solday - a.birth_solday
-        life_expectancy = [int(i) for i in thisApp.astronaut_life_expectancy.split(",") ]
+
+        age_at_death = RANDOM.get_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
+
+        r="""
+        life = thisApp.martian_life_expectancy.split(":")
+
+        age_at_death = 1
+
+
+        if life[0] == "tables":
+            age_at_death = UTILS.years_to_sols( RANDOM.life_expectancy() )
+
+        elif life[0] == "triangular":
+            life_expectancy = [int(i) for i in life[1].split(",") ]
+            age_at_death = RANDOM.triangle( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]), UTILS.years_to_sols(life_expectancy[2]) )
+
+        elif life[0] == "gauss":
+            life_expectancy = [int(i) for i in life[1].split(",") ]
+            age_at_death = RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
+
+        else:
+
+            logging.fatal( 'Invalid astronaut life expectancy {}', thisApp.martian_life_expectancy )
+"""
+        date_of_death = a.birth_solday + age_at_death
+
         register_callback( 
-            when= max( RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ) - current_age, thisApp.solday+ RANDOM.randrange(1, 680)),
+            when= max( date_of_death, thisApp.solday + RANDOM.randrange(1, 200)),
             callback_func=EVENTS.settler_dies,
-            kwargs= { "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
+            kwargs= { "simulation": thisApp.simulation, "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
 
     # schedule the next landing
@@ -210,13 +259,17 @@ def mission_lands(**kwargs):
 
         for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
 
-            settlers_range = [int(i) for i in thisApp.settlers_per_ship.split(",") ]
+            num_settlers = RANDOM.parse_random_value( thisApp.settlers_per_ship )
+
+            mission_delay = RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ) 
+
 
             register_callback( 
-                when =  thisApp.solday + 759,
+                when =  thisApp.solday + mission_delay,
                 callback_func=EVENTS.mission_lands,
                 kwargs = { 
-                    "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
+                    "simulation": thisApp.simulation,
+                    "settlers" : num_settlers
                 }
             )
 
@@ -231,7 +284,7 @@ def end_relationship(**kwargs):
     logging.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
 
 
-    rel = MODELS.Relationship.get( MODELS.Relationship.relationship_id == id )
+    rel = MODELS.Relationship.get( ( MODELS.Relationship.relationship_id == id ) & ( MODELS.Relationship.simulation_id == thisApp.simulation )  )
 
     rel.end_solday = thisApp.solday
 

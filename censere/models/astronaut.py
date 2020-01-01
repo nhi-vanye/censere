@@ -7,7 +7,7 @@ Original Concept: matej
 Completely re-written November 2019: Richard Offer
 """
 
-# Module gonverning the attributes of the settlers
+# Module governing the attributes of the settlers
 
 
 
@@ -39,7 +39,7 @@ class Astronaut(Settler):
 
         self.settler_id = RANDOM.id()
 
-        self.simulation = config.simulation
+        self.simulation_id = config.simulation
 
         # might want to bias Astronaut sex beyond 50:50
         if sex == None:
@@ -78,6 +78,8 @@ class Astronaut(Settler):
         # earth age in earth days converted to sols, then backdated from now
         self.birth_solday =  solday - ( 
             UTILS.years_to_sols( RANDOM.randrange( age_range[0], age_range[1] ) ) )
+
+        self.cohort = solday
 
         self.productivity = 100
 

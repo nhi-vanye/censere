@@ -34,6 +34,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
         e = MODELS.Event()
 
         e.simulation_id = thisApp.simulation
+        e.registered = thisApp.solday
         e.when = when
         e.idx = idx
         # This allows us to pass a real function into the ergister function (rather then a string)

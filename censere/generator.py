@@ -48,6 +48,32 @@ Arguments that start with '@' will be considered filenames that
 specify arguments to the program - ONE ARGUMENT PER LINE.
 
 The Database should be on a local disk - not in Dropbox etc.
+
+RANDOM Values
+=============
+
+This can be calculated using built-in tables from the CDC, or a random function age
+
+The option is specified as string:arg1,arg2,..argn
+
+Acceptable Values are:
+
+  cdc:
+    use CDC tables (no args are needed). This is only valid for Life Expectancy
+
+  triangular:MIN,PEAK,MAX
+    use NUMPY's triangular random function with MIN,PEAK and MAX ages (in earth years)
+
+  guass:MEAN,STDDEV
+    use NUMPY's guass random function with MEAN and STDDEV ages (in earth years)
+
+  randint:MIN,MAX
+    use NUMPY's randint random function with MIN and MAX ages such that MIN <= N <= MAX (in earth years)
+
+  randrange:MIN,MAX
+    use NUMPY's randint random function with MIN and MAX ages such that MIN <= N < MAX (in earth years)
+
+
 """)
 
     OPTIONS().register( parser )
@@ -96,17 +122,13 @@ def initialize_database():
 
 def register_initial_landing():
 
-    ships_range = [int(i) for i in thisApp.ships_per_initial_mission.split(",") ]
-
-    for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
-
-        settlers_range = [int(i) for i in thisApp.settlers_per_initial_ship.split(",") ]
+    for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_mission, default_value=1 ) ):
 
         EVENTS.register_callback(
             when =  1,
             callback_func=EVENTS.callbacks.mission_lands,
             kwargs = {
-                "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
+                "settlers" : RANDOM.parse_random_value( thisApp.settlers_per_initial_ship )
             }
         )
 
@@ -121,7 +143,7 @@ def get_limit_count( limit="population" ):
         if limit == "population":
 
             count = MODELS.Settler.select().where( 
-                ( MODELS.Settler.simulation == thisApp.simulation ) &
+                ( MODELS.Settler.simulation_id == thisApp.simulation ) &
                 ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
                 ( MODELS.Settler.death_solday == 0 )
             ).count()
@@ -138,7 +160,7 @@ def get_singles_count( ):
 
     try:
         count = MODELS.Settler.select().where(
-            ( MODELS.Settler.simulation == thisApp.simulation ) &
+            ( MODELS.Settler.simulation_id == thisApp.simulation ) &
             ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
             ( MODELS.Settler.death_solday == 0 ) &
             ( MODELS.Settler.state == 'single' )
@@ -185,7 +207,8 @@ def add_annual_demographics( ):
         p.solday = thisApp.solday
         p.earth_datetime = thisApp.earth_time
 
-        p.sol_years = "{}-{}".format( males[1][r], males[1][r+1])
+        p.bucket = "{}-{}".format( males[1][r], males[1][r+1])
+        p.sol_years = males[1][r]
         p.sex = 'm'
         p.value = males[0][r]
 
@@ -199,7 +222,8 @@ def add_annual_demographics( ):
 
         p.solday = thisApp.solday
         p.earth_datetime = thisApp.earth_time
-        p.sol_years = "{}-{}".format( females[1][r], females[1][r+1])
+        p.bucket = "{}-{}".format( females[1][r], females[1][r+1])
+        p.sol_years = females[1][r]
         p.sex = 'f'
         p.value = females[0][r]
         
@@ -263,6 +287,7 @@ def main( argv ):
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    logging.log( logging.DEBUG, '%d.%03d (%d) Simulation %s Args %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.args(thisApp) )
 
 
     if thisApp.continue_simulation == "":
@@ -271,8 +296,6 @@ def main( argv ):
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
-
-    #ACTIONS.make_families( )
 
     while get_limit_count( thisApp.limit ) < thisApp.limit_count:
 

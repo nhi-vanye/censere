@@ -127,7 +127,7 @@ def make(*args ):
             mothers_age = int( (thisApp.solday - m.birth_solday) / 668 )
 
             # TODO What percentage of relationships have children ?
-            if RANDOM.randrange(0,99) < 40:
+            if RANDOM.random() < thisApp.fraction_relationships_having_children :
                 r = RANDOM.random()
 
                 # TODO - need to confirm IFV rate - assume best case
@@ -141,9 +141,7 @@ def make(*args ):
                    ) or (
                     thisApp.use_ivf and ( mothers_age <= 45 and r < 0.4 ) ):
 
-                    delay = [ int(i) for i in thisApp.first_child_delay.split(",") ]
-
-                    birth_day = thisApp.solday + RANDOM.randrange( delay[0], delay[1])
+                    birth_day = thisApp.solday + RANDOM.parse_random_value( thisApp.first_child_delay)
 
                     logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
                         *UTILS.from_soldays( thisApp.solday ),
@@ -157,7 +155,11 @@ def make(*args ):
                     EVENTS.register_callback(
                         when= birth_day,
                         callback_func=CALLBACKS.settler_born,
-                        kwargs= { "biological_mother" : mother, "biological_father": father, "simulation": thisApp.simulation }
+                        kwargs= {
+                            "biological_mother" : mother,
+                            "biological_father": father,
+                            "simulation": thisApp.simulation
+                        }
                     )
 
             # TODO this is only breaking up relationships that don't have

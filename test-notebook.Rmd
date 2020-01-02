@@ -31,7 +31,7 @@ library(quantreg)
 library(kableExtra)
 library(lattice)
 library(numbers)
-database_path <- file.choose() #params$database_path #file.choose()
+database_path <- params$database_path #file.choose()
 database_info <- file.info(database_path, extra_cols = FALSE)
 database_size <- humanReadable(file.size(database_path), units="auto", standard="Unix", digits=0 )
 database_mtime <- file.mtime( database_path )
@@ -115,19 +115,20 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 | # Simulations | `r num_simulations$n` |
 
 ```{r, echo=FALSE}
-sims <-select( collect(simulations), id, initial_mission_lands, mission_ends, final_soldays, final_population, args )
+sims <-select( collect(simulations), simulation_id, initial_mission_lands, mission_ends, final_soldays, final_population, args )
 
 sims$initial_mission_lands <- as_date( sims$initial_mission_lands )
 sims$mission_ends <- as_date( sims$mission_ends )
 
-knitr::kable(sims, col.names=c('ID','DateLanded', 'Completed', '#Sols', 'Pop.', 'Args') ) %>%
-  kable_styling() %>%
-  column_spec(1, width = "0.5in") %>%
-  column_spec(2, width = "1in") %>%
-  column_spec(3, width = "1in") %>%
-  column_spec(4, width = "0.75in") %>%
-  column_spec(5, width = "0.75in")
-
+# Consider use of landscape() -- http://haozhu233.github.io/kableExtra/awesome_table_in_pdf.pdf
+knitr::kable(sims, format = "latex", longtable = T, booktabs = T, col.names=c('ID','Landed', 'Ends', '#Sols', 'Pop.', 'Args') ) %>%
+  kable_styling(font_size = 8, fixed_thead = T, latex_options = c("striped",  "repeat_header")) %>%
+  column_spec(1, width = "1.5in") %>%
+  column_spec(2, width = "0.75in") %>%
+  column_spec(3, width = "0.75in") %>%
+  column_spec(4, width = "0.6in") %>%
+  column_spec(5, width = "0.5in") %>%
+  column_spec(6, width = "2.5in")
 ```
 
 ## Database Overview
@@ -136,10 +137,11 @@ knitr::kable(sims, col.names=c('ID','DateLanded', 'Completed', '#Sols', 'Pop.', 
 summary_plt <- ggplot(data=summary_table, 
               aes(x=1+(solday/668.0),
                 y=population,
-                color=simulation_id)
+                color=simulation_id )
               ) + 
       geom_point(size=0.3) +
-      theme(legend.position="none") +
+      guides( color=guide_legend( title=NULL) )  +
+      theme(legend.justification=c(1,0), legend.position=c(1,0)) +
       labs( x = "Sol Years", y="Population", title="Simulation of Martian Population Growth") +
       scale_color_brewer(palette="Paired")
 ```
@@ -160,7 +162,7 @@ range_plt <- ggplot(data=gd,
       geom_line( size=0.2 ) +
       geom_smooth( span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
 
-        theme(legend.position="none") +
+      theme(legend.justification=c(1,0), legend.position=c(1,0)) +
       labs( x = "Sol Years", y="Population", title="Mean & Smoothed Mean of Population Growth Across All Simulations") +
       scale_color_brewer(palette="Paired")
 
@@ -316,12 +318,12 @@ death_events  <- ggplot(data=die_events,
 death_events
 ```
 
-```{r population_breakdown, include=FALSE, out.height=8}
+```{r population_breakdown, include=FALSE}
 
 
 pop <- collect( populations)
 pop$SolYear = pop$solday / 668
-pop <- filter( pop, mod(SolYear, 4) == 0 )
+pop <- filter( pop, mod(SolYear, 8) == 0 )
 
 population_breakdown <- ggplot( data=pop,
                                 aes( x=as.factor(sol_years), y=ifelse(test = sex == "m",  yes = -value, no = value), fill=sex)) +
@@ -333,6 +335,6 @@ population_breakdown <- ggplot( data=pop,
   
 ```
 
-```{r population_breakdown_plt, echo=FALSE, out.height=8}
+```{r population_breakdown_plt, echo=FALSE}
 population_breakdown
 ```

@@ -126,24 +126,8 @@ def settler_born(**kwargs):
 
     logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
 
-    life = thisApp.martian_life_expectancy.split(":")
+    age_at_death = RANDOM.parse_random_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
 
-    age_at_death = 1
-
-    if life[0] == "tables":
-        age_at_death = UTILS.years_to_sols( RANDOM.life_expectancy() )
-
-    elif life[0] == "triangular":
-        life_expectancy = [int(i) for i in life[1].split(",") ]
-        age_at_death = RANDOM.triangle( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]), UTILS.years_to_sols(life_expectancy[2]) )
-
-    elif life[0] == "gauss":
-        life_expectancy = [int(i) for i in life[1].split(",") ]
-        age_at_death = RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
-
-    else:
-
-        logging.fatal( 'Invalid martian life expectancy {}', thisApp.martian_life_expectancy )
 
     register_callback(
         when=thisApp.solday + age_at_death,
@@ -156,25 +140,33 @@ def settler_born(**kwargs):
     r = RANDOM.random()
 
     # TODO trying to provide some falloff with age - but this is too simple
-    # dramtic falloff in fertility after 35 ???
-    # It would probably make sense to store eggs from before launch
-    # to increase the success rate
-    # TODO
-    # This is only looking at age, should include a choice component
-    # maybe a family only wants one child...
-    if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
+    # TODO - need to confirm IFV rate - assume best case
+    # scenario of freezing eggs before leaving earth
+    if (
+        mothers_age < 36 and r < 0.7
+       ) or (
+        mothers_age < 38 and r < 0.2
+       ) or (
+        mothers_age <= 40 and r < 0.05
+       ) or (
+        thisApp.use_ivf and ( mothers_age <= 45 and r < 0.4 ) ):
 
-        gap = [int(i) for i in thisApp.gap_between_siblings.split(",") ]
 
+        when = thisApp.solday + RANDOM.parse_random_value( thisApp.sols_between_siblings)
 
-        when = thisApp.solday + RANDOM.randrange( gap[0], gap[1])
+        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
+            *UTILS.from_soldays( thisApp.solday ),
+            m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
 
-        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
         register_callback( 
             # handle the "cool off" period...
             when=when,
             callback_func=EVENTS.settler_born,
-            kwargs= { "simulation": thisApp.simulation, "biological_mother" : mother.settler_id, "biological_father": father.settler_id}
+            kwargs= {
+                "simulation": thisApp.simulation,
+                "biological_mother" : mother.settler_id,
+                "biological_father": father.settler_id 
+            }
         )
 
 ##
@@ -202,39 +194,13 @@ def mission_lands(**kwargs):
 
         logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
 
-        # TODO make the max age of death configurable
         # TODO model women outliving men
-        # TODO gauss is not a good distribution for modelling human lifetimes
-        # TODO life is not evenly distributed about a mean - but its better than a random distribution
-        # TODO consider https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3356396/
-        # TODO or http://lifetable.de
-        # TODO extra fudge `random.randrange(1, 200)` is to avoid the optics of a number of astronauts dying on the day they land
+        # extra fudge `random.randrange(1, 200)` is to avoid the optics of a number of astronauts dying on the day they land
         # don't let death day be before today or they will never die.
         current_age = thisApp.solday - a.birth_solday
 
-        age_at_death = RANDOM.get_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
+        age_at_death = RANDOM.parse_random_value( thisApp.astronaut_life_expectancy, key_in_earth_years=True)
 
-        r="""
-        life = thisApp.martian_life_expectancy.split(":")
-
-        age_at_death = 1
-
-
-        if life[0] == "tables":
-            age_at_death = UTILS.years_to_sols( RANDOM.life_expectancy() )
-
-        elif life[0] == "triangular":
-            life_expectancy = [int(i) for i in life[1].split(",") ]
-            age_at_death = RANDOM.triangle( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]), UTILS.years_to_sols(life_expectancy[2]) )
-
-        elif life[0] == "gauss":
-            life_expectancy = [int(i) for i in life[1].split(",") ]
-            age_at_death = RANDOM.gauss( UTILS.years_to_sols(life_expectancy[0]), UTILS.years_to_sols(life_expectancy[1]) ),
-
-        else:
-
-            logging.fatal( 'Invalid astronaut life expectancy {}', thisApp.martian_life_expectancy )
-"""
         date_of_death = a.birth_solday + age_at_death
 
         register_callback( 
@@ -255,21 +221,16 @@ def mission_lands(**kwargs):
     # only register next landing if this is the first landing on this day
     # otherwise we get a cascading landings
     if idx == 0:
-        ships_range = [int(i) for i in thisApp.ships_per_mission.split(",") ]
 
-        for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
-
-            num_settlers = RANDOM.parse_random_value( thisApp.settlers_per_ship )
-
-            mission_delay = RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ) 
+        for i in range( RANDOM.parse_random_value( thisApp.ships_per_mission ) ):
 
 
             register_callback( 
-                when =  thisApp.solday + mission_delay,
+                when =  thisApp.solday + RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
                 callback_func=EVENTS.mission_lands,
                 kwargs = { 
                     "simulation": thisApp.simulation,
-                    "settlers" : num_settlers
+                    "settlers" : RANDOM.parse_random_value( thisApp.settlers_per_ship )
                 }
             )
 

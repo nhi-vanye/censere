@@ -72,12 +72,8 @@ class Astronaut(Settler):
         self.biological_father = RANDOM.id()
         self.biological_mother = RANDOM.id()
 
-        # age min and max
-        age_range = [int(i) for i in thisApp.astronaut_age_range.split(",") ]
-
         # earth age in earth days converted to sols, then backdated from now
-        self.birth_solday =  solday - ( 
-            UTILS.years_to_sols( RANDOM.randrange( age_range[0], age_range[1] ) ) )
+        self.birth_solday =  solday - RANDOM.parse_random_value( thisApp.astronaut_age_range, key_in_earth_years=True ) 
 
         self.cohort = solday
 

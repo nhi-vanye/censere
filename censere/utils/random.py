@@ -8,6 +8,8 @@ import logging
 
 import numpy.random as NPRND
 
+import censere.utils as UTILS
+
 # Life table for the total population: United States, 2006
 cdc_2006 = [
     0,
@@ -294,6 +296,9 @@ def life_expectancy():
 #
 # Difference between randint and randrange is that randint only returns int
 # and handles the case where MIN == MAX, randrange will error in that case
+# TODO
+#   * handle sexes life expectancy independently
+# 
 def parse_random_value( key, default_value=None, key_in_earth_years=False ):
 
     val = key.split(":")
@@ -304,7 +309,7 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
     if val[0] == "cdc":
         value = life_expectancy()
 
-    elif val[0] == "triangular":
+    elif val[0] == "triangular" or val[0] == "triangle" :
 
         values = [float(i) for i in val[1].split(",") ]
         value = triangle( values[0], values[1], values[2] )
@@ -332,5 +337,4 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
 
         return UTILS.years_to_sols( value )
 
-    logging.error( value )
     return value

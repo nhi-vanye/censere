@@ -13,7 +13,6 @@ in the future
 from __future__ import division
 
 import logging
-import uuid
 
 from censere.config import Generator as thisApp
 
@@ -188,14 +187,20 @@ def mission_lands(**kwargs):
 
         a = MODELS.Astronaut()
 
-        a.initialize( thisApp.solday )
+        try:
+            a.initialize( thisApp.solday )
+        except Exception as e:
+
+            logging.error( 'Failed to initialize new astronaut: %s %s', str(e), str( a) )
+
+            continue
 
         saved = a.save()
 
         logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
 
         # TODO model women outliving men
-        # extra fudge `random.randrange(1, 200)` is to avoid the optics of a number of astronauts dying on the day they land
+        # extra fudge `random.randrange(1, 660)` is to avoid the optics of a number of astronauts dying on the day they land
         # don't let death day be before today or they will never die.
         current_age = thisApp.solday - a.birth_solday
 
@@ -204,7 +209,7 @@ def mission_lands(**kwargs):
         date_of_death = a.birth_solday + age_at_death
 
         register_callback( 
-            when= max( date_of_death, thisApp.solday + RANDOM.randrange(1, 200)),
+            when= max( date_of_death, thisApp.solday + RANDOM.randrange(1, 660)),
             callback_func=EVENTS.settler_dies,
             kwargs= { "simulation": thisApp.simulation, "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )

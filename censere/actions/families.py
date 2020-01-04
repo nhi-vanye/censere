@@ -5,7 +5,6 @@
 from __future__ import division
 
 import logging
-import uuid
 
 import peewee
 
@@ -94,7 +93,6 @@ def make(*args ):
         # TODO add a callback to randomly break the relationship
         # here (after some random time) or handle it in the main loop ???
 
-        # TODO similar vein - do we handle children here or in main loop ???
         #
         # Doing it here allows us to make children event based - registering next steps
         # when a step completes and we don't have to handle "cool off" state as

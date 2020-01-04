@@ -330,7 +330,7 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
 
     else:
 
-        logging.fatal( 'Invalid value {}', key )
+        logging.fatal( 'Invalid value %s', key )
 
 
     if key_in_earth_years:

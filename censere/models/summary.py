@@ -63,10 +63,6 @@ class Summary(playhouse.signals.Model):
     earth_born = peewee.IntegerField( default=0 )
     mars_born = peewee.IntegerField( default=0 )
 
-    avg_annual_birth_rate = peewee.FloatField( null=True )
-    avg_annual_death_rate = peewee.FloatField( null=True )
-
-
     def initialize( self):
 
         adults = Settler.select().where( 

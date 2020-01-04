@@ -51,12 +51,14 @@ class Demographic(playhouse.signals.Model):
 
         num_children_born = Settler.select().where(
             ( Settler.simulation_id == thisApp.simulation ) &
+            ( Settler.birth_location == 'mars' ) &
             ( Settler.birth_solday > max( thisApp.solday - 668, 0 ) ) &
             ( Settler.birth_solday < thisApp.solday )
             ).count()
 
         num_deaths = Settler.select().where(
             ( Settler.simulation_id == thisApp.simulation ) &
+            ( Settler.current_location == 'mars' ) &
             ( Settler.death_solday > max( thisApp.solday - 668, 0 ) ) &
             ( Settler.death_solday < thisApp.solday )
             ).count()
@@ -74,5 +76,9 @@ class Demographic(playhouse.signals.Model):
         avg_population = year_start.population + int( 0.5 * ( year_end.population - year_start.population ) )
 
         # average are normally reported as rates per 1000 people
-        self.avg_annual_birth_rate = ( num_children_born / avg_population ) * 1000.0
-        self.avg_annual_death_rate = ( num_deaths / avg_population ) * 1000.0
+        if avg_population > 0 :
+            self.avg_annual_birth_rate = ( num_children_born / avg_population ) * 1000.0
+            self.avg_annual_death_rate = ( num_deaths / avg_population ) * 1000.0
+        else:
+            self.avg_annual_birth_rate = 0.0
+            self.avg_annual_death_rate = 0.0

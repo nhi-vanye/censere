@@ -1,15 +1,21 @@
 
+import logging
 import pytest
 
 from censere.config import Generator as thisApp
 import censere.models
 
 thisApp.simulation = "00000000-0000-0000-0000-000000000000"
-thisApp.astronaut_age_range = "32,45"
+thisApp.astronaut_age_range = "randint:32,45"
+thisApp.orientation = "90,6,4"
 thisApp.solday = 1
 
 
 class TestCreatingAstronaut:
+
+    @pytest.fixture(autouse=True)
+    def add_access_to_logging(self, caplog):
+        self._caplog = caplog
 
     def test_create_one_male_astronaut(self, database):
         database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
@@ -18,6 +24,8 @@ class TestCreatingAstronaut:
 
         row = censere.models.Astronaut()
 
+        self._caplog.set_level(logging.DEBUG)
+
         row.initialize( 1, sex='m', config=thisApp )
 
         # use a well known ID to make it easier to find
@@ -25,7 +33,7 @@ class TestCreatingAstronaut:
 
         assert row.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" )
                ).count() == 1
 
@@ -43,7 +51,7 @@ class TestCreatingAstronaut:
 
         assert row.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" )
                ).count() == 1
 
@@ -64,6 +72,7 @@ class TestCreatingAstronaut:
 
         r = censere.models.Relationship()
 
+        r.simulation_id = thisApp.simulation
         r.relationship_id = "aaaaaaaa-0000-0000-0000-000000000000"
         r.first = male.settler_id
         r.second = female.settler_id
@@ -100,7 +109,7 @@ class TestCreatingAstronaut:
         assert row.save() == 1
 
         assert censere.models.Martian.select().where( 
-                    ( censere.models.Martian.simulation == thisApp.simulation ) &
+                    ( censere.models.Martian.simulation_id == thisApp.simulation ) &
                     ( censere.models.Martian.settler_id == "aaaaaaaa-3333-0000-0000-000000000000" )
                ).count() == 1
 

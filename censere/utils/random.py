@@ -311,23 +311,48 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
 
     elif val[0] == "triangular" or val[0] == "triangle" :
 
-        values = [float(i) for i in val[1].split(",") ]
+        values = [ float(i) for i in val[1].split(",") ]
         value = triangle( values[0], values[1], values[2] )
 
     elif val[0] == "gauss":
-        values = [float(i) for i in val[1].split(",") ]
+        values = [ float(i) for i in val[1].split(",") ]
         value = gauss( values[0], values[1] ),
 
     elif val[0] == "randint":
 
-        values = [int(i) for i in val[1].split(",") ]
+        values = [ int(i) for i in val[1].split(",") ]
         value = randint( values[0], values[1] )
 
     elif val[0] == "randrange":
 
-        values = [float(i) for i in val[1].split(",") ]
+        values =  [float(i) for i in val[1].split(",") ]
         value = randrange( values[0], values[1] )
 
+    elif val[0] == "half":
+
+        values = [ float(i) for i in val[1].split(",") ]
+
+        r = random()
+
+        if r < 0.5:
+            value = ( values[0] ) + ( values[1] * random() )
+        elif r < 0.75:
+            value = ( values[0] + ( values[1] ) ) + ( values[1] * random() )
+        elif r < 0.875:
+            value = ( values[0] + ( values[1] * 2 ) ) + ( values[1] * random() )
+        elif r < 0.925:
+            value = ( values[0] + ( values[1] * 3 ) ) + ( values[1] * random() )
+        elif r < 0.9625:
+            value = ( values[0] + ( values[1] * 4 ) ) + ( values[1] * random() )
+        elif r < 0.98125:
+            value = ( values[0] + ( values[1] * 5 ) ) + ( values[1] * random() )
+        elif r < 0.990625:
+            value = ( values[0] + ( values[1] * 6 ) ) + ( values[1] * random() )
+        elif r < 0.9953125:
+            value = ( values[0] + ( values[1] * 7 ) ) + ( values[1] * random() )
+        else:
+            value = ( values[0] + ( values[1] * 8 ) ) + ( values[1] * random() )
+ 
     else:
 
         logging.fatal( 'Invalid value %s', key )

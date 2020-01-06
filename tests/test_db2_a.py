@@ -18,6 +18,7 @@ thisApp.first_child_delay = "randint:300,500"
 thisApp.sols_between_siblings = "randint:300,1000"
 thisApp.fraction_relationships_having_children = 0.5
 thisApp.use_ivf = True
+thisApp.partner_max_age_difference = 20
 
 
 
@@ -41,11 +42,12 @@ class TestCreatingFamilies:
         assert database.table_exists( "events" )
 
     def test_create_two_straight_male_astronauts(self, database):
-        database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
+        database.bind( [ censere.models.Astronaut, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         # triggers on settlers table now require relationships table to be created
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
         assert database.table_exists( "settlers" )
+        assert database.table_exists( "relationships" )
 
         a = censere.models.Astronaut()
 
@@ -82,7 +84,6 @@ class TestCreatingFamilies:
         database.create_tables( [ censere.models.Relationship ] )
         assert database.table_exists( "relationships" )
 
-        self._caplog.set_level(logging.DEBUG)
         censere.actions.make_families( )
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 0

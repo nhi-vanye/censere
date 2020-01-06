@@ -9,6 +9,7 @@ import censere.actions
 
 thisApp.simulation = "00000000-0000-0000-0000-000000000000"
 thisApp.astronaut_age_range = "randint:32,45"
+#thisApp.astronaut_age_range = "half:25,5"
 thisApp.solday = 1
 thisApp.orientation = "90,6,4"
 thisApp.astronaut_gender_ratio = "50,50"
@@ -17,7 +18,8 @@ thisApp.martian_gender_ratio = "50,50"
 thisApp.martian_life_expectancy = "cdc"
 thisApp.first_child_delay = "randint:300,500"
 thisApp.sols_between_siblings = "randint:300,1000"
-thisApp.fraction_relationships_having_children = 0.5
+thisApp.fraction_relationships_having_children = 0.9
+thisApp.partner_max_age_difference = 20
 
 
 class TestBenchmarkMakeFamilies:

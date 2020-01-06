@@ -21,7 +21,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
         return
 
 
-    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
+    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s.%s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__module__, callback_func.__name__, when, *UTILS.from_soldays( when ) )
     logging.debug( kwargs )
 
     try:

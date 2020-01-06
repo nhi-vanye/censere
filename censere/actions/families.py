@@ -56,6 +56,9 @@ def make(*args ):
                 ( MODELS.Settler.state == 'single' ) &
                 ( partner.state == 'single' ) &
                 #
+                # keep partners close in age as an optimization
+                ( peewee.fn.ABS( MODELS.Settler.birth_solday - partner.birth_solday ) < UTILS.years_to_sols(thisApp.partner_max_age_difference) ) &
+                #
                 # compatible sexuality
                 ( MODELS.Settler.orientation.contains( partner.sex ) ) &
                 ( partner.orientation.contains( MODELS.Settler.sex ) ) &
@@ -63,12 +66,17 @@ def make(*args ):
                 ( MODELS.Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 ( partner.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 # Call out to application policy to decide if this is allowed
+                # Now implemented a LRU cache as this can get expensive
+                # when its called for the same people every day
                 ( peewee.fn.app_family_policy( MODELS.Settler.settler_id, partner.settler_id ) == True)
             ).order_by(
 # a UUID is close to random and doesn't need to be calculated
                 MODELS.Settler.settler_id
                 # MODELS.Settler.first_name, partner.first_name
             ).limit(1).dicts()
+
+
+    num_relationships = 0
 
     for row in query.execute():
 
@@ -89,6 +97,8 @@ def make(*args ):
             row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
 
         r.save()
+
+        num_relationships += 1
 
         # TODO add a callback to randomly break the relationship
         # here (after some random time) or handle it in the main loop ???
@@ -169,6 +179,8 @@ def make(*args ):
                     callback_func=CALLBACKS.end_relationship,
                     kwargs= { "relationship_id" : r.relationship_id, "simulation": thisApp.simulation }
                 )
+
+    logging.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
 
 ##
 # break up a family (while partners are alive)

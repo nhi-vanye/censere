@@ -9,6 +9,7 @@ thisApp.simulation = "00000000-0000-0000-0000-000000000000"
 thisApp.astronaut_age_range = "randint:32,45"
 thisApp.orientation = "90,6,4"
 thisApp.solday = 1
+thisApp.partner_max_age_difference = 20
 
 
 class TestCreatingAstronaut:

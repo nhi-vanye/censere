@@ -48,7 +48,7 @@ class Generator:
     def args(self):
 
         # random_seed has its own column
-        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'log_level', 'simulation', 'random_seed' ]
+        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday', 'database', 'debug', 'debug_sql', 'dump', 'log_level', 'simulation', 'random_seed' ]
 
         res=""
 
@@ -90,6 +90,10 @@ class CommonOptions:
             **check_env_for_default( 'CENSERE_DEBUG', False ),
             help='Enable debug mode (CENSERE_DEBUG)' )
 
+        parser.add_argument( '--dump', action="store_true",
+            **check_env_for_default( 'CENSERE_DUMP', False ),
+            help='Dump the simulation parameters to stdout (CENSERE_DUMP)' )
+
         parser.add_argument( '--log-level', action="store",
             type=int,
             **check_env_for_default( 'CENSERE_LOG_LEVEL', 25 ),
@@ -124,6 +128,10 @@ class GeneratorOptions(CommonOptions):
             metavar="RANDOM",
             **check_env_for_default( 'CENSERE_ASTRONAUT_LIFE_EXPECTANCY', 'cdc:' ),
             help='Life expectancy of arriving astronauts - default is "cdc:" (CENSERE_ASTRONAUT_LIFE_EXPECTANCY)' )
+
+        parser.add_argument( '--cache-details', action="store_true",
+            **check_env_for_default( 'CENSERE_CACHE_DETAILS', False ),
+            help='Log cache effectiveness as the simulation runs (CENSERE_CACHE_DETAILS)' )
 
         parser.add_argument( '--continue-simulation', action="store",
             **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),
@@ -179,6 +187,12 @@ class GeneratorOptions(CommonOptions):
             metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
             **check_env_for_default( 'CENSERE_OREINTATION', '90,6,4' ),
             help='Sexual orientation percentages, MUST add up to 100 (CENSERE_OREINTATION)' )
+
+        parser.add_argument( '--partner-max-age-difference', action="store",
+            type=int,
+            metavar="YEARS",
+            **check_env_for_default( 'CENSERE_PARTNER_MAX_AGE_DIFFERENCE', 20 ),
+            help='Limit possible relationships to partners with maximum age difference (CENSERE_PARTNER_MAX_AGE_DIFFERENCE)' )
 
         parser.add_argument( '--random-seed', action="store",
             type=int,

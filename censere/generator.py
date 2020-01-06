@@ -73,6 +73,8 @@ Acceptable Values are:
   randrange:MIN,MAX
     use NUMPY's randint random function with MIN and MAX ages such that MIN <= N < MAX (in earth years)
 
+  half:BEGIN,STEP
+    There is a 50% probability that a value between BEGIN and BEGIN+STEP will be picked, 25% between BEGIN+STEP and BEGIN+(STEP*2), a 12.5% between BEGIN+(STEP*2) and BEGIN+(STEP*3) etc.
 
 """)
 
@@ -287,7 +289,15 @@ def main( argv ):
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
-    logging.log( logging.DEBUG, '%d.%03d (%d) Simulation %s Args %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.args(thisApp) )
+
+    if thisApp.dump:
+        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday' ]
+
+        for k in sorted(thisApp.__dict__.keys() ):
+            if k not in excludes:
+                logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s --%s=%s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, k.replace('_','-'), thisApp.__dict__[k] )
+
+        sys.exit(0)
 
 
     if thisApp.continue_simulation == "":
@@ -328,6 +338,9 @@ def main( argv ):
         if ( sol % 28 ) == 0 or sol == 668:
             logging.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
+            if thisApp.cache_details:
+                logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+
             # returned data not used
             res = add_summary_entry( )
             
@@ -360,6 +373,7 @@ def main( argv ):
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
     logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 
 if __name__ == '__main__':
 

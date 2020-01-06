@@ -68,7 +68,7 @@ def settler_post_save(sender, instance, created):
         
         if i.name == "death_solday":
 
-            logging.debug( "%d.%03d Updated death_solday for %s %s (%d)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
+            logging.debug( "%d.%03d Updated death_solday for %s %s (%s)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links

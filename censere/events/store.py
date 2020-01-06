@@ -21,7 +21,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
         return
 
 
-    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
+    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s.%s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__module__, callback_func.__name__, when, *UTILS.from_soldays( when ) )
     logging.debug( kwargs )
 
     try:
@@ -34,6 +34,7 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
         e = MODELS.Event()
 
         e.simulation_id = thisApp.simulation
+        e.registered = thisApp.solday
         e.when = when
         e.idx = idx
         # This allows us to pass a real function into the ergister function (rather then a string)
@@ -80,7 +81,7 @@ def invoke_callbacks( ):
             result = func( **kwargs )
 
         except Exception as e:
-            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), entry.callback_func, str(e) )
+            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), row.callback_func, str(e) )
 
 
 

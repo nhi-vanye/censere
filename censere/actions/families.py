@@ -5,7 +5,6 @@
 from __future__ import division
 
 import logging
-import uuid
 
 import peewee
 
@@ -31,8 +30,8 @@ def make(*args ):
     logging.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
     partner = MODELS.Settler.alias()
-    
-    query = MODELS.Settler.select( 
+
+    query = MODELS.Settler.select(
             MODELS.Settler.settler_id.alias('userid1'),
             MODELS.Settler.first_name.alias('first_name1'),
             MODELS.Settler.family_name.alias('family_name1'),
@@ -42,11 +41,11 @@ def make(*args ):
             partner.family_name.alias('family_name2'),
             partner.sex.alias('sex2')
         ).join(
-            partner, on=( partner.simulation == MODELS.Settler.simulation ), attr="partner" 
+            partner, on=( partner.simulation_id == MODELS.Settler.simulation_id ), attr="partner"
         ).where(
                 # part of this execution run
-                ( MODELS.Settler.simulation == thisApp.simulation ) &
-                ( partner.simulation == thisApp.simulation ) &
+                ( MODELS.Settler.simulation_id == thisApp.simulation ) &
+                ( partner.simulation_id == thisApp.simulation ) &
                 # no self-partnering
                 ( MODELS.Settler.settler_id != partner.settler_id ) &
                 # still alive
@@ -57,6 +56,9 @@ def make(*args ):
                 ( MODELS.Settler.state == 'single' ) &
                 ( partner.state == 'single' ) &
                 #
+                # keep partners close in age as an optimization
+                ( peewee.fn.ABS( MODELS.Settler.birth_solday - partner.birth_solday ) < UTILS.years_to_sols(thisApp.partner_max_age_difference) ) &
+                #
                 # compatible sexuality
                 ( MODELS.Settler.orientation.contains( partner.sex ) ) &
                 ( partner.orientation.contains( MODELS.Settler.sex ) ) &
@@ -64,6 +66,8 @@ def make(*args ):
                 ( MODELS.Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 ( partner.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) ) &
                 # Call out to application policy to decide if this is allowed
+                # Now implemented a LRU cache as this can get expensive
+                # when its called for the same people every day
                 ( peewee.fn.app_family_policy( MODELS.Settler.settler_id, partner.settler_id ) == True)
             ).order_by(
 # a UUID is close to random and doesn't need to be calculated
@@ -71,13 +75,18 @@ def make(*args ):
                 # MODELS.Settler.first_name, partner.first_name
             ).limit(1).dicts()
 
+
+    num_relationships = 0
+
     for row in query.execute():
 
-        # rely on triggers to update settler state to couple 
+        # rely on triggers to update settler state to couple
 
         r = MODELS.Relationship()
 
-        r.relationship_id=str(uuid.uuid4())
+        r.simulation_id = thisApp.simulation
+
+        r.relationship_id= RANDOM.id()
         r.first=row['userid1']
         r.second=row['userid2']
         r.relationship=MODELS.RelationshipEnum.partner
@@ -89,14 +98,15 @@ def make(*args ):
 
         r.save()
 
+        num_relationships += 1
+
         # TODO add a callback to randomly break the relationship
         # here (after some random time) or handle it in the main loop ???
 
-        # TODO similar vein - do we handle children here or in main loop ???
         #
         # Doing it here allows us to make children event based - registering next steps
         # when a step completes and we don't have to handle "cool off" state as
-        # a special case 
+        # a special case
 
         # basic pregnancy steps might be:
         #   reduce productivity after Y months
@@ -120,18 +130,26 @@ def make(*args ):
             pass
 
         if mother and father:
-            m = MODELS.Settler.get( MODELS.Settler.settler_id == str(mother) ) 
+            m = MODELS.Settler.get( ( MODELS.Settler.settler_id == str(mother) ) & ( MODELS.Settler.simulation_id == thisApp.simulation ) )
 
-            mothers_age = int( (thisApp.solday - m.birth_solday) / 680 )
+            mothers_age = int( (thisApp.solday - m.birth_solday) / 668 )
 
-            # TODO What rate of relationships have children
-            if RANDOM.randrange(0,99) < 40:
+            # TODO What percentage of relationships have children ?
+            if RANDOM.random() < thisApp.fraction_relationships_having_children :
                 r = RANDOM.random()
 
-                if ( mothers_age < 36 and r < 0.7 ) or ( mothers_age < 38 and r < 0.2 ) or ( mothers_age <= 40 and r < 0.05 ):
+                # TODO - need to confirm IFV rate - assume best case
+                # scenario of freezing eggs before leaving earth
+                if (
+                    mothers_age < 36 and r < 0.7
+                   ) or (
+                    mothers_age < 38 and r < 0.2
+                   ) or (
+                    mothers_age <= 40 and r < 0.05
+                   ) or (
+                    thisApp.use_ivf and ( mothers_age <= 45 and r < 0.4 ) ):
 
-                    delay = [int(i) for i in thisApp.first_child_delay.split(",") ]
-                    birth_day = thisApp.solday + RANDOM.randrange( delay[0], delay[1])
+                    birth_day = thisApp.solday + RANDOM.parse_random_value( thisApp.first_child_delay)
 
                     logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
                         *UTILS.from_soldays( thisApp.solday ),
@@ -142,21 +160,27 @@ def make(*args ):
                     )
 
                     # register a function to be called at `when`
-                    EVENTS.register_callback( 
+                    EVENTS.register_callback(
                         when= birth_day,
                         callback_func=CALLBACKS.settler_born,
-                        kwargs= { "biological_mother" : mother, "biological_father": father }
+                        kwargs= {
+                            "biological_mother" : mother,
+                            "biological_father": father,
+                            "simulation": thisApp.simulation
+                        }
                     )
 
             # TODO this is only breaking up relationships that don't have
             # children - need to make this possible for all relationships
             else:
 
-                EVENTS.register_callback( 
-                    when= thisApp.solday + RANDOM.randrange( 1, 760),
+                EVENTS.register_callback(
+                    when= thisApp.solday + RANDOM.randrange( 1, 668),
                     callback_func=CALLBACKS.end_relationship,
-                    kwargs= { "relationship_id" : r.relationship_id }
+                    kwargs= { "relationship_id" : r.relationship_id, "simulation": thisApp.simulation }
                 )
+
+    logging.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
 
 ##
 # break up a family (while partners are alive)

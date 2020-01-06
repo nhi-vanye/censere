@@ -16,3 +16,7 @@ from .relationship import RelationshipEnum as RelationshipEnum
 from .simulation import Simulation as Simulation
 
 from .summary import Summary as Summary
+
+from .demographics import Demographic as Demographic
+from .populations import Population as Population
+from .populations import get_population_histogram as get_population_histogram

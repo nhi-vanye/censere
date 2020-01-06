@@ -8,15 +8,16 @@ import censere.models
 import censere.actions
 
 thisApp.simulation = "00000000-0000-0000-0000-000000000000"
-thisApp.astronaut_age_range = "32,45"
+thisApp.astronaut_age_range = "randint:32,45"
 thisApp.solday = 1
 thisApp.orientation = "90,6,4"
 thisApp.astronaut_gender_ratio = "50,50"
-thisApp.astronaut_life_expectancy = "72,7"
+thisApp.astronaut_life_expectancy = "cdc:"
 thisApp.martian_gender_ratio = "50,50"
-thisApp.martian_life_expectancy = "72,7"
-thisApp.first_child_delay = "400,700"
-thisApp.gap_between_siblings = "380,1000"
+thisApp.martian_life_expectancy = "cdc"
+thisApp.first_child_delay = "randint:300,500"
+thisApp.sols_between_siblings = "randint:300,1000"
+thisApp.partner_max_age_difference = 20
 
 
 class TestCreateUnacceptableFamilies:
@@ -59,6 +60,7 @@ class TestCreateUnacceptableFamilies:
 
         r1 = censere.models.Relationship()
 
+        r1.simulation_id = thisApp.simulation
         r1.relationship_id = settler_id.replace('a', 'A')
         r1.first = settler_id
         r1.second = father_id
@@ -69,6 +71,7 @@ class TestCreateUnacceptableFamilies:
 
         r2 = censere.models.Relationship()
 
+        r2.simulation_id = thisApp.simulation
         r2.relationship_id = settler_id.replace('a', 'B')
         r2.first = settler_id
         r2.second = mother_id
@@ -94,6 +97,7 @@ class TestCreateUnacceptableFamilies:
 
         r1 = censere.models.Relationship()
 
+        r1.simulation_id = thisApp.simulation
         r1.relationship_id = settler_id.replace('a', 'A')
         r1.first = settler_id
         r1.second = father_id
@@ -104,6 +108,7 @@ class TestCreateUnacceptableFamilies:
 
         r2 = censere.models.Relationship()
 
+        r2.simulation_id = thisApp.simulation
         r2.relationship_id = settler_id.replace('a', 'B')
         r2.first = settler_id
         r2.second = mother_id
@@ -122,14 +127,14 @@ class TestCreateUnacceptableFamilies:
         self.make_astronaut( 'm', "aaaaaaaa-1111-0000-0000-000000000000", 'f', str(uuid.uuid4()), str(uuid.uuid4()))
 
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" )
                ).count() == 1
 
         self.make_astronaut( 'f', "aaaaaaaa-2222-0000-0000-000000000000", 'm', str(uuid.uuid4()), str(uuid.uuid4()))
 
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" )
                ).count() == 1
 

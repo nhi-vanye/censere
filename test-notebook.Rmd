@@ -2,14 +2,15 @@
 title: "Mars Censere Test Notebook"
 author: "Richard Offer et al"
 output:
-  html_notebook: default
+  html_notebook: 
+    fig_caption: yes
+    fig_height: 6
   pdf_document:
     latex_engine: xelatex
 fontsize: 11pt
 mainfont: Arial
 sansfont: Arial
 monofont: Courier New
-
 params:
   database_path:
     value:
@@ -28,6 +29,8 @@ library(lubridate)
 library(reshape2)
 library(quantreg)
 library(kableExtra)
+library(lattice)
+library(numbers)
 database_path <- params$database_path #file.choose()
 database_info <- file.info(database_path, extra_cols = FALSE)
 database_size <- humanReadable(file.size(database_path), units="auto", standard="Unix", digits=0 )
@@ -42,6 +45,11 @@ It requires a database that has been already been generated.
 ```{r load_summary, include=FALSE}
 summary_table <- tbl( conn, "summary")
 simulations <- tbl( conn, "simulations")
+demographics <- tbl(conn, "demographics")
+populations <- tbl(conn, "populations")
+settlers <- tbl(conn, "settlers")
+events <- tbl(conn, "events")
+
 # use collect() to force execution of SQL so we don't carry forward the pending result
 # which doesn't cope well with being inserted into running text
 num_simulations <- collect(count(simulations))
@@ -107,27 +115,34 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 | # Simulations | `r num_simulations$n` |
 
 ```{r, echo=FALSE}
-sims <-select( collect(simulations), id, initial_mission_lands, mission_ends, final_soldays, final_population, args )
+sims <-select( collect(simulations), simulation_id, initial_mission_lands, mission_ends, final_soldays, final_population, args )
 
 sims$initial_mission_lands <- as_date( sims$initial_mission_lands )
 sims$mission_ends <- as_date( sims$mission_ends )
 
-knitr::kable(sims, col.names=c('ID','DateLanded', 'Completed', '#Sols', 'Pop.', 'Args') ) %>%
-  column_spec(6, width = "3in")
-
+# Consider use of landscape() -- http://haozhu233.github.io/kableExtra/awesome_table_in_pdf.pdf
+knitr::kable(sims, format = "latex", longtable = T, booktabs = T, col.names=c('ID','Landed', 'Ends', '#Sols', 'Pop.', 'Args') ) %>%
+  kable_styling(font_size = 8, fixed_thead = T, latex_options = c("striped",  "repeat_header")) %>%
+  column_spec(1, width = "1.5in") %>%
+  column_spec(2, width = "0.75in") %>%
+  column_spec(3, width = "0.75in") %>%
+  column_spec(4, width = "0.6in") %>%
+  column_spec(5, width = "0.5in") %>%
+  column_spec(6, width = "2.5in")
 ```
 
 ## Database Overview
 
 ```{r population_summary, include=FALSE}
 summary_plt <- ggplot(data=summary_table, 
-              aes(x=ymd_hms(earth_datetime),
+              aes(x=1+(solday/668.0),
                 y=population,
-                color=simulation_id)
+                color=simulation_id )
               ) + 
       geom_point(size=0.3) +
-      theme(legend.position="none") +
-      labs( x = "Date", y="Population", title="Simulation of Martian Population Growth") +
+      guides( color=guide_legend( title=NULL) )  +
+      theme(legend.justification=c(1,0), legend.position=c(1,0)) +
+      labs( x = "Sol Years", y="Population", title="Simulation of Martian Population Growth") +
       scale_color_brewer(palette="Paired")
 ```
 
@@ -137,18 +152,18 @@ summary_plt <- ggplot(data=summary_table,
 ```{r quantile, include=FALSE}
 
 gd <- summary_table %>% 
-        group_by(earth_datetime) %>% 
-        summarise(avg_pop = mean(population), pop_min=min(population), pop_max=max(population), avg_children=mean(children), avg_deaths=mean(deaths), avg_earth_born=mean(earth_born), avg_mars_born=mean(mars_born) )
+        group_by(solday) %>% 
+        summarise(avg_pop = mean(population,na.rm = TRUE), pop_min=min(population,na.rm = TRUE), pop_max=max(population,na.rm = TRUE), avg_children=mean(children,na.rm = TRUE), avg_deaths=mean(deaths,na.rm = TRUE), avg_earth_born=mean(earth_born,na.rm = TRUE), avg_mars_born=mean(mars_born,na.rm = TRUE) )
 
 
 range_plt <- ggplot(data=gd, 
-              aes(x=ymd_hms(earth_datetime), y=avg_pop )
+              aes(x=1+(solday/668.0), y=avg_pop )
               ) + 
       geom_line( size=0.2 ) +
       geom_smooth( span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
 
-        theme(legend.position="none") +
-      labs( x = "Date", y="Population", title="Mean & Smoothed Mean of Population Growth Across All Simulations") +
+      theme(legend.justification=c(1,0), legend.position=c(1,0)) +
+      labs( x = "Sol Years", y="Population", title="Mean & Smoothed Mean of Population Growth Across All Simulations") +
       scale_color_brewer(palette="Paired")
 
 
@@ -169,35 +184,35 @@ range_plt
 
 
 births_and_deaths <- ggplot(data=summary_table, 
-              aes(x=ymd_hms(earth_datetime)) ) + 
-      geom_point( aes( y = children ), color="#009E73",  size=0.2) +
-      geom_point( aes( y = deaths), color="#000000", size=0.2) +
+              aes(x=1+(solday/668.0)) ) + 
+      geom_point( aes( y = children ), color="#009E73",  size=0.1) +
+      geom_point( aes( y = deaths), color="#000000", size=0.1) +
       theme(legend.position="none") +
-      labs( x = "Date", y="Population", title="Births and Deaths") 
+      labs( x = "Sol Years", y="Population", title="Births and Deaths") 
 
 
 births_and_deaths_by_pop <- ggplot(data=summary_table, 
-              aes(x=ymd_hms(earth_datetime)) ) + 
-      geom_point( aes( y = children / population ), color="#009E73",  size=0.2) +
-      geom_point( aes( y = deaths / population), color="#000000", size=0.2) +
+              aes(x=1+(solday/668.0)) ) + 
+      geom_point( aes( y = children / population ), color="#009E73",  size=0.1) +
+      geom_point( aes( y = deaths / population), color="#000000", size=0.1) +
       theme(legend.position="none") +
-      labs( x = "Date", y="Fraction", title="... as Fraction of Population") 
+      labs( x = "Sol Years", y="Fraction", title="... as Fraction of Population") 
 
 avg_births_and_deaths <- ggplot(data=gd, 
-              aes(x=ymd_hms(earth_datetime)) ) + 
+              aes(x=1+(solday/668.0)) ) + 
       geom_smooth( aes( y = avg_pop ), color="#56B4E9", span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
       geom_smooth( aes( y = avg_children ), color="#009E73", span=0.2, method = "gam", formula = y ~ s(x, bs = "cs")) +
       geom_smooth( aes( y = avg_deaths), color="#000000", span=0.2, method = "gam", formula = y ~ s(x, bs = "cs")) +
       theme(legend.position="none") +
-      labs( x = "Date", y="Population", title="Births & Deaths Compared to Overall Population") 
+      labs( x = "Sol Years", y="Population", title="Births & Deaths Compared to Overall Population") 
 
 
 avg_earth_and_mars <- ggplot(data=gd, 
-              aes(x=ymd_hms(earth_datetime)) ) + 
+              aes(x=1+(solday/668.0)) ) + 
       geom_smooth( aes( y = avg_earth_born ), color="#56B4E9", span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
       geom_smooth( aes( y = avg_mars_born ), color="#009E73", span=0.2, method = "gam", formula = y ~ s(x, bs = "cs")) +
       theme(legend.position="none") +
-      labs( x = "Date", y="Population", title="Earthers and Martians") 
+      labs( x = "So, Years", y="Population", title="Earthers and Martians") 
 
 ```
 
@@ -205,7 +220,121 @@ As a fraction in population, you should still see the impact of new missions lan
 
 ```{r births_and_death_by_pop, echo=FALSE}
 
-multiplot(births_and_deaths, births_and_deaths_by_pop, avg_births_and_deaths, avg_earth_and_mars, layout=matrix(c(1,2,3,3,4,4), nrow=3, byrow=TRUE) )
+#multiplot(births_and_deaths, births_and_deaths_by_pop, avg_births_and_deaths, avg_earth_and_mars, layout=matrix(c(1,2,3,3,4,4), nrow=3, byrow=TRUE) )
+multiplot(births_and_deaths, births_and_deaths_by_pop, layout=matrix(c(1,2)) )
 
 ```
 
+
+# Population Demographics
+
+
+```{r demographics_1, include=FALSE}
+
+birth_death_rates <- ggplot(data=demographics, 
+              aes(x=1+(solday/668.0)
+                , color=simulation_id
+              ) ) + 
+      geom_line( aes( y = avg_annual_birth_rate) , size=0.2 ) +
+      geom_point( aes( y = avg_annual_birth_rate) , size=1, shape=3,color="#009E73" ) +
+      geom_line( aes( y = avg_annual_death_rate) , size=0.2 ) +
+      geom_point( aes( y = avg_annual_death_rate) , size=1, shape=4,color="#000000" ) +
+  
+      geom_hline( aes( yintercept=18.5), color="#009E73", linetype="dashed" ) +
+      geom_hline( aes( yintercept=7.5), color="#000000", linetype="dashed" ) +
+      
+      theme(legend.position="none") +
+      labs( x = "Sol Years", y="Population", title="Annual Birth and Death Rates per 1000 population (cf. 2016 Global)", caption="https://en.wikipedia.org/wiki/Birth_rate") 
+```
+
+```{r plt_demographics_1, echo=FALSE}
+birth_death_rates
+```
+```{r mean_rates, include=FALSE}
+mean_rates <- demographics %>% 
+        group_by(solday) %>% 
+        summarise(avg_birth_rate = mean(avg_annual_birth_rate,na.rm = TRUE), 
+        avg_death_rate=min(avg_annual_death_rate,na.rm = TRUE) )
+
+mean_rates_p <- ggplot(data=mean_rates, 
+               aes(x=1+(solday/668.0))
+               ) + 
+  
+       geom_line( aes(y=avg_birth_rate), color="#009E73" )  +
+       geom_line( aes(y=avg_death_rate), color="#000000" )  +
+      geom_hline( aes( yintercept=18.5), color="#009E73", linetype="dashed" ) +
+      geom_hline( aes( yintercept=7.5), color="#000000", linetype="dashed" ) +
+      geom_smooth( aes(y=avg_birth_rate), color="#009E73",span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
+      geom_smooth( aes(y=avg_death_rate), color="#000000",span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
+         theme(legend.position="none") +
+      labs( x = "Date", y="Population", title="Mean Birth and Death Rates per 1000 population (cf. 2016 Global)", caption="https://en.wikipedia.org/wiki/Birth_rate")
+       scale_color_brewer(palette="Paired")
+```
+
+```{r mean_rates_plt, echo=FALSE}
+mean_rates_p
+```
+
+```{r cohorts, include=FALSE}
+
+dead_settlers <- collect( settlers)
+#dead_settlers <- filter( dead_settlers, birth_location == "mars" & death_solday > 0 )
+dead_settlers <- filter( dead_settlers, death_solday > 0 )
+
+
+cohort_ages  <- ggplot(data=dead_settlers, 
+              aes(x=1+(cohort/668.0)
+                , color=birth_location
+              ) ) + 
+      geom_point( aes( y =1+(death_solday - cohort)/668.0)  , size=1, ) +
+      geom_smooth( aes(y=1+(death_solday - cohort)/668.0), color="#000000",span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
+  
+      #theme(legend.position="none") +
+      labs( x = "Sol Years Since Initial Landing", y="Years on Mars at Death", title="Years on Mars at Death by Cohort") 
+
+```
+
+```{r cohort_plt, echo=FALSE}
+cohort_ages
+```
+```{r events, include=FALSE}
+
+die_events <- collect( events)
+die_events <- filter( die_events, callback_func == "censere.events.callbacks.settler_dies")
+
+
+death_events  <- ggplot(data=die_events, 
+              aes(x=1+(registered/668.0),color=simulation_id
+              ) ) + 
+      geom_point( aes( y =1+((when-registered)/668.0))  , size=1, alpha=0.5 ) +
+      geom_smooth( aes(y=1+((when-registered)/668.0)), color="#000000",span=0.2, method = "gam", formula = y ~ s(x, bs = "cs") ) +
+  
+      theme(legend.position="none") +
+      labs( x = "Sol Year of Registration", y="Time Between Event Registration & Execution", title="Settler Dies Event Age by Cohort") 
+
+```
+
+```{r events_plt, echo=FALSE}
+death_events
+```
+
+```{r population_breakdown, include=FALSE}
+
+
+pop <- collect( populations)
+pop$SolYear = pop$solday / 668
+pop <- filter( pop, mod(SolYear, 8) == 0 )
+
+population_breakdown <- ggplot( data=pop,
+                                aes( x=as.factor(sol_years), y=ifelse(test = sex == "m",  yes = -value, no = value), fill=sex)) +
+    geom_col() +
+    coord_flip() +
+    scale_y_continuous(labels = abs) +
+    labs( x = "Age", y="Population", title="Population Pyramid") +
+    facet_wrap(vars(SolYear), ncol=4, labeller = label_both )
+  
+```
+
+```{r population_breakdown_plt, echo=FALSE}
+population_breakdown
+```

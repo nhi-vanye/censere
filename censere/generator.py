@@ -8,6 +8,7 @@ import argparse
 import base64
 import datetime
 import logging
+import pathlib
 import sys
 import pickle as ENC
 import uuid
@@ -47,6 +48,34 @@ Arguments that start with '@' will be considered filenames that
 specify arguments to the program - ONE ARGUMENT PER LINE.
 
 The Database should be on a local disk - not in Dropbox etc.
+
+RANDOM Values
+=============
+
+This can be calculated using built-in tables from the CDC, or a random function age
+
+The option is specified as string:arg1,arg2,..argn
+
+Acceptable Values are:
+
+  cdc:
+    use CDC tables (no args are needed). This is only valid for Life Expectancy
+
+  triangular:MIN,PEAK,MAX
+    use NUMPY's triangular random function with MIN,PEAK and MAX ages (in earth years)
+
+  guass:MEAN,STDDEV
+    use NUMPY's guass random function with MEAN and STDDEV ages (in earth years)
+
+  randint:MIN,MAX
+    use NUMPY's randint random function with MIN and MAX ages such that MIN <= N <= MAX (in earth years)
+
+  randrange:MIN,MAX
+    use NUMPY's randint random function with MIN and MAX ages such that MIN <= N < MAX (in earth years)
+
+  half:BEGIN,STEP
+    There is a 50% probability that a value between BEGIN and BEGIN+STEP will be picked, 25% between BEGIN+STEP and BEGIN+(STEP*2), a 12.5% between BEGIN+(STEP*2) and BEGIN+(STEP*3) etc.
+
 """)
 
     OPTIONS().register( parser )
@@ -95,17 +124,13 @@ def initialize_database():
 
 def register_initial_landing():
 
-    ships_range = [int(i) for i in thisApp.ships_per_initial_mission.split(",") ]
-
-    for i in range(RANDOM.randint( ships_range[0], ships_range[1] ) ):
-
-        settlers_range = [int(i) for i in thisApp.settlers_per_initial_ship.split(",") ]
+    for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_mission, default_value=1 ) ):
 
         EVENTS.register_callback(
             when =  1,
             callback_func=EVENTS.callbacks.mission_lands,
             kwargs = {
-                "settlers" : RANDOM.randint(settlers_range[0], settlers_range[1])
+                "settlers" : RANDOM.parse_random_value( thisApp.settlers_per_initial_ship )
             }
         )
 
@@ -120,7 +145,7 @@ def get_limit_count( limit="population" ):
         if limit == "population":
 
             count = MODELS.Settler.select().where( 
-                ( MODELS.Settler.simulation == thisApp.simulation ) &
+                ( MODELS.Settler.simulation_id == thisApp.simulation ) &
                 ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
                 ( MODELS.Settler.death_solday == 0 )
             ).count()
@@ -137,7 +162,7 @@ def get_singles_count( ):
 
     try:
         count = MODELS.Settler.select().where(
-            ( MODELS.Settler.simulation == thisApp.simulation ) &
+            ( MODELS.Settler.simulation_id == thisApp.simulation ) &
             ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
             ( MODELS.Settler.death_solday == 0 ) &
             ( MODELS.Settler.state == 'single' )
@@ -151,127 +176,60 @@ def get_singles_count( ):
 
 def add_summary_entry():
 
-    adults = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    children = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.birth_solday >= ( thisApp.solday - UTILS.years_to_sols(18) ) ) &
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    singles = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.state == 'single' ) & 
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    couples = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.state == 'couple' ) & 
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) ) & 
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    males = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.sex == 'm' ) & 
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    females = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.sex == 'f' ) & 
-        ( MODELS.Settler.death_solday == 0 )
-    ).count()
-
-    hetrosexual = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( ( ( MODELS.Settler.sex == 'm' ) & 
-          ( MODELS.Settler.orientation == 'f' ) ) | 
-        ( ( MODELS.Settler.sex == 'f' ) & 
-          ( MODELS.Settler.orientation == 'm' ) ) ) &
-        ( MODELS.Settler.death_solday == 0 ) &
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
-    ).count()
-
-    homosexual = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.sex == MODELS.Settler.orientation ) & 
-        ( MODELS.Settler.death_solday == 0 ) &
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
-    ).count()
-
-    bisexual = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.orientation == 'mf' ) & 
-        ( MODELS.Settler.death_solday == 0 ) &
-        ( MODELS.Settler.birth_solday < ( thisApp.solday - int( 18 * 365.25 * 1.02749125 ) ) )
-    ).count()
-
-    deaths = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.death_solday != 0 )
-    ).count()
-
-    earth_born = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.birth_location == MODELS.LocationEnum.Earth )
-    ).count()
-
-    mars_born = MODELS.Settler.select().where( 
-        ( MODELS.Settler.simulation == thisApp.simulation ) &
-        ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-        ( MODELS.Settler.birth_location == MODELS.LocationEnum.Mars )
-    ).count()
-
-
     s = MODELS.Summary()
 
-    s.simulation_id = thisApp.simulation
-
-    s.solday = thisApp.solday
-    s.earth_datetime = thisApp.earth_time
-    s.adults = adults
-    s.children = children
-
-    s.males = males
-    s.females = females
-
-    s.hetrosexual = hetrosexual
-    s.homosexual = homosexual
-    s.bisexual = bisexual
-
-    s.population = adults + children
-
-    s.singles = singles
-    s.couples = couples
-
-    s.deaths = deaths
-
-    s.earth_born = earth_born
-    s.mars_born = mars_born
+    s.initialize()
 
     s.save()
 
     return { "solday" : s.solday, "earth_datetime" : s.earth_datetime, "population": s.population }
 
 
+def add_annual_demographics( ):
+
+
+    # demographics includes birth and death rates
+    d = MODELS.Demographic()
+
+    d.initialize()
+    
+    d.save()
+
+
+    # This is population age and gender breakdown
+    # useful for population pyramids
+    (males, females) = MODELS.get_population_histogram()
+
+    for r in range( len(males[0]) ):
+
+        p = MODELS.Population()
+
+        p.simulation_id = thisApp.simulation
+
+        p.solday = thisApp.solday
+        p.earth_datetime = thisApp.earth_time
+
+        p.bucket = "{}-{}".format( males[1][r], males[1][r+1])
+        p.sol_years = males[1][r]
+        p.sex = 'm'
+        p.value = males[0][r]
+
+        p.save()
+
+    for r in range( len( females[0]) ):
+
+        p = MODELS.Population()
+
+        p.simulation_id = thisApp.simulation
+
+        p.solday = thisApp.solday
+        p.earth_datetime = thisApp.earth_time
+        p.bucket = "{}-{}".format( females[1][r], females[1][r+1])
+        p.sol_years = females[1][r]
+        p.sex = 'f'
+        p.value = females[0][r]
+        
+        p.save()
 
 ## 
 # Main entry point for execution
@@ -292,6 +250,14 @@ def main( argv ):
         thisApp.simulation = str(uuid.uuid4())
     else:
         thisApp.simulation = thisApp.continue_simulation
+
+    # takes priority over --database
+    if thisApp.database_dir != "":
+
+        p = pathlib.Path( thisApp.database_dir ).joinpath( thisApp.simulation + ".db" )
+
+        # overwrite anything set using --database
+        thisApp.database = str(p)
 
     initialize_database()
 
@@ -319,7 +285,19 @@ def main( argv ):
         RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) )
 
     logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started. Goal %s = %d, Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count, thisApp.random_seed )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+
+    if thisApp.dump:
+        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday' ]
+
+        for k in sorted(thisApp.__dict__.keys() ):
+            if k not in excludes:
+                logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s --%s=%s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, k.replace('_','-'), thisApp.__dict__[k] )
+
+        sys.exit(0)
 
 
     if thisApp.continue_simulation == "":
@@ -328,8 +306,6 @@ def main( argv ):
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
-
-    #ACTIONS.make_families( )
 
     while get_limit_count( thisApp.limit ) < thisApp.limit_count:
 
@@ -343,10 +319,7 @@ def main( argv ):
         EVENTS.invoke_callbacks( )
 
         # Poulation building
-        # TODO make this more flexible
-        # Assume: On any given day there is 1% chance of a specific person initiating a relationship
-        # there are N singles, so make a family if chance is 0.1 * N or less
-        if RANDOM.randrange(0,99) < int ( 1 * current_singles_count * 0.5  ):
+        if RANDOM.random() < float(thisApp.fraction_singles_pairing_per_day) * current_singles_count :
             ACTIONS.make_families( )
         # TODO need a model for relationship breakdown
         # break_families()
@@ -362,12 +335,18 @@ def main( argv ):
 
 
         # give a ~monthly (every 28 sols) and end of year log message
-        if ( sol % 28 ) == 0 or sol == 688:
+        if ( sol % 28 ) == 0 or sol == 668:
             logging.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
+            if thisApp.cache_details:
+                logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+
             # returned data not used
-            res = add_summary_entry()
+            res = add_summary_entry( )
             
+        if solyear > 1 and ( sol % 668 ) == 0:
+
+            add_annual_demographics( )
 
         thisApp.solday += 1
         # from wikipedia
@@ -390,7 +369,11 @@ def main( argv ):
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Complete. Seed %d. %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Completed.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 
 if __name__ == '__main__':
 

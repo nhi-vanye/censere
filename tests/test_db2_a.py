@@ -7,15 +7,19 @@ import censere.models
 import censere.actions
 
 thisApp.simulation = "00000000-0000-0000-0000-000000000000"
-thisApp.astronaut_age_range = "32,45"
+thisApp.astronaut_age_range = "randint:32,45"
 thisApp.solday = 1
 thisApp.orientation = "90,6,4"
 thisApp.astronaut_gender_ratio = "50,50"
-thisApp.astronaut_life_expectancy = "72,7"
+thisApp.astronaut_life_expectancy = "cdc:"
 thisApp.martian_gender_ratio = "50,50"
-thisApp.martian_life_expectancy = "72,7"
-thisApp.first_child_delay = "400,700"
-thisApp.gap_between_siblings = "380,1000"
+thisApp.martian_life_expectancy = "cdc"
+thisApp.first_child_delay = "randint:300,500"
+thisApp.sols_between_siblings = "randint:300,1000"
+thisApp.fraction_relationships_having_children = 0.5
+thisApp.use_ivf = True
+thisApp.partner_max_age_difference = 20
+
 
 
 class TestCreatingFamilies:
@@ -38,11 +42,12 @@ class TestCreatingFamilies:
         assert database.table_exists( "events" )
 
     def test_create_two_straight_male_astronauts(self, database):
-        database.bind( [ censere.models.Astronaut ], bind_refs=False, bind_backrefs=False)
+        database.bind( [ censere.models.Astronaut, censere.models.Relationship ], bind_refs=False, bind_backrefs=False)
         database.connect( reuse_if_open=True )
         # triggers on settlers table now require relationships table to be created
         database.create_tables( [ censere.models.Astronaut, censere.models.Relationship ] )
         assert database.table_exists( "settlers" )
+        assert database.table_exists( "relationships" )
 
         a = censere.models.Astronaut()
 
@@ -54,7 +59,7 @@ class TestCreatingFamilies:
 
         assert a.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-1111-0000-0000-000000000000" )
                ).count() == 1
 
@@ -68,7 +73,7 @@ class TestCreatingFamilies:
 
         assert b.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-2222-0000-0000-000000000000" )
                ).count() == 1
 
@@ -79,7 +84,6 @@ class TestCreatingFamilies:
         database.create_tables( [ censere.models.Relationship ] )
         assert database.table_exists( "relationships" )
 
-        self._caplog.set_level(logging.DEBUG)
         censere.actions.make_families( )
 
         assert censere.models.Relationship.select().where(censere.models.Relationship.relationship == censere.models.RelationshipEnum.partner).count() == 0
@@ -109,7 +113,7 @@ class TestCreatingFamilies:
 
         assert a.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-3333-0000-0000-000000000000" )
                ).count() == 1
 
@@ -123,7 +127,7 @@ class TestCreatingFamilies:
 
         assert b.save() == 1
         assert censere.models.Settler.select().where( 
-                    ( censere.models.Settler.simulation == thisApp.simulation ) &
+                    ( censere.models.Settler.simulation_id == thisApp.simulation ) &
                     ( censere.models.Settler.settler_id == "aaaaaaaa-4444-0000-0000-000000000000" )
                ).count() == 1
 

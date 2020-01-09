@@ -274,6 +274,10 @@ def main( argv ):
         s.limit = thisApp.limit
         s.limit_count = thisApp.limit_count
         s.args = thisApp.args(thisApp)
+
+        if len(thisApp.notes) > 0:
+            s.notes = thisApp.notes
+
         s.save()
 
     else:

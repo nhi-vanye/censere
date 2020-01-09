@@ -69,6 +69,11 @@ class Viewer:
     TRACE = 1
 
 
+class Merge:
+    NOTICE = 25     # status messages
+    DETAILS = 15    # info + additional details
+    TRACE = 1
+
 
 ## Arguments that are common to all programs
 #
@@ -80,11 +85,6 @@ class CommonOptions:
             metavar="FILE",
             **check_env_for_default( 'CENSERE_DATABASE', 'censere.db' ),
             help='Path to database (CENSERE_DATABASE)' )
-
-        parser.add_argument( '--database-dir', action="store",
-            metavar="DIR",
-            **check_env_for_default( 'CENSERE_DATABASE_DIR', "" ),
-            help='Use a unique file in DIR. This takes priority over --database. Unique file is based on the simulation id (CENSERE_DATABASE_DIR)' )
 
         parser.add_argument( '--debug', action="store_true",
             **check_env_for_default( 'CENSERE_DEBUG', False ),
@@ -137,6 +137,11 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),
             help='Continue the simulation to a new limit (CENSERE_CONTINUE_SIMULATION)' )
 
+        parser.add_argument( '--database-dir', action="store",
+            metavar="DIR",
+            **check_env_for_default( 'CENSERE_DATABASE_DIR', "" ),
+            help='Use a unique file in DIR. This takes priority over --database. Unique file is based on the simulation id (CENSERE_DATABASE_DIR)' )
+
         parser.add_argument( '--first-child-delay', action="store",
             metavar="RANDOM",
             **check_env_for_default( 'CENSERE_FIRST_CHILD_DELAY', 'randint:350,700' ),
@@ -182,6 +187,11 @@ class GeneratorOptions(CommonOptions):
             metavar="RANDOM",
             **check_env_for_default( 'CENSERE_MISSION_LANDS', 'randint:759,759' ),
             help='Land a new mission every MEAN +- STDDEV sols (CENSERE_MISSION_LANDS)' )
+
+        parser.add_argument( '--notes', action="store",
+            metavar="TEXT",
+            **check_env_for_default( 'CENSERE_NOTES', '' ),
+            help='Add TEXT into notes column in simulations table (CENSERE_NOTES)' )
 
         parser.add_argument( '--orientation', action="store",
             metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
@@ -240,4 +250,15 @@ class ViewerOptions(CommonOptions):
     def register(self, parser):
 
         super().register(parser)
+
+## Merge-specific arguments
+#
+class MergeOptions(CommonOptions):
+
+    def register(self, parser):
+
+        super().register(parser)
  
+        parser.add_argument( 'args', nargs="+",
+            help='List of databases to combine into DATABASE' )
+

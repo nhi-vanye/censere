@@ -307,6 +307,8 @@ def main( argv ):
     if thisApp.continue_simulation == "":
         register_initial_landing()
 
+    add_annual_demographics( )
+
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
@@ -358,6 +360,8 @@ def main( argv ):
         thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147) 
 
     res = add_summary_entry()
+
+    add_annual_demographics( )
 
     ( 
         MODELS.Simulation.update( 

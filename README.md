@@ -8,6 +8,17 @@ This is a work in progress, the models are being developed, but for a graphical 
 The short term focus is in uilding out a strong simulation model, The visualization of the rsults is somewhat lagging, some early results for testing the simulation are in the R Studio file test-notbook.Rmd
 
 
+Getting Involved
+================
+
+The project is in the early stages of development so we're still working out how best to run the project.
+
+
+All the project discussion is on the UK Mars Research Hub Slack channel - uk-mars-research-hub.slack.com
+
+
+
+
 Quick Start
 ===========
 

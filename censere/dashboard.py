@@ -114,40 +114,9 @@ FROM
     app.layout = HTML.Div(children=[
         HTML.H1(children='Mars Censere')
 
-        , HTML.Div(children='Population.', 
-            style={
-                'textAlign': 'center',
-            }
-        )
-        , DCC.Graph(
-            id='population',
-            figure={
-                'data' : [
-                    dict(
-                        x=population['df'][ population['df']['simulation_id'] == i]['solday'] / 668.0,
-                        y=population['df'][ population['df']['simulation_id'] == i]['population'],
-                        text=population['df'][ population['df']['simulation_id'] == i]['simulation_id'],
-                        hoverinfo="all",
-                        hovertemplate="%{x}, %{y}, %{text}",
-                        mode='markers',
-                        opacity=0.7,
-                        marker={
-                            'size': 5
-                            , 'line': {'width': 0.5, 'color': 'white'}
-                        },
-                        name=""
-                    ) for i in population['df'].simulation_id.unique()
-                ],
-                'layout': {
-                    "xaxis" : {'title': 'Sol Years'},
-                    "yaxis" : {'title': 'Population'},
-                    "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
-                    "showgrid" : True,
-                    "hovermode" : 'closest'
-                }
-            }
-        )
-        , HTML.H2('Population Demographics')
+        , HTML.H4('Overall Population')
+        , DCC.Graph( id='population')
+        , HTML.H4('Population Demographics')
         , HTML.Div([
             HTML.Div([
                 HTML.Div([
@@ -157,7 +126,6 @@ FROM
                             min=pop_pyramid['min_range'],
                             max=pop_pyramid['max_range'],
                             value=1,
-                            #marks={i: '{}'.format(i) if i == 1 else str(i/668.0) for i in range(0, population['df']['solday'].max(), 6680)},
                             step=1
                         )
                     , HTML.P(id="pyramid-label")
@@ -171,163 +139,37 @@ FROM
             )
             ])
             , HTML.Div([
-                DCC.Graph(
-                    id='pyramid')
+                DCC.Graph( id='pyramid')
                 ]
                 , className="two-thirds column"
             )
         ])
         , HTML.Div([
             HTML.Div([
-                HTML.H2('Birth & Death Rates')
-                , DCC.Graph(
-                    id='rates',
-                    figure={
-                    'data' : [
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['avg_annual_birth_rate'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            yaxis='y',
-                            xaxis='x',
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="birth rate",
-                            marker=dict(color='green')
-                        ),
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['avg_annual_death_rate'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            yaxis='y',
-                            xaxis='x',
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="death rate",
-                            marker=dict(color='black')
-                        )
-                        ],
-                        'layout': {
-                            "xaxis" : {
-                                'title': 'Sol Years'
-                            },
-                            "yaxis" : {
-                                'yaxis': 'y',
-                                'title': 'Rate per 1000 persons',
-                                'range' : [ 
-                                    min(pop_dynamics['df']['avg_annual_birth_rate'].min(), pop_dynamics['df']['avg_annual_death_rate'].min()),
-                                    max(pop_dynamics['df']['avg_annual_birth_rate'].max(), pop_dynamics['df']['avg_annual_death_rate'].max())
-                                ]
-                            },
-                            "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
-                            "hovermode" : 'closest'
-                        }
-                    }
-                )
+                HTML.H4('Birth & Death Rates')
+                , DCC.Graph( id='rates')
                 ]
                 ,className="one-third column"
             )
             , HTML.Div([
-                HTML.H2("Realtionships")
-                , DCC.Graph(
-                    id='partners',
-                    figure={
-                    'data' : [
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['num_partnerships_started'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            yaxis='y',
-                            xaxis='x',
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="# 'Marriages'",
-                            marker=dict(color='green')
-                        ),
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['num_partnerships_ended'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            yaxis='y',
-                            xaxis='x',
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="# 'Divorces'",
-                            marker=dict(color='red')
-                        )
-                        ],
-                        'layout': {
-                            "xaxis" : {
-                                'title': 'Sol Years'
-                            },
-                            "yaxis" : {
-                                'yaxis': 'y',
-                                'title': "# 'Marriages'",
-                                'range' : [ 
-                                    min(pop_dynamics['df']['num_partnerships_started'].min(), pop_dynamics['df']['num_partnerships_ended'].min()),
-                                    max(pop_dynamics['df']['num_partnerships_started'].max(), pop_dynamics['df']['num_partnerships_ended'].max()),
-                                ]
-                            },
-                            "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
-                            "hovermode" : 'closest'
-                        }
-                    }
-                )
+                HTML.H4("Realtionships")
+                , DCC.Graph( id='partners')
             ]
             ,className="one-third column"
             )
             , HTML.Div([
-                HTML.H2("Settler Status")
-                , DCC.Graph(
-                    id='status',
-                    figure={
-                    'data' : [
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['num_single_settlers'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="Single",
-                            marker=dict(color='blue')
-                        ),
-                    dict(
-                            type="line+markers",
-                            x=pop_dynamics['df']['solday'] / 668.0,
-                            y=pop_dynamics['df']['num_partnered_settlers'],
-                            text=pop_dynamics['df']['simulation_id'],
-                            hoverinfo='text',
-                            hovertemplate="%{x}, %{y}, %{text}",
-                            name="'Married'",
-                            marker=dict(color='black')
-                        )
-                        ],
-                        'layout': {
-                            "xaxis" : {
-                                'title': 'Sol Years'
-                            },
-                            "yaxis" : {
-                                'yaxis': 'y',
-                                'title': '# Settlers',
-                                'range' : [ 
-                                    min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min()),
-                                    max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max())
-                                ]
-                            },
-                            "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
-                            "hovermode" : 'closest'
-                        }
-                    }
-                )
+                HTML.H4("Settler Status")
+                , DCC.Graph( id='status' )
             ]
             ,className="one-third column"
             )        
         ])
+        , HTML.Div([
+            HTML.Hr()
+            , HTML.H6('Copyright ©️ 2020 Richard Offer.')
+        ]
+        ,className="column"
+        )
     ]
     )
 
@@ -335,9 +177,227 @@ FROM
     def update_pyramid_label( selected_year ):
         return "Sol Year: {}".format( selected_year )
 
-    @app.callback( dash.dependencies.Output('population', 'children'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    @app.callback( dash.dependencies.Output('status', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    def update_rates_vline( selected_year ):
+
+        return {
+            'data' : [
+                dict(
+                    type="line+markers",
+                    x=pop_dynamics['df']['solday'] / 668.0,
+                    y=pop_dynamics['df']['num_single_settlers'],
+                    text=pop_dynamics['df']['simulation_id'],
+                    hoverinfo='text',
+                    hovertemplate="%{x}, %{y}, %{text}",
+                    name="Single",
+                    marker=dict(color='blue')
+                ),
+                dict(
+                    type="line+markers",
+                    x=pop_dynamics['df']['solday'] / 668.0,
+                    y=pop_dynamics['df']['num_partnered_settlers'],
+                    text=pop_dynamics['df']['simulation_id'],
+                    hoverinfo='text',
+                    hovertemplate="%{x}, %{y}, %{text}",
+                    name="'Married'",
+                    marker=dict(color='black')
+                )
+            ],
+            'layout': {
+                'shapes' : [{
+                    'type': 'line',
+                    'x0': selected_year,
+                    'y0': 0,
+                    'x1': selected_year,
+                    'y1': population['df']['population'].max(),
+                    'line': {
+                        'color': 'blue',
+                        'width': 3,
+                    }
+                }
+                ],
+                "xaxis" : {
+                    'title': 'Sol Years'
+                },
+                "yaxis" : {
+                    'yaxis': 'y',
+                    'title': '# Settlers',
+                    'range' : [ 
+                        min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min()),
+                        max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max())
+                    ]
+                },
+                "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
+                "hovermode" : 'closest'
+            }
+        }
+
+    @app.callback( dash.dependencies.Output('partners', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    def update_rates_vline( selected_year ):
+
+        return {
+            'data' : [
+                dict(
+                        type="line+markers",
+                        x=pop_dynamics['df']['solday'] / 668.0,
+                        y=pop_dynamics['df']['num_partnerships_started'],
+                        text=pop_dynamics['df']['simulation_id'],
+                        yaxis='y',
+                        xaxis='x',
+                        hoverinfo='text',
+                        hovertemplate="%{x}, %{y}, %{text}",
+                        name="# 'Marriages'",
+                        marker=dict(color='green')
+                ),
+                dict(
+                        type="line+markers",
+                        x=pop_dynamics['df']['solday'] / 668.0,
+                        y=pop_dynamics['df']['num_partnerships_ended'],
+                        text=pop_dynamics['df']['simulation_id'],
+                        yaxis='y',
+                        xaxis='x',
+                        hoverinfo='text',
+                        hovertemplate="%{x}, %{y}, %{text}",
+                            name="# 'Divorces'",
+                            marker=dict(color='red')
+                )
+            ],
+            'layout': {
+                'shapes' : [{
+                    'type': 'line',
+                    'yref' : 'paper',
+                    'x0': selected_year,
+                    'y0': 0,
+                    'x1': selected_year,
+                    'y1': 1,
+                    'line': {
+                        'color': 'blue',
+                        'width': 3,
+                    }
+                }
+                ],
+                "xaxis" : {
+                    'title': 'Sol Years'
+                },
+                "yaxis" : {
+                    'yaxis': 'y',
+                    'title': "# 'Marriages'",
+                    'range' : [ 
+                        min(pop_dynamics['df']['num_partnerships_started'].min(), pop_dynamics['df']['num_partnerships_ended'].min()),
+                        max(pop_dynamics['df']['num_partnerships_started'].max(), pop_dynamics['df']['num_partnerships_ended'].max()),
+                    ]
+                },
+                "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
+                "hovermode" : 'closest'
+            }
+        }
+
+
+    @app.callback( dash.dependencies.Output('rates', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    def update_rates_vline( selected_year ):
+
+        return {
+            'data' : [
+                dict(
+                        type="line+markers",
+                        x=pop_dynamics['df']['solday'] / 668.0,
+                        y=pop_dynamics['df']['avg_annual_birth_rate'],
+                        text=pop_dynamics['df']['simulation_id'],
+                        yaxis='y',
+                        xaxis='x',
+                        hoverinfo='text',
+                        hovertemplate="%{x}, %{y}, %{text}",
+                        name="birth rate",
+                        marker=dict(color='green')
+                ),
+                dict(
+                        type="line+markers",
+
+                        x=pop_dynamics['df']['solday'] / 668.0,
+                        y=pop_dynamics['df']['avg_annual_death_rate'],
+                        text=pop_dynamics['df']['simulation_id'],
+                        yaxis='y',
+                        xaxis='x',
+                        hoverinfo='text',
+                        hovertemplate="%{x}, %{y}, %{text}",
+                        name="death rate",
+                        marker=dict(color='black')
+                )
+            ],
+            'layout': {
+                'shapes' : [{
+                    'type': 'line',
+                    'yref' : 'paper',
+                    'x0': selected_year,
+                    'y0': 0,
+                    'x1': selected_year,
+                    'y1': 1,
+                    'line': {
+                        'color': 'blue',
+                        'width': 3,
+                    }
+                }
+                ],
+                "xaxis" : {
+                    'title': 'Sol Years'
+                },
+                "yaxis" : {
+                    'yaxis': 'y',
+                    'title': 'Rate per 1000 persons',
+                    'range' : [ 
+                        min(pop_dynamics['df']['avg_annual_birth_rate'].min(), pop_dynamics['df']['avg_annual_death_rate'].min()),
+                        max(pop_dynamics['df']['avg_annual_birth_rate'].max(), pop_dynamics['df']['avg_annual_death_rate'].max())
+                    ]
+                },
+                "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
+                "hovermode" : 'closest'
+            }
+        }
+
+    @app.callback( dash.dependencies.Output('population', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_population_vline( selected_year ):
-        return "Sol Year: {}".format( selected_year )
+
+        return {
+            'data': [
+                dict(
+                    x=population['df'][ population['df']['simulation_id'] == i]['solday'] / 668.0,
+                    y=population['df'][ population['df']['simulation_id'] == i]['population'],
+                    text=population['df'][ population['df']['simulation_id'] == i]['simulation_id'],
+                    hoverinfo="all",
+                    hovertemplate="%{x}, %{y}, %{text}",
+                    mode='markers',
+                    opacity=0.7,
+                    marker={
+                        'size': 5
+                        , 'line': {'width': 0.5, 'color': 'white'}
+                    },
+                    name=""
+                ) for i in population['df'].simulation_id.unique()
+            ],
+            'layout': {
+                'shapes' : [{
+                    'type': 'line',
+                    'yref' : 'paper',
+                    'x0': selected_year,
+                    'y0': 0,
+                    'x1': selected_year,
+                    'y1': 1,
+                    'line': {
+                        'color': 'blue',
+                        'width': 3,
+                    }
+                } ],
+                "xaxis" : {
+                    'title': 'Sol Years',
+                },
+                "yaxis" : {
+                    'title': 'Population'
+                },
+                "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
+                "showgrid" : True,
+                "hovermode" : 'closest'
+            }
+        }
 
     @app.callback( dash.dependencies.Output('pyramid', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_pyramid_figure(selected_year):

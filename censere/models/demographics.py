@@ -15,9 +15,12 @@ import playhouse.signals
 from censere.config import Generator as thisApp
 
 import censere.db as DB
+import censere.utils as UTILS
 
 from .summary import Summary as Summary
 from .settler import Settler as Settler
+from .relationship import Relationship as Relationship
+from .relationship import RelationshipEnum as RelationshipEnum
 
 ##
 # Collect demographic details
@@ -39,8 +42,15 @@ class Demographic(playhouse.signals.Model):
     # based on inital_mission_lands date
     earth_datetime = peewee.DateTimeField()
 
-    avg_annual_birth_rate = peewee.FloatField( null=True )
-    avg_annual_death_rate = peewee.FloatField( null=True )
+    avg_annual_birth_rate = peewee.FloatField( null=True, default=0.0 )
+    avg_annual_death_rate = peewee.FloatField( null=True, default=0.0 )
+
+    avg_partnerships = peewee.FloatField( null=True, default=0.0 )
+    num_partnerships_started = peewee.IntegerField( null=True, default=0 )
+    num_partnerships_ended = peewee.IntegerField( null=True, default=0 )
+
+    num_single_settlers = peewee.IntegerField( null=True, default=0 )
+    num_partnered_settlers = peewee.IntegerField( null=True, default=0 )
 
     def initialize( self ):
 
@@ -82,3 +92,55 @@ class Demographic(playhouse.signals.Model):
         else:
             self.avg_annual_birth_rate = 0.0
             self.avg_annual_death_rate = 0.0
+
+
+        self.num_partnerships_started = Relationship.select().where(
+            ( Relationship.simulation_id == thisApp.simulation ) &
+            ( Relationship.relationship == RelationshipEnum.partner ) &
+            ( Relationship.begin_solday > max( thisApp.solday - 668, 0 ) ) &
+            ( Relationship.begin_solday < thisApp.solday )
+            ).count()
+
+        self.num_partnerships_ended = Relationship.select().where(
+            ( Relationship.simulation_id == thisApp.simulation ) &
+            ( Relationship.relationship == RelationshipEnum.partner ) &
+            ( Relationship.end_solday > max( thisApp.solday - 668, 0 ) ) &
+            ( Relationship.end_solday < thisApp.solday )
+            ).count()
+
+        rel_year_start = Relationship.select().where(
+            ( Relationship.simulation_id == thisApp.simulation ) &
+            ( Relationship.relationship == RelationshipEnum.partner ) &
+            ( Relationship.begin_solday < max( thisApp.solday - 668, 0 ) ) &
+            (
+                ( Relationship.end_solday == 0 ) |
+                ( Relationship.end_solday < thisApp.solday )
+            )
+            ).count()
+
+        rel_year_end = Relationship.select().where(
+            ( Relationship.simulation_id == thisApp.simulation ) &
+            ( Relationship.relationship == RelationshipEnum.partner ) &
+            ( Relationship.begin_solday < thisApp.solday ) &
+            (
+                ( Relationship.end_solday == 0 ) |
+                ( Relationship.end_solday < thisApp.solday )
+            )
+            ).count()
+
+        self.avg_partnerships = rel_year_start + int( 0.5 * ( rel_year_end - rel_year_start ) )
+
+        self.num_single_settlers = Settler.select().where(
+            ( Settler.simulation_id == thisApp.simulation ) &
+            ( Settler.state == 'single' ) &
+            ( Settler.death_solday == 0 ) &
+            ( Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) )
+            ).count()
+
+        self.num_partnered_settlers = Settler.select().where(
+            ( Settler.simulation_id == thisApp.simulation ) &
+            ( Settler.state == 'couple' ) &
+            ( Settler.death_solday == 0 ) &
+            ( Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) )
+            ).count()
+

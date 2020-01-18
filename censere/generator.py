@@ -307,11 +307,23 @@ def main( argv ):
     if thisApp.continue_simulation == "":
         register_initial_landing()
 
-    add_annual_demographics( )
-
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+
+    d = MODELS.Demographic()
+
+    d.simulation_id = thisApp.simulation
+    d.solday = 1
+    d.earth_datetime = thisApp.earth_time
+    d.avg_annual_birth_rate = 0.0
+    d.avg_annual_death_rate = 0.0
+    d.avg_relationships = 0.0
+    d.num_relationships_started = 0
+    d.num_relationships_ended = 0
+    
+    d.save()
+
 
     while get_limit_count( thisApp.limit ) < thisApp.limit_count:
 

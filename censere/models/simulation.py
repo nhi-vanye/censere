@@ -45,7 +45,8 @@ class Simulation(playhouse.signals.Model):
     # add a column for storing simulation notes
     # Nothing in generator will add to this column, its for
     # storing descriptive text found during analysis
-    notes = peewee.TextField( null=True )
+    # include a default to avoid storing NULLs which hamper graphing
+    notes = peewee.TextField( null=True, default='' )
 
     random_seed = peewee.IntegerField( null=True )
     random_state = peewee.TextField( null=True )

@@ -251,6 +251,10 @@ class ViewerOptions(CommonOptions):
 
         super().register(parser)
 
+        parser.add_argument( '--save-plots', action="store_true",
+            **check_env_for_default( 'CENSERE_SAVE_PLOTS', False ),
+            help='Save the plot descriptions into local files for use by orca (CENSERE_SAVE_PLOTS)' )
+
 ## Merge-specific arguments
 #
 class MergeOptions(CommonOptions):

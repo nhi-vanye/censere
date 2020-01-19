@@ -7,6 +7,7 @@ import sqlite3
 import pandas as pd
 
 import webbrowser
+import json
 
 import dash
 import dash_core_components as DCC
@@ -15,7 +16,6 @@ import dash_html_components as HTML
 from censere.config import Viewer as thisApp
 from censere.config import ViewerOptions as OPTIONS
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 def initialize_arguments_parser( argv ):
 
@@ -58,12 +58,17 @@ def main( argv ):
 
     cnx = sqlite3.connect( thisApp.database )
 
-    app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+    app = dash.Dash(__name__)
 
     population = {}
 
     population['query'] = """
-SELECT sum.*,sim.notes FROM summary sum, simulations sim
+SELECT sum.*,
+    CASE 
+        WHEN sim.notes = '' THEN sim.simulation_id 
+        ELSE sim.notes || ' ' || sim.simulation_id
+    END as notes
+FROM summary sum, simulations sim
 WHERE sum.simulation_id = sim.simulation_id AND sum.solday % 668 = 28
 """
     population['df'] = pd.read_sql_query( population['query'], cnx )
@@ -74,7 +79,11 @@ WHERE sum.simulation_id = sim.simulation_id AND sum.solday % 668 = 28
     pop_pyramid = {}
 
     pop_pyramid['query'] = """
-SELECT pop.*, sim.notes
+SELECT pop.*,
+    CASE 
+        WHEN sim.notes = '' THEN sim.simulation_id 
+        ELSE sim.notes || ' ' || sim.simulation_id
+    END as notes
 FROM populations pop, simulations sim
 WHERE pop.simulation_id = sim.simulation_id"""
 
@@ -86,7 +95,11 @@ WHERE pop.simulation_id = sim.simulation_id"""
     pop_dynamics = {}
 
     pop_dynamics['query'] = """
-SELECT demo.*, sim.notes
+SELECT demo.*,
+    CASE 
+        WHEN sim.notes = '' THEN sim.simulation_id 
+        ELSE sim.notes || ' ' || sim.simulation_id
+    END as notes
 FROM demographics demo, simulations sim
 WHERE demo.simulation_id = sim.simulation_id"""
 
@@ -97,6 +110,7 @@ WHERE demo.simulation_id = sim.simulation_id"""
 
     simulations = {}
 
+    # Dropdown requires struct of { "label" : STR, "value" : VAL }
     simulations['query'] = """
 SELECT 
     sim.simulation_id as value,
@@ -125,10 +139,10 @@ FROM
                             id='pyramid-slider',
                             min=pop_pyramid['min_range'],
                             max=pop_pyramid['max_range'],
-                            value=1,
+                            value=0,
                             step=1
                         )
-                    , HTML.P(id="pyramid-label")
+                    #, HTML.P(id="pyramid-label")
                     , HTML.Label("Filter", htmlFor="sim-selector")
                     , DCC.Dropdown(
                             id='sim-selector',
@@ -139,7 +153,8 @@ FROM
             )
             ])
             , HTML.Div([
-                DCC.Graph( id='pyramid')
+                HTML.P(id="pyramid-heading")
+                , DCC.Graph( id='pyramid')
                 ]
                 , className="two-thirds column"
             )
@@ -173,20 +188,20 @@ FROM
     ]
     )
 
-    @app.callback( dash.dependencies.Output('pyramid-label', 'children'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    @app.callback( dash.dependencies.Output('pyramid-heading', 'children'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_pyramid_label( selected_year ):
         return "Sol Year: {}".format( selected_year )
 
     @app.callback( dash.dependencies.Output('status', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_rates_vline( selected_year ):
+    def update_status_vline( selected_year ):
 
         return {
             'data' : [
                 dict(
                     type="line+markers",
-                    x=pop_dynamics['df']['solday'] / 668.0,
-                    y=pop_dynamics['df']['num_single_settlers'],
-                    text=pop_dynamics['df']['simulation_id'],
+                    x=list(pop_dynamics['df']['solday'] / 668.0),
+                    y=list(pop_dynamics['df']['num_single_settlers']),
+                    text=list(pop_dynamics['df']['notes']),
                     hoverinfo='text',
                     hovertemplate="%{x}, %{y}, %{text}",
                     name="Single",
@@ -194,9 +209,9 @@ FROM
                 ),
                 dict(
                     type="line+markers",
-                    x=pop_dynamics['df']['solday'] / 668.0,
-                    y=pop_dynamics['df']['num_partnered_settlers'],
-                    text=pop_dynamics['df']['simulation_id'],
+                    x=list(pop_dynamics['df']['solday'] / 668.0),
+                    y=list(pop_dynamics['df']['num_partnered_settlers']),
+                    text=list(pop_dynamics['df']['notes']),
                     hoverinfo='text',
                     hovertemplate="%{x}, %{y}, %{text}",
                     name="'Married'",
@@ -204,18 +219,6 @@ FROM
                 )
             ],
             'layout': {
-                'shapes' : [{
-                    'type': 'line',
-                    'x0': selected_year,
-                    'y0': 0,
-                    'x1': selected_year,
-                    'y1': population['df']['population'].max(),
-                    'line': {
-                        'color': 'blue',
-                        'width': 3,
-                    }
-                }
-                ],
                 "xaxis" : {
                     'title': 'Sol Years'
                 },
@@ -232,16 +235,40 @@ FROM
             }
         }
 
-    @app.callback( dash.dependencies.Output('partners', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_rates_vline( selected_year ):
+        if thisApp.save_plots:
+            with open( "plot-settler-status.json", "w" ) as fp:
 
-        return {
+                json.dump( plot, fp )
+
+        # only draw vertical line indicating current slider value
+        # on the interactive chart
+
+        plot['layout']['shapes'] = [{
+            'type': 'line',
+            'yref' : 'paper',
+            'x0': selected_year,
+            'y0': 0,
+            'x1': selected_year,
+            'y1': 1,
+            'line': {
+                'color': 'blue',
+                'width': 3,
+            }
+        } ]
+
+        return plot
+
+
+    @app.callback( dash.dependencies.Output('partners', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
+    def update_partners_vline( selected_year ):
+
+        plot = {
             'data' : [
                 dict(
                         type="line+markers",
-                        x=pop_dynamics['df']['solday'] / 668.0,
-                        y=pop_dynamics['df']['num_partnerships_started'],
-                        text=pop_dynamics['df']['simulation_id'],
+                        x=list(pop_dynamics['df']['solday'] / 668.0),
+                        y=list(pop_dynamics['df']['num_partnerships_started']),
+                        text=list(pop_dynamics['df']['notes']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -251,9 +278,9 @@ FROM
                 ),
                 dict(
                         type="line+markers",
-                        x=pop_dynamics['df']['solday'] / 668.0,
-                        y=pop_dynamics['df']['num_partnerships_ended'],
-                        text=pop_dynamics['df']['simulation_id'],
+                        x=list(pop_dynamics['df']['solday'] / 668.0),
+                        y=list(pop_dynamics['df']['num_partnerships_ended']),
+                        text=list(pop_dynamics['df']['notes']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -263,19 +290,6 @@ FROM
                 )
             ],
             'layout': {
-                'shapes' : [{
-                    'type': 'line',
-                    'yref' : 'paper',
-                    'x0': selected_year,
-                    'y0': 0,
-                    'x1': selected_year,
-                    'y1': 1,
-                    'line': {
-                        'color': 'blue',
-                        'width': 3,
-                    }
-                }
-                ],
                 "xaxis" : {
                     'title': 'Sol Years'
                 },
@@ -283,8 +297,8 @@ FROM
                     'yaxis': 'y',
                     'title': "# 'Marriages'",
                     'range' : [ 
-                        min(pop_dynamics['df']['num_partnerships_started'].min(), pop_dynamics['df']['num_partnerships_ended'].min()),
-                        max(pop_dynamics['df']['num_partnerships_started'].max(), pop_dynamics['df']['num_partnerships_ended'].max()),
+                        int(min(pop_dynamics['df']['num_partnerships_started'].min(), pop_dynamics['df']['num_partnerships_ended'].min())),
+                        int(max(pop_dynamics['df']['num_partnerships_started'].max(), pop_dynamics['df']['num_partnerships_ended'].max())),
                     ]
                 },
                 "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
@@ -292,17 +306,40 @@ FROM
             }
         }
 
+        if thisApp.save_plots:
+            with open( "plot-partnerships.json", "w" ) as fp:
+
+                json.dump( plot, fp )
+
+        # only draw vertical line indicating current slider value
+        # on the interactive chart
+
+        plot['layout']['shapes'] = [{
+            'type': 'line',
+            'yref' : 'paper',
+            'x0': selected_year,
+            'y0': 0,
+            'x1': selected_year,
+            'y1': 1,
+            'line': {
+                'color': 'blue',
+                'width': 3,
+            }
+        } ]
+
+        return plot
+
 
     @app.callback( dash.dependencies.Output('rates', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_rates_vline( selected_year ):
 
-        return {
+        plot = {
             'data' : [
                 dict(
                         type="line+markers",
-                        x=pop_dynamics['df']['solday'] / 668.0,
-                        y=pop_dynamics['df']['avg_annual_birth_rate'],
-                        text=pop_dynamics['df']['simulation_id'],
+                        x=list(pop_dynamics['df']['solday'] / 668.0),
+                        y=list(pop_dynamics['df']['avg_annual_birth_rate']),
+                        text=list(pop_dynamics['df']['simulation_id']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -313,9 +350,9 @@ FROM
                 dict(
                         type="line+markers",
 
-                        x=pop_dynamics['df']['solday'] / 668.0,
-                        y=pop_dynamics['df']['avg_annual_death_rate'],
-                        text=pop_dynamics['df']['simulation_id'],
+                        x=list(pop_dynamics['df']['solday'] / 668.0),
+                        y=list(pop_dynamics['df']['avg_annual_death_rate']),
+                        text=list(pop_dynamics['df']['simulation_id']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -325,19 +362,6 @@ FROM
                 )
             ],
             'layout': {
-                'shapes' : [{
-                    'type': 'line',
-                    'yref' : 'paper',
-                    'x0': selected_year,
-                    'y0': 0,
-                    'x1': selected_year,
-                    'y1': 1,
-                    'line': {
-                        'color': 'blue',
-                        'width': 3,
-                    }
-                }
-                ],
                 "xaxis" : {
                     'title': 'Sol Years'
                 },
@@ -354,15 +378,39 @@ FROM
             }
         }
 
+        if thisApp.save_plots:
+            with open( "plot-birth-rates.json", "w" ) as fp:
+
+                json.dump( plot, fp )
+
+        # only draw vertical line indicating current slider value
+        # on the interactive chart
+
+        plot['layout']['shapes'] = [{
+            'type': 'line',
+            'yref' : 'paper',
+            'x0': selected_year,
+            'y0': 0,
+            'x1': selected_year,
+            'y1': 1,
+            'line': {
+                'color': 'blue',
+                'width': 3,
+            }
+        } ]
+
+        return plot
+
     @app.callback( dash.dependencies.Output('population', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_population_vline( selected_year ):
 
-        return {
+        plot =  {
+
             'data': [
                 dict(
-                    x=population['df'][ population['df']['simulation_id'] == i]['solday'] / 668.0,
-                    y=population['df'][ population['df']['simulation_id'] == i]['population'],
-                    text=population['df'][ population['df']['simulation_id'] == i]['simulation_id'],
+                    x=list(population['df'][ population['df']['simulation_id'] == i]['solday'] / 668.0),
+                    y=list(population['df'][ population['df']['simulation_id'] == i]['population']),
+                    text=list(population['df'][ population['df']['simulation_id'] == i]['simulation_id']),
                     hoverinfo="all",
                     hovertemplate="%{x}, %{y}, %{text}",
                     mode='markers',
@@ -375,18 +423,6 @@ FROM
                 ) for i in population['df'].simulation_id.unique()
             ],
             'layout': {
-                'shapes' : [{
-                    'type': 'line',
-                    'yref' : 'paper',
-                    'x0': selected_year,
-                    'y0': 0,
-                    'x1': selected_year,
-                    'y1': 1,
-                    'line': {
-                        'color': 'blue',
-                        'width': 3,
-                    }
-                } ],
                 "xaxis" : {
                     'title': 'Sol Years',
                 },
@@ -399,46 +435,67 @@ FROM
             }
         }
 
+        if thisApp.save_plots:
+            with open( "plot-population.json", "w" ) as fp:
+
+                json.dump( plot, fp )
+
+        # only draw vertical line indicating current slider value
+        # on the interactive chart
+
+        plot['layout']['shapes'] = [{
+            'type': 'line',
+            'yref' : 'paper',
+            'x0': selected_year,
+            'y0': 0,
+            'x1': selected_year,
+            'y1': 1,
+            'line': {
+                'color': 'blue',
+                'width': 3,
+            }
+        } ]
+
+        return plot
+
     @app.callback( dash.dependencies.Output('pyramid', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
     def update_pyramid_figure(selected_year):
 
         filtered_df = pop_pyramid['df'][ pop_pyramid['df'].solday == selected_year * 668]
 
-        data = [
-            dict(
-                    type="bar",
-                    y=filtered_df[ filtered_df['sex'] == 'f' ]['sol_years'],
-                    x=filtered_df[ filtered_df['sex'] == 'f' ]['value'],
-                    text= filtered_df[ filtered_df['sex'] == 'f' ]['value'],
-                    orientation='h',
-                    name='F',
-                    hoverinfo='text',
-                    hovertemplate='%{text} Females',
-                    marker=dict(color='salmon')
+        plot = {
+            'data': [
+                dict(
+                        type="bar",
+                        y=list(filtered_df[ filtered_df['sex'] == 'f' ]['sol_years']),
+                        x=list(filtered_df[ filtered_df['sex'] == 'f' ]['value']),
+                        text= list(filtered_df[ filtered_df['sex'] == 'f' ]['value']),
+                        orientation='h',
+                        name='F',
+                        hoverinfo='text',
+                        hovertemplate='%{text} Females',
+                        marker=dict(color='salmon')
                 ),
-            dict(
-                    type="bar",
-                    y=filtered_df[ filtered_df['sex'] == 'm' ]['sol_years'],
-                    x= -1 * filtered_df[ filtered_df['sex'] == 'm' ]['value'],
-                    text= filtered_df[ filtered_df['sex'] == 'm' ]['value'],
-                    orientation='h',
-                    name='M',
-                    hoverinfo='text',
-                    hovertemplate='%{text} Males',
-                    marker=dict(color='powderblue')
-                )
-        ]
-
-        return {
-            'data': data,
+                dict(
+                        type="bar",
+                        y=list(filtered_df[ filtered_df['sex'] == 'm' ]['sol_years']),
+                        x=list( -1 * filtered_df[ filtered_df['sex'] == 'm' ]['value']),
+                        text=list(filtered_df[ filtered_df['sex'] == 'm' ]['value']),
+                        orientation='h',
+                        name='M',
+                        hoverinfo='text',
+                        hovertemplate='%{text} Males',
+                        marker=dict(color='powderblue')
+                    )
+            ],
             'layout': {
                 "xaxis" : {
                     'title': 'Population',
                     'tickvals' : [-500, -200, -100, -50, -25, 0, 25, 50, 100, 200, 500],
                     'ticktext' : [500, 200, 100, 50, 25, 0, 25, 50, 100, 200, 500],
                     'range' : [ 
-                        -pop_pyramid['df']['value'].max(),
-                        pop_pyramid['df']['value'].max(),
+                        int(-pop_pyramid['df']['value'].max()),
+                        int(pop_pyramid['df']['value'].max()),
                     ]
                 },
                 "yaxis" : {'title': 'Sol Years'},
@@ -448,6 +505,13 @@ FROM
                 "barmode" : 'overlay',
             }
         }
+
+        if thisApp.save_plots:
+            with open( "plot-population-pyramid.json", "w" ) as fp:
+
+                json.dump( plot, fp )
+
+        return plot
 
     webbrowser.open( "http://127.0.0.1:8050" )
 

@@ -8,7 +8,6 @@
 
 import os
 
-
 ##
 # \brief Check if env variable is set and use its value, else the supplied default value 
 
@@ -132,6 +131,12 @@ class GeneratorOptions(CommonOptions):
         parser.add_argument( '--cache-details', action="store_true",
             **check_env_for_default( 'CENSERE_CACHE_DETAILS', False ),
             help='Log cache effectiveness as the simulation runs (CENSERE_CACHE_DETAILS)' )
+
+        parser.add_argument( '--common-ancestor', action="store",
+            type=int,
+            metavar="GENERATION",
+            **check_env_for_default( 'CENSERE_COMMON_ANCESTOR', 5 ), # great-great-great-granparent, use int to avoid import loop
+            help='Allow realtionships where common ancestor is older than GEN. GEN=1 => parent, GEN=2 => grandparent etc (CENSERE_COMMON_ANCESTOR)' )
 
         parser.add_argument( '--continue-simulation', action="store",
             **check_env_for_default( 'CENSERE_CONTINUE_SIMULATION', "" ),

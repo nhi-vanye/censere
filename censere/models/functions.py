@@ -35,16 +35,14 @@ def family_policy( *args ):
     allowed = False
 
     # allows calling through pylint
-    id_1 = args[0]
-    id_2 = args[1]
+    common_ancestor = args[0]
+    id_1 = args[1]
+    id_2 = args[2]
 
     try:
 
         relatives_1 = set()
         relatives_2 = set()
-
-        # TODO - make the "relationship limit" configurable
-        common_ancestor = censere.models.RelationshipEnum.great_great_great_grandparent
 
         for r1 in censere.models.Relationship.select(censere.models.Relationship.second).where( 
                 ( censere.models.Relationship.first == id_1 ) &
@@ -81,5 +79,5 @@ def family_policy( *args ):
 
 def register_all( db ):
 
-    db.register_function( family_policy, "app_family_policy", num_params=2 )
+    db.register_function( family_policy, "app_family_policy", num_params=3 )
 

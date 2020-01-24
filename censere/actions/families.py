@@ -68,7 +68,7 @@ def make(*args ):
                 # Call out to application policy to decide if this is allowed
                 # Now implemented a LRU cache as this can get expensive
                 # when its called for the same people every day
-                ( peewee.fn.app_family_policy( MODELS.Settler.settler_id, partner.settler_id ) == True)
+                ( peewee.fn.app_family_policy( thisApp.common_ancestor, MODELS.Settler.settler_id, partner.settler_id ) == True)
             ).order_by(
 # a UUID is close to random and doesn't need to be calculated
                 MODELS.Settler.settler_id

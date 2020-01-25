@@ -215,6 +215,15 @@ class GeneratorOptions(CommonOptions):
             **check_env_for_default( 'CENSERE_SEED', -1 ),
             help='Seed used to initialize random engine (CENSERE_SEED)' )
 
+        # unverrified reports indicate average marriage lasts 2years 9 months
+        # this is all relationships, so expect more early breakups, but lets go
+        # with 2y9m (earth) as average (1031sols). 30752sols is 82 earth years (100-18) 
+        # opinion: relationships under 28 days probably aren't exclusive
+        parser.add_argument( '--relationship-length', action="store",
+            metavar="RANDOM",
+            **check_env_for_default( 'CENSERE_RELATIONSHIP_LENGTH', 'triangle:28,1031,30752'),
+            help='How many SOLS a partnerhsip lasts (CENSERE_RELATIONSHIP_LENGTH)' )
+
         parser.add_argument( '--settlers-per-initial-ship', action="store",
             metavar="RANDOM",
             **check_env_for_default( 'CENSERE_INITIAL_SETTLERS_PER_SHIP', 'randint:20,20' ),

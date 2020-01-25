@@ -77,7 +77,6 @@ class Settler(playhouse.signals.Model):
     state = peewee.CharField( 8, default='single' )
 
     # obviously only valid for `f`
-    # TODO - nothing uses this yet
     pregnant = peewee.BooleanField( default=False )
 
     # TODO 

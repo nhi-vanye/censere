@@ -12,6 +12,7 @@ import json
 import dash
 import dash_core_components as DCC
 import dash_html_components as HTML
+import dash_table as TABLE
 
 from censere.config import Viewer as thisApp
 from censere.config import ViewerOptions as OPTIONS
@@ -67,6 +68,10 @@ SELECT sum.*,
     CASE 
         WHEN sim.notes = '' THEN sim.simulation_id 
         ELSE sim.notes || ' ' || sim.simulation_id
+    END as unique_notes,
+    CASE 
+        WHEN sim.notes = '' THEN sim.simulation_id 
+        ELSE sim.notes 
     END as notes
 FROM summary sum, simulations sim
 WHERE sum.simulation_id = sim.simulation_id AND sum.solday % 668 = 28
@@ -116,7 +121,7 @@ SELECT
     sim.simulation_id as value,
     CASE 
         WHEN sim.notes = '' THEN sim.simulation_id 
-        ELSE sim.notes || ' ' || sim.simulation_id
+        ELSE sim.notes || ' (' || sim.simulation_id || ')'
     END as label
 FROM
     simulations sim
@@ -125,11 +130,32 @@ FROM
  
     simulations_list = simulations['df'].to_dict('records')
 
+    sims = {}
+    sims['query'] = """
+SELECT 
+    *
+FROM
+    simulations sim
+"""
+    sims['df'] = pd.read_sql_query( sims['query'], cnx )
+ 
     app.layout = HTML.Div(children=[
         HTML.H1(children='Mars Censere')
 
         , HTML.H4('Overall Population')
         , DCC.Graph( id='population')
+        , HTML.P("")
+        , TABLE.DataTable(
+            id='table',
+            columns=[
+                { "name": "simulation_id", "id" : "simulation_id" },
+                { "name": "notes", "id" : "notes" },
+                { "name": "final_soldays", "id" : "final_soldays" },
+                { "name": "final_population", "id" : "final_population" },
+                { "name": "random_seed", "id" : "random_seed" },
+            ],
+            data=sims['df'].to_dict('records')
+        )
         , HTML.H4('Population Demographics')
         , HTML.Div([
             HTML.Div([
@@ -149,14 +175,14 @@ FROM
                             options=simulations_list
                     )
                 ]
-                ,className="one-third column"
+                ,className="one-half column"
             )
             ])
             , HTML.Div([
                 HTML.P(id="pyramid-heading")
                 , DCC.Graph( id='pyramid')
                 ]
-                , className="two-thirds column"
+                , className="one-half column"
             )
         ])
         , HTML.Div([
@@ -179,6 +205,7 @@ FROM
             ,className="one-third column"
             )        
         ])
+        , HTML.Div(id='simulation-id', style={'display': 'none'})
         , HTML.Div([
             HTML.Hr()
             , HTML.H6('Copyright ©️ 2020 Richard Offer.')
@@ -192,16 +219,21 @@ FROM
     def update_pyramid_label( selected_year ):
         return "Sol Year: {}".format( selected_year )
 
-    @app.callback( dash.dependencies.Output('status', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_status_vline( selected_year ):
+    @app.callback( dash.dependencies.Output('status', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value'), dash.dependencies.Input('sim-selector', 'value')])
+    def update_status_vline( selected_year, simulation_id ):
 
-        return {
+        if simulation_id:
+            filtered_df = pop_dynamics['df'][ ( pop_dynamics['df'].simulation_id == simulation_id ) ]
+        else:
+            filtered_df = pop_dynamics['df']
+
+        plot = {
             'data' : [
                 dict(
                     type="line+markers",
-                    x=list(pop_dynamics['df']['solday'] / 668.0),
-                    y=list(pop_dynamics['df']['num_single_settlers']),
-                    text=list(pop_dynamics['df']['notes']),
+                    x=list(filtered_df['solday'] / 668.0),
+                    y=list(filtered_df['num_single_settlers']),
+                    text=list(filtered_df['notes']),
                     hoverinfo='text',
                     hovertemplate="%{x}, %{y}, %{text}",
                     name="Single",
@@ -209,9 +241,9 @@ FROM
                 ),
                 dict(
                     type="line+markers",
-                    x=list(pop_dynamics['df']['solday'] / 668.0),
-                    y=list(pop_dynamics['df']['num_partnered_settlers']),
-                    text=list(pop_dynamics['df']['notes']),
+                    x=list(filtered_df['solday'] / 668.0),
+                    y=list(filtered_df['num_partnered_settlers']),
+                    text=list(filtered_df['notes']),
                     hoverinfo='text',
                     hovertemplate="%{x}, %{y}, %{text}",
                     name="'Married'",
@@ -226,8 +258,8 @@ FROM
                     'yaxis': 'y',
                     'title': '# Settlers',
                     'range' : [ 
-                        min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min()),
-                        max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max())
+                        int(min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min())),
+                        int(max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max()))
                     ]
                 },
                 "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
@@ -259,16 +291,21 @@ FROM
         return plot
 
 
-    @app.callback( dash.dependencies.Output('partners', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_partners_vline( selected_year ):
+    @app.callback( dash.dependencies.Output('partners', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value'), dash.dependencies.Input('sim-selector', 'value')])
+    def update_partners_vline( selected_year, simulation_id ):
+
+        if simulation_id:
+            filtered_df = pop_dynamics['df'][ ( pop_dynamics['df'].simulation_id == simulation_id ) ]
+        else:
+            filtered_df = pop_dynamics['df']
 
         plot = {
             'data' : [
                 dict(
                         type="line+markers",
-                        x=list(pop_dynamics['df']['solday'] / 668.0),
-                        y=list(pop_dynamics['df']['num_partnerships_started']),
-                        text=list(pop_dynamics['df']['notes']),
+                        x=list(filtered_df['solday'] / 668.0),
+                        y=list(filtered_df['num_partnerships_started']),
+                        text=list(filtered_df['notes']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -278,9 +315,9 @@ FROM
                 ),
                 dict(
                         type="line+markers",
-                        x=list(pop_dynamics['df']['solday'] / 668.0),
-                        y=list(pop_dynamics['df']['num_partnerships_ended']),
-                        text=list(pop_dynamics['df']['notes']),
+                        x=list(filtered_df['solday'] / 668.0),
+                        y=list(filtered_df['num_partnerships_ended']),
+                        text=list(filtered_df['notes']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -330,16 +367,21 @@ FROM
         return plot
 
 
-    @app.callback( dash.dependencies.Output('rates', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_rates_vline( selected_year ):
+    @app.callback( dash.dependencies.Output('rates', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value'), dash.dependencies.Input('sim-selector', 'value')])
+    def update_rates_vline( selected_year, simulation_id ):
+
+        if simulation_id:
+            filtered_df = pop_dynamics['df'][ ( pop_dynamics['df'].simulation_id == simulation_id ) ]
+        else:
+            filtered_df = pop_dynamics['df']
 
         plot = {
             'data' : [
                 dict(
                         type="line+markers",
-                        x=list(pop_dynamics['df']['solday'] / 668.0),
-                        y=list(pop_dynamics['df']['avg_annual_birth_rate']),
-                        text=list(pop_dynamics['df']['simulation_id']),
+                        x=list(filtered_df['solday'] / 668.0),
+                        y=list(filtered_df['avg_annual_birth_rate']),
+                        text=list(filtered_df['simulation_id']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -350,9 +392,9 @@ FROM
                 dict(
                         type="line+markers",
 
-                        x=list(pop_dynamics['df']['solday'] / 668.0),
-                        y=list(pop_dynamics['df']['avg_annual_death_rate']),
-                        text=list(pop_dynamics['df']['simulation_id']),
+                        x=list(filtered_df['solday'] / 668.0),
+                        y=list(filtered_df['avg_annual_death_rate']),
+                        text=list(filtered_df['simulation_id']),
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
@@ -408,9 +450,9 @@ FROM
 
             'data': [
                 dict(
-                    x=list(population['df'][ population['df']['simulation_id'] == i]['solday'] / 668.0),
-                    y=list(population['df'][ population['df']['simulation_id'] == i]['population']),
-                    text=list(population['df'][ population['df']['simulation_id'] == i]['simulation_id']),
+                    x=list(population['df'][ population['df']['notes'] == i]['solday'] / 668.0),
+                    y=list(population['df'][ population['df']['notes'] == i]['population']),
+                    text=list(population['df'][ population['df']['notes'] == i]['simulation_id']),
                     hoverinfo="all",
                     hovertemplate="%{x}, %{y}, %{text}",
                     mode='markers',
@@ -420,7 +462,7 @@ FROM
                         , 'line': {'width': 0.5, 'color': 'white'}
                     },
                     name=""
-                ) for i in population['df'].simulation_id.unique()
+                ) for i in population['df'].notes.unique()
             ],
             'layout': {
                 "xaxis" : {
@@ -458,10 +500,14 @@ FROM
 
         return plot
 
-    @app.callback( dash.dependencies.Output('pyramid', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value')])
-    def update_pyramid_figure(selected_year):
+    @app.callback( dash.dependencies.Output('pyramid', 'figure'), [ dash.dependencies.Input('pyramid-slider', 'value'), dash.dependencies.Input('sim-selector', 'value')])
+    def update_pyramid_figure(selected_year, simulation_id):
 
-        filtered_df = pop_pyramid['df'][ pop_pyramid['df'].solday == selected_year * 668]
+        if simulation_id:
+            filtered_df = pop_pyramid['df'][ ( pop_pyramid['df'].solday == selected_year * 668 ) & ( pop_pyramid['df'].simulation_id == simulation_id )  ]
+        else:
+            filtered_df = pop_pyramid['df'][ ( pop_pyramid['df'].solday == selected_year * 668 ) ]
+
 
         plot = {
             'data': [

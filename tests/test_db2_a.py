@@ -19,6 +19,8 @@ thisApp.sols_between_siblings = "randint:300,1000"
 thisApp.fraction_relationships_having_children = 0.5
 thisApp.use_ivf = True
 thisApp.partner_max_age_difference = 20
+thisApp.common_ancestor = 5
+thisApp.relationship_length = 'triangle:28,1031,30752'
 
 
 

@@ -86,6 +86,9 @@ def settler_born(**kwargs):
         logging.error( '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
         return
 
+    mother.pregnant = False
+    mother.save()
+
     m = MODELS.Martian()
 
     m.initialize( thisApp.solday )
@@ -134,39 +137,65 @@ def settler_born(**kwargs):
         kwargs= { "simulation": thisApp.simulation, "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
 
-    mothers_age = UTILS.sols_to_age(thisApp.solday - mother.birth_solday)
+    # Are parents still together ?
+    # if so then handle a possible sibling
 
-    r = RANDOM.random()
+    parents_relationships = MODELS.Relationship.get(
+            (
+                ( MODELS.Relationship.first == str(biological_father) ) &
+                ( MODELS.Relationship.second == str(biological_mother) )
+            ) |
+            (
+                ( MODELS.Relationship.first == str(biological_mother) ) &
+                ( MODELS.Relationship.second == str(biological_father) )
+            )
+    )
 
-    # TODO trying to provide some falloff with age - but this is too simple
-    # TODO - need to confirm IFV rate - assume best case
-    # scenario of freezing eggs before leaving earth
-    if (
-        mothers_age < 36 and r < 0.7
-       ) or (
-        mothers_age < 38 and r < 0.2
-       ) or (
-        mothers_age <= 40 and r < 0.05
-       ) or (
-        thisApp.use_ivf and ( mothers_age <= 45 and r < 0.4 ) ):
+    if parents_relationships.end_solday == 0:
+
+        mothers_age = UTILS.sols_to_age(thisApp.solday - mother.birth_solday)
+
+        r = RANDOM.random()
+
+        # TODO trying to provide some falloff with age - but this is too simple
+        # TODO - need to confirm IFV rate - assume best case
+        # scenario of freezing eggs before leaving earth
+        if (
+            mothers_age < 36 and r < 0.7
+        ) or (
+            mothers_age < 38 and r < 0.2
+        ) or (
+            mothers_age <= 40 and r < 0.05
+        ) or (
+            thisApp.use_ivf and ( mothers_age <= 45 and r < 0.4 ) ):
 
 
-        when = thisApp.solday + RANDOM.parse_random_value( thisApp.sols_between_siblings)
+            when = thisApp.solday + RANDOM.parse_random_value( thisApp.sols_between_siblings)
 
-        logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
-            *UTILS.from_soldays( thisApp.solday ),
-            m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
+            logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
+                *UTILS.from_soldays( thisApp.solday ),
+                m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
 
-        register_callback( 
-            # handle the "cool off" period...
-            when=when,
-            callback_func=EVENTS.settler_born,
-            kwargs= {
-                "simulation": thisApp.simulation,
-                "biological_mother" : mother.settler_id,
-                "biological_father": father.settler_id 
-            }
-        )
+            register_callback( 
+                # handle the "cool off" period...
+                when=when,
+                callback_func=EVENTS.settler_born,
+                kwargs= {
+                    "simulation": thisApp.simulation,
+                    "biological_mother" : mother.settler_id,
+                    "biological_father": father.settler_id 
+                }
+            )
+
+        else:
+            logging.log( thisApp.NOTICE, '%d.%03d No siblings for %s %s (%s)',
+                *UTILS.from_soldays( thisApp.solday ),
+                m.first_name, m.family_name, m.settler_id )
+
+    else:
+        logging.log( thisApp.NOTICE, '%d.%03d Parents of %s %s (%s) are no longer together, no siblings',
+                *UTILS.from_soldays( thisApp.solday ),
+                m.first_name, m.family_name, m.settler_id )
 
 ##
 # A new lander arrives with #settlers

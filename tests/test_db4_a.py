@@ -20,6 +20,8 @@ thisApp.first_child_delay = "randint:300,500"
 thisApp.sols_between_siblings = "randint:300,1000"
 thisApp.fraction_relationships_having_children = 0.9
 thisApp.partner_max_age_difference = 20
+thisApp.common_ancestor = 5
+thisApp.relationship_length = 'triangle:28,1031,30752'
 
 
 class TestBenchmarkMakeFamilies:

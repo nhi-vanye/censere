@@ -90,6 +90,13 @@ Acceptable Values are:
 
     log_level = thisApp.NOTICE
 
+    # add a defult note 
+    if thisApp.notes == '':
+        thisApp.notes = 'rel-frac={} age-range={} life-expec={}'.format(
+            thisApp.fraction_relationships_having_children,
+            thisApp.astronaut_age_range,
+            thisApp.astronaut_life_expectancy)
+
     # shortcut
     if thisApp.debug:
 

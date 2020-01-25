@@ -98,10 +98,23 @@ def make(*args ):
 
         r.save()
 
+        relationship_length = RANDOM.parse_random_value( thisApp.relationship_length)
+        relationship_ends = thisApp.solday + relationship_length
+
+        EVENTS.register_callback(
+            when= relationship_ends,
+            callback_func=CALLBACKS.end_relationship,
+            kwargs= { "relationship_id" : r.relationship_id, "simulation": thisApp.simulation }
+        )
+
         num_relationships += 1
 
-        # TODO add a callback to randomly break the relationship
-        # here (after some random time) or handle it in the main loop ???
+        # TODO
+        # this seems like a reasonable assumption... if the relationship is shorter than
+        # the delay before first child then no children. not biologically required
+        # but seems reasonable at this level of sophistication
+        #if relationship_length < RANDOM.parse_random_value( thisApp.first_child_delay):
+        #    return
 
         #
         # Doing it here allows us to make children event based - registering next steps
@@ -151,6 +164,11 @@ def make(*args ):
 
                     birth_day = thisApp.solday + RANDOM.parse_random_value( thisApp.first_child_delay)
 
+                    # if the mother is already pregnant (from a previous relationship) then
+                    # add an extra delay.
+                    if m.pregnant:
+                        birth_day += 668
+
                     logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
                         *UTILS.from_soldays( thisApp.solday ),
                         row['first_name1'], row['family_name1'],
@@ -158,6 +176,9 @@ def make(*args ):
                         mother, father,
                         *UTILS.from_soldays( birth_day )
                     )
+
+                    m.pregnant = True
+                    m.save()
 
                     # register a function to be called at `when`
                     EVENTS.register_callback(
@@ -170,15 +191,6 @@ def make(*args ):
                         }
                     )
 
-            # TODO this is only breaking up relationships that don't have
-            # children - need to make this possible for all relationships
-            else:
-
-                EVENTS.register_callback(
-                    when= thisApp.solday + RANDOM.randrange( 1, 668),
-                    callback_func=CALLBACKS.end_relationship,
-                    kwargs= { "relationship_id" : r.relationship_id, "simulation": thisApp.simulation }
-                )
 
     logging.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
 

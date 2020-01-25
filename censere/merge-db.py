@@ -88,14 +88,24 @@ INSERT INTO
         solday,
         earth_datetime,
         avg_annual_birth_rate,
-        avg_annual_death_rate
+        avg_annual_death_rate,
+        avg_partnerships,
+        num_partnerships_started,
+        num_partnerships_ended,
+        num_single_settlers,
+        num_partnered_settlers
     ) 
 SELECT 
         simulation_id,
         solday,
         earth_datetime,
         avg_annual_birth_rate,
-        avg_annual_death_rate
+        avg_annual_death_rate,
+        avg_partnerships,
+        num_partnerships_started,
+        num_partnerships_ended,
+        num_single_settlers,
+        num_partnered_settlers
 FROM source.demographics""")
 
         cursor.execute( "COMMIT")

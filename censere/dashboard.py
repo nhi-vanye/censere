@@ -230,24 +230,15 @@ FROM
         plot = {
             'data' : [
                 dict(
-                    type="line+markers",
+                    #type="line+markers",
+                    type="bar",
                     x=list(filtered_df['solday'] / 668.0),
-                    y=list(filtered_df['num_single_settlers']),
+                    y=list(100.0 * filtered_df['num_single_settlers'] / ( filtered_df['num_single_settlers'] + filtered_df['num_partnered_settlers'] ) ),
                     text=list(filtered_df['notes']),
                     hoverinfo='text',
-                    hovertemplate="%{x}, %{y}, %{text}",
+                    hovertemplate="%{x}, %{y} - %{text}",
                     name="Single",
-                    marker=dict(color='blue')
-                ),
-                dict(
-                    type="line+markers",
-                    x=list(filtered_df['solday'] / 668.0),
-                    y=list(filtered_df['num_partnered_settlers']),
-                    text=list(filtered_df['notes']),
-                    hoverinfo='text',
-                    hovertemplate="%{x}, %{y}, %{text}",
-                    name="'Married'",
-                    marker=dict(color='black')
+                    marker=dict(color='green')
                 )
             ],
             'layout': {
@@ -256,12 +247,14 @@ FROM
                 },
                 "yaxis" : {
                     'yaxis': 'y',
-                    'title': '# Settlers',
-                    'range' : [ 
-                        int(min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min())),
-                        int(max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max()))
+                    'title': '% Single Settlers',
+                    'range' : [
+                        0,100.0 
+                        #int(min(pop_dynamics['df']['num_single_settlers'].min(), pop_dynamics['df']['num_partnered_settlers'].min())),
+                        #int(max(pop_dynamics['df']['num_single_settlers'].max(), pop_dynamics['df']['num_partnered_settlers'].max()))
                     ]
                 },
+                "barmode" : 'stack',
                 "margin" : {'l': 40, 'b': 40, 't': 40, 'r': 40},
                 "hovermode" : 'closest'
             }
@@ -309,7 +302,7 @@ FROM
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
-                        hovertemplate="%{x}, %{y}, %{text}",
+                        hovertemplate="%{x}, %{y} - %{text}",
                         name="# 'Marriages'",
                         marker=dict(color='green')
                 ),
@@ -321,7 +314,7 @@ FROM
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
-                        hovertemplate="%{x}, %{y}, %{text}",
+                        hovertemplate="%{x}, %{y} - %{text}",
                             name="# 'Divorces'",
                             marker=dict(color='red')
                 )
@@ -385,7 +378,7 @@ FROM
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
-                        hovertemplate="%{x}, %{y}, %{text}",
+                        hovertemplate="%{x}, %{y} - %{text}",
                         name="birth rate",
                         marker=dict(color='green')
                 ),
@@ -398,7 +391,7 @@ FROM
                         yaxis='y',
                         xaxis='x',
                         hoverinfo='text',
-                        hovertemplate="%{x}, %{y}, %{text}",
+                        hovertemplate="%{x}, %{y} - %{text}",
                         name="death rate",
                         marker=dict(color='black')
                 )
@@ -454,7 +447,7 @@ FROM
                     y=list(population['df'][ population['df']['notes'] == i]['population']),
                     text=list(population['df'][ population['df']['notes'] == i]['simulation_id']),
                     hoverinfo="all",
-                    hovertemplate="%{x}, %{y}, %{text}",
+                    hovertemplate="%{x}, %{y} - %{text}",
                     mode='markers',
                     opacity=0.7,
                     marker={

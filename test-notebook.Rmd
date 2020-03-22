@@ -31,7 +31,7 @@ library(quantreg)
 library(kableExtra)
 library(lattice)
 library(numbers)
-database_path <- params$database_path #file.choose()
+database_path <- file.choose() #params$database_path #file.choose()
 database_info <- file.info(database_path, extra_cols = FALSE)
 database_size <- humanReadable(file.size(database_path), units="auto", standard="Unix", digits=0 )
 database_mtime <- file.mtime( database_path )
@@ -174,7 +174,7 @@ range_plt <- ggplot(data=gd,
 summary_plt
 ```
 
-Any uneveness at the target population limit is due to the simulations with the highest population count completing their target earlier, and obviously if the simulation with the highest population is removed, then the average will drop. Hense the short term spike and drops.
+Any uneveness at the target population limit (if the targt is population rather than sols) is due to the simulations with the highest population count completing their target earlier, and obviously if the simulation with the highest population is removed, then the average will drop. Hense the short term spike and drops.
 
 ```{r quantile_overview, echo=FALSE}
 range_plt

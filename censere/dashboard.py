@@ -1,3 +1,4 @@
+from __future__ import division
 
 import argparse
 import logging
@@ -456,6 +457,7 @@ FROM
                     },
                     name=""
                 ) for i in population['df'].notes.unique()
+                
             ],
             'layout': {
                 "xaxis" : {
@@ -469,6 +471,19 @@ FROM
                 "hovermode" : 'closest'
             }
         }
+
+        plot["data"].append( 
+            dict(
+                x=list(population['df']['solday'] / 668.0),
+                y=list(population['df'].mean( population['df']['population'] )),
+                marker={
+                    'size': 5
+                    ,'line': {'width': 0.5, 'color': 'black'}
+                    },
+                name=""
+                )
+
+            )
 
         if thisApp.save_plots:
             with open( "plot-population.json", "w" ) as fp:

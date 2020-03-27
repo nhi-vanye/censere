@@ -3,7 +3,7 @@ Mars Censere Project
 
 This project is aimed at building a robust population model for humanity on Mars.
 
-This is a work in progress, the models are being developed, but for a graphical view of the sort of data we are producing take a look look at [dashboard.png](dashboard.png)
+This is a work in progress, the models are being developed, but for a graphical view of the sort of data we are producing take a look look at [docs/dashboard.png](docs/dashboard.png)
 
 
 

@@ -210,4 +210,4 @@ parameters, indicating that the overal simulation is still predominated
 by randomness.
 
 
-![alt text](dashboard.png "Sample Dashboard")
+![alt text](docs/dashboard.png "Sample Dashboard")

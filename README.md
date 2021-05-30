@@ -13,9 +13,12 @@ Getting Involved
 The project is in the early stages of development so we're still working out how best to run the project.
 
 
-All the project discussion is on the UK Mars Research Hub Slack channel - uk-mars-research-hub.slack.com
+This was originally a Mars Society UK project as a spin out from Euro Mars Conference in 2019, but the other parties didn't contribute any code, so this is now the master repo.
 
 
+The novel thing about this is that we are simulating individuals, it tracks family lines so we can limit close genetic mixing. The intent being to allow extending into economic models later (family wealth, wealth distribution etc).
+
+It is also a numerical simulation - its expected that a large number of simulations will be run ("wisdom of the masses") rather than anointing a specific set of calculation factors as "correct"
 
 
 Quick Start

@@ -75,7 +75,7 @@ class Demographic(playhouse.signals.Model):
 
         year_start = Summary.get(
             ( Summary.simulation_id == thisApp.simulation ) &
-            ( Summary.solday == max( thisApp.solday - 668, 0 ) )
+            ( Summary.solday == max( thisApp.solday - (thisApp.solday % 668),0 ) )
             )
 
         year_end = Summary.get(

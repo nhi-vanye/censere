@@ -216,7 +216,8 @@ def add_annual_demographics( ):
         help="Seed used to initialize random engine (CENSERE_GENERATOR_SEED)")
 @click.option( '--continue-simulation',
         default="",
-        help="Continue the simulation to a new limit (CENSERE_GENERATOR_CONTINUE_SIMULATION)")
+        metavar="ID",
+        help="Continue simulation ID to a new limit (CENSERE_GENERATOR_CONTINUE_SIMULATION)")
 @click.option( '--notes',
         metavar="TEXT",
         default="",

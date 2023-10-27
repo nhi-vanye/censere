@@ -17,7 +17,7 @@ Usage: $1 -d <arg> [ -p <args> -r <arg> -f <arg> -k ]
 Options:
 
     -d DIRECTORY    - build DIRECTORY (required)
-    -p PROJEECT     - used in CI builds - should be set from CI_PROJECT_NAMESPACE
+    -p PROJECT      - used in CI builds - should be set from CI_PROJECT_NAMESPACE
     -r REGISTRY     - if set then push images to REGISTRY - must be logged in already.
     -t TAG          - if set then used as name of image
     -f DOCKERFILE   - Use this as Dockerfile

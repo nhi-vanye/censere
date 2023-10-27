@@ -8,7 +8,7 @@ import logging
 
 import peewee
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.models as MODELS
 
@@ -17,6 +17,9 @@ import censere.utils.random as RANDOM
 
 import censere.events.store as EVENTS
 import censere.events.callbacks as CALLBACKS
+
+LOGGER = logging.getLogger("c.a.families")
+DEVLOG = logging.getLogger("d.devel")
 
 ##
 # Make a single new family out of two singles
@@ -27,7 +30,7 @@ import censere.events.callbacks as CALLBACKS
 # \param args - not normally used, but required for pytest benchmarking
 def make(*args ):
 
-    logging.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
+    LOGGER.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
 
     partner = MODELS.Settler.alias()
 
@@ -92,7 +95,7 @@ def make(*args ):
         r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
-        logging.log( logging.INFO, '%d.%d Creating family between %s %s and %s %s',
+        LOGGER.log( logging.INFO, '%d.%d Creating family between %s %s and %s %s',
             *UTILS.from_soldays( thisApp.solday ),
             row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
 
@@ -169,7 +172,7 @@ def make(*args ):
                     if m.pregnant:
                         birth_day += 668
 
-                    logging.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
+                    LOGGER.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
                         *UTILS.from_soldays( thisApp.solday ),
                         row['first_name1'], row['family_name1'],
                         row['first_name2'], row['family_name2'],
@@ -192,7 +195,7 @@ def make(*args ):
                     )
 
 
-    logging.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
+    LOGGER.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
 
 ##
 # break up a family (while partners are alive)

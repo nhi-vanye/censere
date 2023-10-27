@@ -28,10 +28,12 @@ def initialize_database():
 
 @click.command("merge-db")
 @click.pass_context
-@click..argument('args', nargs=-1,
-        metavar="DB",
-        help="Merge DBs into DATABASE")
+@click.argument('args',
+        nargs=-1,
+        type=click.File('rb'),
+        metavar="DB")
 def cli( ctx, args ):
+    """Merge results from separate databases"""
 
     if pathlib.Path( thisApp.database).exists():
 
@@ -270,5 +272,6 @@ FROM source.summary""")
         cursor.execute( "COMMIT")
 
         cursor.execute("DETACH DATABASE source")
+
 
 

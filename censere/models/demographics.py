@@ -12,7 +12,7 @@ from __future__ import division
 import peewee
 import playhouse.signals
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.db as DB
 import censere.utils as UTILS

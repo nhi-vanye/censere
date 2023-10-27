@@ -11,7 +11,7 @@ Completely re-written November 2019: Richard Offer
 
 import logging
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.db as DB
 
@@ -62,7 +62,7 @@ class Astronaut(Settler):
                 self.orientation = RANDOM.choices( [ 'm', 'f', 'mf' ], [int(i) for i in thisApp.orientation.split(",") ] )[0]
 
         except Exception as e:
-            logging.error( 'Failed to set sex and first name')
+            logging.error( f'Failed to set sex and first name: {str(e)}')
 
         try:
             self.family_name = get_random_family_name()

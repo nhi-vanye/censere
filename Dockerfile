@@ -50,6 +50,7 @@ RUN ls -al $HOME/.local/
 FROM base as production
 
 RUN apk add --no-cache \
+        libstdc++ \
         openblas
 
 # copy the wheel from the build stage

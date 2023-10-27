@@ -59,6 +59,7 @@ packages = [
         'censere',
         'censere.actions',
         'censere.config',
+        'censere.cmds',
         'censere.db',
         'censere.events',
         'censere.models',

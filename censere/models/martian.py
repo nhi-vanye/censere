@@ -8,7 +8,7 @@ Completely re-written November 2019: Richard Offer
 
 # Module governing the attributes of the settlers
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.utils.random as RANDOM
 

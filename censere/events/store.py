@@ -3,11 +3,14 @@ import importlib
 import logging
 import json
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.utils as UTILS
 
 import censere.models as MODELS
+
+LOGGER = logging.getLogger("c.e.store")
+DEVLOG = logging.getLogger("d.devel")
 
 ##
 # \param when - absolute solday to execute the function.
@@ -21,8 +24,8 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
         return
 
 
-    logging.log( thisApp.DETAILS, "%d.%03d Registering callback %s.%s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__module__, callback_func.__name__, when, *UTILS.from_soldays( when ) )
-    logging.debug( kwargs )
+    LOGGER.log( thisApp.DETAILS, "%d.%03d Registering callback %s.%s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__module__, callback_func.__name__, when, *UTILS.from_soldays( when ) )
+    LOGGER.debug( kwargs )
 
     try:
         idx = MODELS.Event.select().where(
@@ -44,12 +47,12 @@ def register_callback( when=0, name="", callback_func=None, kwargs=None ):
 
         e.save()
     except Exception as e:
-        logging.log( logging.FATAL, "%d.%03d Failed to register callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
+        LOGGER.log( logging.FATAL, "%d.%03d Failed to register callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, when, *UTILS.from_soldays( when ) )
 
 
 def invoke_callbacks( ):
 
-    logging.info( '%d.%03d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
+    LOGGER.info( '%d.%03d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
 
     query = MODELS.Event.select(
         MODELS.Event.callback_func,
@@ -62,7 +65,7 @@ def invoke_callbacks( ):
 
     for row in query.execute():
 
-        logging.log( logging.DEBUG, '%d.%03d   Processing event %s()', *UTILS.from_soldays( thisApp.solday ), row.callback_func )
+        LOGGER.log( logging.DEBUG, '%d.%03d   Processing event %s()', *UTILS.from_soldays( thisApp.solday ), row.callback_func )
 
         try:
 
@@ -76,12 +79,12 @@ def invoke_callbacks( ):
 
             func = getattr(mod, func_name)
 
-            logging.log( thisApp.DETAILS, "%d.%03d Invoking callback %s( %s )", *UTILS.from_soldays( thisApp.solday ), row.callback_func, kwargs )
+            LOGGER.log( thisApp.DETAILS, "%d.%03d Invoking callback %s( %s )", *UTILS.from_soldays( thisApp.solday ), row.callback_func, kwargs )
 
             result = func( **kwargs )
 
         except Exception as e:
-            logging.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), row.callback_func, str(e) )
+            LOGGER.error( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), row.callback_func, str(e) )
 
 
 

@@ -1,4 +1,4 @@
-## Copyright (c) 2019 Richard Offer. All right reserved.
+## Copyright (c) 2019, 2023 Richard Offer. All right reserved.
 #
 # see LICENSE.md for license details
 
@@ -14,7 +14,7 @@ from __future__ import division
 
 import logging
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 
 import censere.models as MODELS
 
@@ -24,6 +24,9 @@ import censere.utils.random as RANDOM
 import censere.events as EVENTS
 
 from .store import register_callback as register_callback
+
+LOGGER = logging.getLogger("c.e.callbacks")
+DEVLOG = logging.getLogger("d.devel")
 
 ## A person dies
 #
@@ -39,10 +42,10 @@ def settler_dies(**kwargs):
             name = v
 
     if id == None:
-        logging.error( "settler_dies event called with no person identifier")
+        LOGGER.error( "settler_dies event called with no person identifier")
         return
 
-    logging.log( thisApp.NOTICE, "%d.%03d Settler %s (%s) dies ", *UTILS.from_soldays( thisApp.solday ), name, id )
+    LOGGER.log( thisApp.NOTICE, "%d.%03d Settler %s (%s) dies ", *UTILS.from_soldays( thisApp.solday ), name, id )
 
     # Call the instance method to trigger callback handling.
     for c in MODELS.Settler().select().filter( ( MODELS.Settler.settler_id == id ) & ( MODELS.Settler.simulation_id == thisApp.simulation ) ):
@@ -66,7 +69,7 @@ def settler_born(**kwargs):
             biological_father = v
 
     if biological_mother == None or biological_father == None:
-        logging.error( "settler_born event called with no biological parents specified")
+        LOGGER.error( "settler_born event called with no biological parents specified")
         return
 
     father = None
@@ -78,12 +81,12 @@ def settler_born(**kwargs):
 
     except Exception as e:
 
-        logging.error( '%d.%03d Failed to find parents %s (%s) or %s (%s)', *UTILS.from_soldays( thisApp.solday ), father, str(biological_father), mother, str(biological_mother) )
+        LOGGER.error( '%d.%03d Failed to find parents %s (%s) or %s (%s)', *UTILS.from_soldays( thisApp.solday ), father, str(biological_father), mother, str(biological_mother) )
         return
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        logging.error( '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
+        LOGGER.error( '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
         return
 
     mother.pregnant = False
@@ -126,7 +129,7 @@ def settler_born(**kwargs):
 
     r2.save()
 
-    logging.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
 
     age_at_death = RANDOM.parse_random_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
 
@@ -172,7 +175,7 @@ def settler_born(**kwargs):
 
             when = thisApp.solday + RANDOM.parse_random_value( thisApp.sols_between_siblings)
 
-            logging.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
+            LOGGER.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
                 *UTILS.from_soldays( thisApp.solday ),
                 m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
 
@@ -188,12 +191,12 @@ def settler_born(**kwargs):
             )
 
         else:
-            logging.log( thisApp.NOTICE, '%d.%03d No siblings for %s %s (%s)',
+            LOGGER.log( thisApp.NOTICE, '%d.%03d No siblings for %s %s (%s)',
                 *UTILS.from_soldays( thisApp.solday ),
                 m.first_name, m.family_name, m.settler_id )
 
     else:
-        logging.log( thisApp.NOTICE, '%d.%03d Parents of %s %s (%s) are no longer together, no siblings',
+        LOGGER.log( thisApp.NOTICE, '%d.%03d Parents of %s %s (%s) are no longer together, no siblings',
                 *UTILS.from_soldays( thisApp.solday ),
                 m.first_name, m.family_name, m.settler_id )
 
@@ -210,7 +213,7 @@ def mission_lands(**kwargs):
     if "idx" in kwargs:
         idx = kwargs['idx'] 
 
-    logging.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
+    LOGGER.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
 
     for i in range(settlers):
 
@@ -220,13 +223,13 @@ def mission_lands(**kwargs):
             a.initialize( thisApp.solday )
         except Exception as e:
 
-            logging.error( 'Failed to initialize new astronaut: %s %s', str(e), str( a) )
+            LOGGER.error( 'Failed to initialize new astronaut: %s %s', str(e), str( a) )
 
             continue
 
         saved = a.save()
 
-        logging.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
+        LOGGER.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
 
         # TODO model women outliving men
         # extra fudge `random.randrange(1, 660)` is to avoid the optics of a number of astronauts dying on the day they land
@@ -276,7 +279,7 @@ def end_relationship(**kwargs):
 
     id = kwargs['relationship_id'] 
 
-    logging.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
+    LOGGER.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
 
 
     rel = MODELS.Relationship.get( ( MODELS.Relationship.relationship_id == id ) & ( MODELS.Relationship.simulation_id == thisApp.simulation )  )

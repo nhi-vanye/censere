@@ -20,3 +20,4 @@ build
 *.svn
 .Rproj.user
 packrat/lib*/
+*.orig

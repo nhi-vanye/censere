@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 
-## Copyright (c) 2019 Richard Offer. All right reserved.
+## Copyright (c) 2019,2023 Richard Offer. All right reserved.
 #
 # see LICENSE.md for license details
 
-import argparse
+import click
+
 import base64
 import datetime
 import logging
@@ -12,10 +13,13 @@ import pathlib
 import sys
 import pickle as ENC
 import uuid
+import pprint
 
-#make it easy to identify local modules
-from censere.config import Generator as thisApp
-from censere.config import GeneratorOptions as OPTIONS
+import censere
+
+#from censere.config import GeneratorOptions as OPTIONS
+
+from censere.config import thisApp
 
 import censere.db as DB
 
@@ -35,24 +39,20 @@ import censere.utils.random as RANDOM
 
 import censere.version as VERSION
 
-## Initialize the parsing of any command line arguments
-#
-def initialize_arguments_parser( argv ):
+LOGGER = logging.getLogger("c.cli.generator")
+DEVLOG = logging.getLogger("d.devel")
 
-    parser = argparse.ArgumentParser(
-        fromfile_prefix_chars='@',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""Mars Censere Generator""",
-        epilog="""
-Arguments that start with '@' will be considered filenames that
-specify arguments to the program - ONE ARGUMENT PER LINE.
+def print_hints_and_exit(ctx, param, value):
+
+    if value is True:
+        click.echo( """
 
 The Database should be on a local disk - not in Dropbox etc.
 
 RANDOM Values
 =============
 
-This can be calculated using built-in tables from the CDC, or a random function age
+This can be calculated using built-in tables from the CDC, or a random function
 
 The option is specified as string:arg1,arg2,..argn
 
@@ -78,45 +78,9 @@ Acceptable Values are:
 
 """)
 
-    OPTIONS().register( parser )
+        ctx.exit()
 
-    args = parser.parse_args( namespace = thisApp )
-
-    log_msg_format = '%(asctime)s %(levelname)6s %(message)s'
-
-    logging.addLevelName(thisApp.NOTICE, "NOTICE")
-    logging.addLevelName(thisApp.DETAILS, "DETAIL")
-    logging.addLevelName(thisApp.TRACE, "TRACE")
-
-    log_level = thisApp.NOTICE
-
-    # add a defult note 
-    if thisApp.notes == '':
-        thisApp.notes = 'rel-frac={} age-range={} life-expec={}'.format(
-            thisApp.fraction_relationships_having_children,
-            thisApp.astronaut_age_range,
-            thisApp.astronaut_life_expectancy)
-
-    # shortcut
-    if thisApp.debug:
-
-        log_msg_format='%(asctime)s.%(msecs)03d %(levelname)6s %(filename)s#%(lineno)-3d %(message)s'
-
-        log_level = logging.DEBUG    
-
-    else:
-
-        log_level = thisApp.log_level
-
-    logging.getLogger('peewee').setLevel(logging.INFO)
-
-    if thisApp.debug_sql:
-        peewee_logger = logging.getLogger('peewee')
-        peewee_logger.addHandler(logging.StreamHandler())
-        peewee_logger.setLevel(logging.DEBUG)
-
-    logging.basicConfig(level=log_level, format=log_msg_format, datefmt='%Y-%m-%dT%H:%M:%S')
-    
+   
 ## Initialize the database
 # Creating it if it doesn't exist and then 
 # creating the tables
@@ -159,7 +123,7 @@ def get_limit_count( limit="population" ):
 
     except Exception as e:
 
-        logging.error( e )
+        LOGGER.error( e )
     
     return count
 
@@ -177,7 +141,7 @@ def get_singles_count( ):
 
     except Exception as e:
 
-        logging.error( e )
+        LOGGER.error( e )
 
     return count
 
@@ -241,9 +205,224 @@ def add_annual_demographics( ):
 ## 
 # Main entry point for execution
 #
-# TODO - turn this funtion into a module
-def main( argv ):
+@click.command("generator")
+@click.pass_context
+#
+# general arguments
+#
+@click.option( '--random-seed',
+        metavar="RAND",
+        default=-1,
+        help="Seed used to initialize random engine (CENSERE_GENERATOR_SEED)")
+@click.option( '--continue-simulation',
+        default="",
+        help="Continue the simulation to a new limit (CENSERE_GENERATOR_CONTINUE_SIMULATION)")
+@click.option( '--notes',
+        metavar="TEXT",
+        default="",
+        help="Add TEXT into notes column in simulations table (CENSERE_GENERATOR_NOTES)")
+@click.option( '--database-dir',
+        metavar="DIR",
+        default="",
+        help="Use a unique file in DIR. This takes priority over --database. Unique file is based on the simulation id (CENSERE_GENERATOR_DATABASE_DIR)")
+#
+# simulation parameters
+#
+@click.option( '--astronaut-age-range',
+        metavar="RANDOM",
+        default="randrange:32,46",
+        help="Age range (years) of arriving astronauts (CENSERE_GENERATOR_ASTRONAUT_AGE_RANGE)")
+@click.option( '--astronaut-gender-ratio',
+        metavar="MALE,FEMALE",
+        default="50,50",
+        help="Male:Female ratio for astronauts, MUST add up to 100 (CENSERE_GENERATOR_ASTRONAUT_GENDER_RATIO)")
+@click.option( '--astronaut-life-expectancy',
+        metavar="RANDOM",
+        default="cdc:",
+        help="Life expectancy of arriving astronauts (CENSERE_GENERATOR_ASTRONAUT_LIFE_EXPECTANCY)")
+@click.option( '--common-ancestor',
+        metavar="GENERATION",
+        type=int,
+        default=5,
+        help="Allow realtionships where common ancestor is older than GEN. GEN=1 => parent, GEN=2 => grandparent etc (CENSERE_GENERATOR_COMMON_ANCESTOR)")
+@click.option( '--first-child-delay',
+        metavar="RANDOM",
+        default="randint:350,700",
+        help="'Delay (sols) between relationship start and first child (CENSERE_GENERATOR_FIRST_CHILD_DELAY)")
+@click.option( '--fraction-singles-pairing-per-day',
+        metavar="FRACTION",
+        type=float,
+        default=0.01,
+        help="The fraction of singles that will start a relationship PER DAY (CENSERE_GENERATOR_FRACTION_SINGLES_PAIRING)")
+@click.option( '--fraction-relationships-having-children',
+        metavar="FRACTION",
+        type=float,
+        default=0.25,
+        help="The fraction of relationships that will have children (CENSERE_GENERATOR_FRACTION_RELATIONSHIPS_HAVING_CHILDREN)")
+@click.option( '--martian-gender-ratio',
+        metavar="MALE,FEMALE",
+        default="50,50",
+        help="Male:Female ratio for new born martians, MUST add up to 100 (CENSERE_GENERATIOR_MARTIAN_GENDER_RATIO)")
+@click.option( '--martian-life-expectancy',
+        metavar="RANDOM",
+        default="cdc:",
+        help="Life expectancy of new born martians (CENSERE_GENERATOR_MARTIAN_LIFE_EXPECTANCY)")
+@click.option( '--orientation',
+        metavar="HETROSEXUAL,HOMOSEXUAL,BISEXUAL",
+        default="90,6,4",
+        help="Sexual orientation percentages, MUST add up to 100 (CENSERE_GENERATOR_OREINTATION)")
+@click.option( '--partner-max-age-difference',
+        metavar="YEARS",
+        type=int,
+        default=20,
+        help="Limit possible relationships to partners with maximum age difference (CENSERE_GENERATOR_PARTNER_MAX_AGE_DIFFERENCE)")
+@click.option( '--relationship-length',
+  # unverrified reports indicate average marriage lasts 2years 9months
+  # this is all relationships, so expect more early breakups, but lets go
+  # with 2y9m (earth) as average (1031sols). 30752sols is 82 earth years (100-18) 
+  # opinion: relationships under 28 days probably aren't exclusive
+        metavar="RANDOM",
+        default='triangle:28,1031,30752',
+        help="How many SOLS a relationship lasts (CENSERE_GENERATOR_RELATIONSHIP_LENGTH)")
+@click.option( '--sols-between-siblings',
+    # TODO confirm this value - based on my extended family
+        metavar="RANDOM",
+        default="triangle:300,700,1200",
+        help="Gap between sibling births (CENSERE_GENERATOR_SOLS_BETWEEN_SIBLINGS)")
+@click.option( '--use-ivf',
+        is_flag=True,
+        default=False,
+        help="Use IFV to extend fertility (CENSERE_GENERATOR_USE_IFV)")
+#
+# mission parameters
+#
+@click.option( '--initial-mission-lands',
+        metavar="DATETIME",
+        default='2030-01-01 00:00:00.000+00:00',
+        help="Earth date that initial mission lands on Mars (CENSERE_GENERATOR_INITIAL_MISSION_LANDS)")
+@click.option( '--limit',
+        type=click.Choice(['sols', 'population'], case_sensitive=False),
+        default='population',
+        help="End simulation when we hit a time or population limit (CENSERE_GENERATOR_LIMIT)")
+@click.option( '--limit-count',
+        type=int,
+        default=1000,
+        help="Stop simulation when reaching this sols/population count (CENSERE_GENERATOR_LIMIT_COUNT)")
+@click.option( '--mission-lands',
+        metavar="RANDOM",
+        default="randint:759,759",
+        help="Land a new mission every RANDOM sols (CENSERE_GENERATOR_MISSION_LANDS)")
+@click.option( '--initial-settlers-per-ship',
+        metavar="RANDOM",
+        default='randint:20,20',
+        help="Number of arriving astronauts (per ship) for the initial mission (CENSERE_GENERATOR_INITIAL_SETTLERS_PER_SHIP)")
+@click.option( '--initial-ships-per-mission',
+        metavar="RANDOM",
+        default='randint:1,1',
+        help="Number of ships for the initial mission (CENSERE_GENERATOR_INITIAL_SHIPS_PER_MISSION)")
+@click.option( '--settlers-per-ship',
+        metavar="RANDOM",
+        default='randint:40,40',
+        help="Number of arriving astronauts (per ship) for subsequent missions (CENSERE_GENERATOR_SETTLERS_PER_SHIP)")
+@click.option( '--ships-per-mission',
+        metavar="RANDOM",
+        default='randint:1,1',
+        help="Number of ships for subsequent missions (CENSERE_GENERATOR_SHIPS_PER_MISSION)")
+#
+# debug options
+#
+@click.option( '--cache-details',
+        is_flag=True,
+        default=False,
+        help="Log cache effectiveness as the simulation runs (CENSERE_GENERATOR_CACHE_DETAILS)")
+@click.option( '--hints',
+        is_flag=True,
+        default=False,
+        callback=print_hints_and_exit,
+        expose_value=False,
+        help="Print additional help",
+        is_eager=True)
+def cli( ctx,
+        random_seed,
+        continue_simulation,
+        notes,
+        database_dir,
 
+        astronaut_age_range,
+        astronaut_gender_ratio,
+        astronaut_life_expectancy,
+        common_ancestor,
+        first_child_delay,
+        fraction_singles_pairing_per_day,
+        fraction_relationships_having_children,
+        martian_gender_ratio,
+        martian_life_expectancy,
+        orientation,
+        partner_max_age_difference,
+        relationship_length,
+        sols_between_siblings,
+        use_ivf,
+
+        initial_mission_lands,
+        limit,
+        limit_count,
+        mission_lands,
+        initial_settlers_per_ship,
+        initial_ships_per_mission,
+        settlers_per_ship,
+        ships_per_mission,
+
+        cache_details
+        # hints is hidden
+       ):
+    """Generate simulation data"""
+
+    # dispite its name thisApp is a class and these are class variables
+    thisApp.random_seed = random_seed
+    thisApp.continue_simulation = continue_simulation
+    thisApp.notes = notes
+    thisApp.database_dir = database_dir
+    thisApp.astronaut_age_range = astronaut_age_range
+    thisApp.astronaut_gender_ratio = astronaut_gender_ratio
+    thisApp.astronaut_life_expectancy = astronaut_life_expectancy
+    thisApp.common_ancestor = common_ancestor
+    thisApp.first_child_delay = first_child_delay
+    thisApp.fraction_singles_pairing_per_day = fraction_singles_pairing_per_day
+    thisApp.fraction_relationships_having_children = fraction_relationships_having_children
+    thisApp.martian_gender_ratio = martian_gender_ratio
+    thisApp.martian_life_expectancy = martian_life_expectancy
+    thisApp.orientation = orientation
+    thisApp.partner_max_age_difference = partner_max_age_difference
+    thisApp.relationship_length = relationship_length
+    thisApp.sols_between_siblings = sols_between_siblings
+    thisApp.use_ivf = use_ivf
+    thisApp.initial_mission_lands = initial_mission_lands
+    thisApp.limit = limit
+    thisApp.limit_count = limit_count
+    thisApp.mission_lands = mission_lands
+    thisApp.initial_settlers_per_ship = initial_settlers_per_ship
+    thisApp.initial_ships_per_mission = initial_ships_per_mission
+    thisApp.settlers_per_ship = settlers_per_ship
+    thisApp.ships_per_mission = ships_per_mission
+    thisApp.cache_details = cache_details
+
+    ## add legacy aliases
+    thisApp.settlers_per_initial_ship = thisApp.initial_settlers_per_ship
+    thisApp.ships_per_initial_mission = thisApp.initial_ships_per_mission
+
+    # add a defult note 
+    if thisApp.notes == '':
+        thisApp.notes = 'rel-frac={} age-range={} life-expec={}'.format(
+            thisApp.fraction_relationships_having_children,
+            thisApp.astronaut_age_range,
+            thisApp.astronaut_life_expectancy)
+
+    logging.getLogger('peewee').setLevel(logging.INFO)
+
+    if thisApp.debug_sql:
+        peewee_logger = logging.getLogger('peewee')
+        peewee_logger.addHandler(logging.StreamHandler())
+        peewee_logger.setLevel(logging.DEBUG)
 
     if thisApp.random_seed == -1:
     
@@ -263,8 +442,12 @@ def main( argv ):
 
         p = pathlib.Path( thisApp.database_dir ).joinpath( thisApp.simulation + ".db" )
 
+        p.parent.mkdir(parents=True, exist_ok=True)
+
         # overwrite anything set using --database
         thisApp.database = str(p)
+
+    print(thisApp.database)
 
     initialize_database()
 
@@ -295,18 +478,18 @@ def main( argv ):
 
         RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) )
 
-    logging.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    LOGGER.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
 
     if thisApp.dump:
         excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday' ]
 
         for k in sorted(thisApp.__dict__.keys() ):
             if k not in excludes:
-                logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s --%s=%s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, k.replace('_','-'), thisApp.__dict__[k] )
+                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s --%s=%s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, k.replace('_','-'), thisApp.__dict__[k] )
 
         sys.exit(0)
 
@@ -361,10 +544,10 @@ def main( argv ):
 
         # give a ~monthly (every 28 sols) and end of year log message
         if ( sol % 28 ) == 0 or sol == 668:
-            logging.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
+            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             if thisApp.cache_details:
-                logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+                LOGGER.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 
             # returned data not used
             res = add_summary_entry( )
@@ -396,15 +579,9 @@ def main( argv ):
             ).execute()
     )
 
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Completed.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
-    logging.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
-    logging.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
-
-if __name__ == '__main__':
-
-    initialize_arguments_parser( sys.argv[1:] )
-
-    main( sys.argv[1:] )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Completed.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    LOGGER.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 

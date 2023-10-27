@@ -10,6 +10,9 @@ import functools
 
 import censere.models
 
+LOGGER = logging.getLogger("c.m.functions")
+DEVLOG = logging.getLogger("d.devel")
+
 ##
 # This implements the social policy on whether two people
 # are "allowed" to become partners.
@@ -58,7 +61,7 @@ def family_policy( *args ):
 
         # This blocks siblings - all ancestors are the same
         if relatives_1 == relatives_2:
-            logging.log( logging.DEBUG, '%s and %s are siblings', id_1, id_2 )
+            LOGGER.log( logging.DEBUG, '%s and %s are siblings', id_1, id_2 )
             allowed = False
 
         # this will allow relationships that have no overlap between the two people
@@ -66,13 +69,13 @@ def family_policy( *args ):
         if overlap == 0:
             allowed = True
         else:
-            logging.log( logging.DEBUG, '%s and %s overlap by %d', id_1, id_2, overlap )
+            LOGGER.log( logging.DEBUG, '%s and %s overlap by %d', id_1, id_2, overlap )
 
     except Exception as e:
 
-        logging.log( logging.ERROR, 'Caught exception %s', str(e) )
+        LOGGER.log( logging.ERROR, 'Caught exception %s', str(e) )
 
-    logging.log( logging.DEBUG, 'Relationship between %s and %s = %d', id_1, id_2, allowed )
+    LOGGER.log( logging.DEBUG, 'Relationship between %s and %s = %d', id_1, id_2, allowed )
 
     return allowed
 

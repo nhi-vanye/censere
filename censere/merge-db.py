@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
-import argparse
+import click
+
 import logging
 import sys
 
@@ -8,49 +9,12 @@ import pathlib
 
 import sqlite3
 
-from censere.config import Merge as thisApp
-from censere.config import MergeOptions as OPTIONS
+from censere.config import thisApp
 
 import censere.db as DB
 
-## Initialize the parsing of any command line arguments
-#
-def initialize_arguments_parser( argv ):
-
-    parser = argparse.ArgumentParser(
-        fromfile_prefix_chars='@',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""Merge multiple Mars Censere databases""",
-        epilog="""
-Arguments that start with '@' will be considered filenames that
-specify arguments to the program - ONE ARGUMENT PER LINE.
-
-The Database should be on a local disk - not in Dropbox etc.
-""")
-
-    OPTIONS().register( parser )
-
-    args = parser.parse_args( namespace = thisApp )
-
-    log_msg_format = '%(asctime)s %(levelname)5s %(message)s'
-
-    logging.addLevelName(thisApp.NOTICE, "NOTICE")
-
-    log_level = thisApp.NOTICE
-
-    # shortcut
-    if thisApp.debug:
-
-        log_msg_format='%(asctime)s.%(msecs)03d %(levelname)5s %(filename)s#%(lineno)-3d %(message)s'
-
-        log_level = logging.DEBUG    
-
-    else:
-
-        log_level = thisApp.log_level
-
-    logging.basicConfig(level=log_level, format=log_msg_format, datefmt='%Y-%m-%dT%H:%M:%S')
-
+LOGGER = logging.getLogger("c.cli.merge")
+DEVLOG = logging.getLogger("d.devel")
 
 ## Initialize the database
 # Creating it if it doesn't exist and then 
@@ -62,18 +26,23 @@ def initialize_database():
     DB.create_tables()
 
 
-def main( argv ):
+@click.command("merge-db")
+@click.pass_context
+@click..argument('args', nargs=-1,
+        metavar="DB",
+        help="Merge DBs into DATABASE")
+def cli( ctx, args ):
 
     if pathlib.Path( thisApp.database).exists():
 
-        logging.error( 'For safety the target file (--database=%s) must not exist', thisApp.database)
+        LOGGER.error( 'For safety the target file (--database=%s) must not exist', thisApp.database)
         sys.exit(1)
 
     initialize_database()
 
     cnx = sqlite3.connect( thisApp.database )
 
-    for db in thisApp.args:
+    for db in args:
 
         cursor = cnx.cursor()
 
@@ -302,10 +271,4 @@ FROM source.summary""")
 
         cursor.execute("DETACH DATABASE source")
 
-
-if __name__ == '__main__':
-
-    initialize_arguments_parser( sys.argv[1:] )
-
-    main( sys.argv[1:] )
 

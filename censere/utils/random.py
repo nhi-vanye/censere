@@ -10,6 +10,9 @@ import numpy.random as NPRND
 
 import censere.utils as UTILS
 
+LOGGER = logging.getLogger("c.u.random")
+DEVLOG = logging.getLogger("d.devel")
+
 # Life table for the total population: United States, 2006
 cdc_2006 = [
     0,
@@ -355,7 +358,7 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
  
     else:
 
-        logging.fatal( 'Invalid value %s', key )
+        LOGGER.fatal( 'Invalid value %s', key )
 
 
     if key_in_earth_years:

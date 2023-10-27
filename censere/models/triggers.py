@@ -3,7 +3,7 @@ import logging
 
 import playhouse.signals 
 
-from censere.config import Generator as thisApp
+from censere.config import thisApp
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
 
@@ -11,6 +11,9 @@ from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
+
+LOGGER = logging.getLogger("c.m.triggers")
+DEVLOG = logging.getLogger("d.devel")
 
 ##
 # Be careful here between a class update (Settler.update().where() and
@@ -68,7 +71,7 @@ def settler_post_save(sender, instance, created):
         
         if i.name == "death_solday":
 
-            logging.debug( "%d.%03d Updated death_solday for %s %s (%s)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
+            LOGGER.debug( "%d.%03d Updated death_solday for %s %s (%s)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
@@ -85,7 +88,7 @@ def settler_post_save(sender, instance, created):
                 # the surviving partner to single - so call any triggers...
                 r.end_solday = thisApp.solday
 
-                logging.info( "%d.%03d Relationship %s ended. Death of %s %s",
+                LOGGER.info( "%d.%03d Relationship %s ended. Death of %s %s",
                     *UTILS.from_soldays( thisApp.solday ),
                     r.relationship_id,
                     instance.first_name,
@@ -149,8 +152,8 @@ def relationship_post_save(sender, instance, created):
                 ).execute()
             )
 
-            logging.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-            logging.log( thisApp.DETAILS, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+            LOGGER.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
+            LOGGER.log( thisApp.DETAILS, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
 
         else:
 

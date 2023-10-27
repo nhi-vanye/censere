@@ -11,7 +11,6 @@ if [ "$(uname -s)" == "Darwin" ]; then
 fi
 
 
-TAG=$(${date} +"%y.%m%d.%H%M")
 
 
 
@@ -25,15 +24,17 @@ then
     PULL=--pull
 fi
 
+TAG=$(${date} +"${NAME}:%y.%m%d.%H%M")
+
 set -x
 set -euo pipefail
-docker pull ${NAME}:base || true
-docker pull ${NAME}:builder || true
+#docker pull ${NAME}:base || true
+#docker pull ${NAME}:builder || true
 
-docker buildx build --progress plain -t ${TAG} .
+docker buildx build --progress plain -o type=image -t ${TAG} .
 st=$?
-docker push ${NAME}:base
-docker push ${NAME}:builder
-docker image ls "${TAG}"
+docker image ls "${NAME}"
+#docker push ${NAME}:base
+#docker push ${NAME}:builder
 set +x
 exit $st

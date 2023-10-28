@@ -12,6 +12,4 @@ packrat/*
 *.sql*
 data/*
 
-# no Docs
-*.md
-!COPYRIGHT.md
+

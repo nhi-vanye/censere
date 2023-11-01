@@ -299,7 +299,7 @@ def add_annual_demographics( ):
 #
 @click.option( '--initial-mission-lands',
         metavar="DATETIME",
-        default='2030-01-01 00:00:00.000+00:00',
+        default='2030-01-01 00:00:00.000000+00:00',
         help="Earth date that initial mission lands on Mars (CENSERE_GENERATOR_INITIAL_MISSION_LANDS)")
 @click.option( '--limit',
         type=click.Choice(['sols', 'population'], case_sensitive=False),
@@ -448,8 +448,6 @@ def cli( ctx,
         # overwrite anything set using --database
         thisApp.database = str(p)
 
-    print(thisApp.database)
-
     initialize_database()
 
     if thisApp.continue_simulation == "":
@@ -500,7 +498,11 @@ def cli( ctx,
 
     # all calculations are done in sols (integers from day of landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
+    # for consistancy downstream we need to ensure datetimes have a consistant format
+    # i.e. with microsseconds so add a microsecond...
     thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+    thisApp.earth_time = thisApp.earth_time + datetime.timedelta( microseconds=1 )
+
 
     d = MODELS.Demographic()
 
@@ -548,7 +550,7 @@ def cli( ctx,
             LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
             if thisApp.cache_details:
-                LOGGER.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+                LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 
             # returned data not used
             res = add_summary_entry( )
@@ -584,5 +586,5 @@ def cli( ctx,
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
-    LOGGER.log( thisApp.NOTICE, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+    LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 

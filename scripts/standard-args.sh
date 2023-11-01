@@ -60,11 +60,4 @@ EOF
 
     shift $((OPTIND-1))
 
-    if [ -n "${PROJECT}" ]
-    then
-        TAG=${PROJECT}/${DIR}${TAG}:latest
-    else
-        TAG=${DIR}${TAG}:latest
-    fi
-
 }

@@ -7,11 +7,7 @@
 import click
 
 import os
-#import sys
-#import configobj
 import pathlib
-#import json
-#import pydantic
 
 import logging
 import logging.config
@@ -26,6 +22,10 @@ DEVLOG = logging.getLogger("d.devel")
 TOPDIR = str(pathlib.PosixPath(censere.__file__).parent)
 
 cmd_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "cmds"))
+
+CONTEXT_SETTINGS = dict(
+    auto_envvar_prefix='CENSERE'
+)
 
 class CensereCLI(click.Group):
     def list_commands(self, ctx):
@@ -43,7 +43,7 @@ class CensereCLI(click.Group):
             return
         return mod.cli
 
-@click.group(cls=CensereCLI, invoke_without_command=True)
+@click.group(cls=CensereCLI, invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option(
     '--verbose',
@@ -127,7 +127,7 @@ or
         logging.getLogger( s[0] ).setLevel( s[1] )
         
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
-    cli( obj=None , auto_envvar_prefix='CENSERE')
+#    cli( obj=None , auto_envvar_prefix='CENSERE')
 

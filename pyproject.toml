@@ -33,6 +33,7 @@ dependencies = [
     "itsdangerous",
     "Jinja2",
     "MarkupSafe",
+    "matplotlib",
     "numpy",
     "packaging",
     "pandas",
@@ -63,7 +64,6 @@ packages = [
         'censere.db',
         'censere.events',
         'censere.models',
-        'censere.scripts',
         'censere.utils'
 
 ]

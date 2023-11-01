@@ -38,8 +38,7 @@ RUN pip install --user --no-warn-script-location \
     pandas \
     peewee
 
-ADD setup.py  /BUILD/censere/
-ADD pyproject.toml  /BUILD/censere/
+ADD setup.py  pyproject.toml *.md /BUILD/censere/
 ADD censere  /BUILD/censere/censere/
 
 RUN pip install --user --no-warn-script-location .
@@ -58,7 +57,6 @@ COPY --from=builder /root/.local /root/.local
 
 ENV PATH=/root/.local/bin:$PATH
 
-RUN pip list --format=freeze
+RUN pip list --format=freeze > /root/requirements.txt
 
-#ENTRYPOINT ["python3", "-m", "censere.generator"]
 ENTRYPOINT ["/root/.local/bin/mars-censere"]

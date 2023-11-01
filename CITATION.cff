@@ -1,0 +1,25 @@
+This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'Censere: A numerical simulator of human settlement of Mars'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Richard
+    family-names: Offer
+    email: roffer@badonhill.io
+    orcid: 'https://orcid.org/0000-0001-7184-1331'
+    affiliation: Badon Hill Technologies
+repository-code: 'https://github.com/badonhill-io/mars-censere'
+abstract: >
+  Application for the numerical simulation of human
+  settlement of Mars. The simulation works at the (named)
+  individual level to allow following of families over
+  multiple generations.
+keywords:
+  - numerical simulation
+  - Human settlement of Mars
+license: BSD-4-Clause

@@ -15,5 +15,5 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: ./scripts/build-image.sh -t "ci-${{github.sha}}"
+      run: docker buildx build --progress plain -o type=image -t "mars-censere:ci-${{github.sha}}"
 

@@ -2,7 +2,7 @@ This CITATION.cff file was generated with cffinit.
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: 'Censere, a numerical simulator of human settlement of Mars'
+title: 'Censere: A numerical simulator of human settlement of Mars'
 message: >-
   If you use this software, please cite it using the
   metadata from this file.

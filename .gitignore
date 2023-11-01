@@ -1,4 +1,8 @@
 
+# Python venv (my naming conventions)
+# i.e. .py312-arm64 ...
+/.py*-*/
+
 # python suggestions
 
 *.py[cod]

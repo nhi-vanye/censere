@@ -2,7 +2,6 @@
 # Copyright (c) 2023 Richard Offer, All rights reserved.
 
 from . import cmds
-from .logging import setup_extended_log_levels
 
 LOGGING = {
     "version": 1,

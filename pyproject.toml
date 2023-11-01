@@ -33,6 +33,7 @@ dependencies = [
     "itsdangerous",
     "Jinja2",
     "MarkupSafe",
+    "matplotlib",
     "numpy",
     "packaging",
     "pandas",

@@ -1,8 +1,6 @@
 #
 # Copyright (c) 2023 Richard Offer, All rights reserved.
 
-from . import cmds
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": True,

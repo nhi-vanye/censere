@@ -7,12 +7,9 @@
 
 prefix=$(date +"%Y%m%d%H%M")
 
-image="registry.gitlab.com/mars-society-uk/science/mars-censere/mars-censere"
+image="${1:-mars-censere:latest}"
 
 echo "" > run-sims.log
-
-for s in $(jot -r 10 0 999999)
-do
 
     # While having settlers where half are under 25years (half:20,5),
     # the average age of the US Marines is 25
@@ -22,27 +19,18 @@ do
         for r in 0.25 0.75 0.90 0.95
         do
 
-        for g in 3 4 5 6
-        do
-            c=$(docker run -it -d -v /home/core/data:/data  $image  \
-            --fraction-relationships-having-children=$r\
-            --common-ancestor=$g\
-            --limit=sols\
-            --limit-count=66800\
-            --settlers-per-initial-ship=randint:160,160\
-            --ships-per-mission=randint:0,0\
-            --first-child-delay=randint:300,600\
-            --sols-between-siblings=triangle:300,500,800\
-            --random-seed=$s\
-            --database=/data/$prefix-160-0-$s-$r-$a-gen-$g.db\
-            --astronaut-age-range=$a\
-            --notes="$a; relfrac:$r gen:$g")
+            c=$(docker run -it -d -v $(pwd)/sims:/data --name $prefix-$r-$a $image generator \
+            --fraction-relationships-having-children=$r \
+            --database-dir=/data/ \
+            --astronaut-age-range=$a \
+            --parameters=/data/single-ship.params
+            )
 
-            echo "$c $prefix-160-0-$s-$r-$a" >> run-sims.log
-        done	
+            sleep 5
+
+            echo "$c $prefix-$r-$a" >> run-sims.log
         done
     done
-done
 
 while read -r container_id desc
 do

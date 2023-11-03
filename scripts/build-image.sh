@@ -23,8 +23,7 @@ fi
 set -x
 set -euo pipefail
 
-echo docker buildx build --progress plain -o type=image -t ${NAME}:${TAG} .
-exit 0
+docker buildx build --progress plain -o type=image -t ${NAME}:${TAG} .
 st=$?
 docker image ls "${NAME}"
 set +x

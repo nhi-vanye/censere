@@ -4,16 +4,18 @@
 #
 # see LICENSE.md for license details
 
-import click
+import os
+import sys
 
 import base64
 import datetime
 import logging
 import pathlib
-import sys
 import pickle as ENC
 import uuid
 import pprint
+
+import click
 
 import censere
 
@@ -42,12 +44,43 @@ import censere.version as VERSION
 LOGGER = logging.getLogger("c.cli.generator")
 DEVLOG = logging.getLogger("d.devel")
 
+def load_parameters_from_file(ctx, param, value ):
+    if value:
+        with open( value, "r") as params:
+            for line in params:
+                line = line.strip()
+                if line[0] == '#':
+                    next
+                comps = line.split("=", maxsplit=2)
+                os.environ[ comps[0] ] = comps[1].strip()
+
+
 def print_hints_and_exit(ctx, param, value):
 
     if value is True:
         click.echo( """
 
 The Database should be on a local disk - not in Dropbox etc.
+
+Parameter File
+==============
+
+The parameter file uses the environment variable names in the following format
+
+CENSERE_GENERATOR_SEED=1234
+
+The parameter file will provide an updated default, passing the corresponding
+option directly on the command line will override it.
+
+Order of precidence (lowest first):
+
+* Environment variables
+* --parameters file
+* CLI arguments
+
+
+...
+
 
 RANDOM Values
 =============
@@ -213,7 +246,7 @@ def add_annual_demographics( ):
 @click.option( '--random-seed',
         metavar="RAND",
         default=-1,
-        help="Seed used to initialize random engine (CENSERE_GENERATOR_SEED)")
+        help="Seed used to initialize random engine (CENSERE_GENERATOR_RANDOM_SEED)")
 @click.option( '--continue-simulation',
         default="",
         metavar="ID",
@@ -226,7 +259,12 @@ def add_annual_demographics( ):
         metavar="DIR",
         default="",
         help="Use a unique file in DIR. This takes priority over --database. Unique file is based on the simulation id (CENSERE_GENERATOR_DATABASE_DIR)")
-#
+@click.option( '--parameters',
+        metavar="FILE",
+        type=click.Path(exists=True),
+        callback=load_parameters_from_file,
+        is_eager=True,
+        help="Read simulation parameters from FILE")
 # simulation parameters
 #
 @click.option( '--astronaut-age-range',
@@ -290,10 +328,9 @@ def add_annual_demographics( ):
         metavar="RANDOM",
         default="triangle:300,700,1200",
         help="Gap between sibling births (CENSERE_GENERATOR_SOLS_BETWEEN_SIBLINGS)")
-@click.option( '--use-ivf',
-        is_flag=True,
+@click.option( '--use-ivf/--no-ivf',
         default=False,
-        help="Use IFV to extend fertility (CENSERE_GENERATOR_USE_IFV)")
+        help="Whether to use IFV to extend fertility age range (CENSERE_GENERATOR_USE_IFV)")
 #
 # mission parameters
 #
@@ -348,6 +385,7 @@ def cli( ctx,
         continue_simulation,
         notes,
         database_dir,
+        parameters,
 
         astronaut_age_range,
         astronaut_gender_ratio,
@@ -431,6 +469,12 @@ def cli( ctx,
 
     UTILS.random.seed( thisApp.random_seed )
 
+    if thisApp.dump:
+        args = thisApp.args(as_list=True)
+        for a in args:
+            LOGGER.log( thisApp.NOTICE, '%s', a )
+        sys.exit(0)
+
     # this is the only thing that needs to be unique
     # the reset of the IDs should be derrived from the seed value.
     if thisApp.continue_simulation == "":
@@ -482,15 +526,6 @@ def cli( ctx,
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
-
-    if thisApp.dump:
-        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', 'solday' ]
-
-        for k in sorted(thisApp.__dict__.keys() ):
-            if k not in excludes:
-                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s --%s=%s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, k.replace('_','-'), thisApp.__dict__[k] )
-
-        sys.exit(0)
 
 
     if thisApp.continue_simulation == "":

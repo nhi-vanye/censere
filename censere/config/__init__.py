@@ -51,30 +51,42 @@ class thisApp(object):
 
     # used to build a printable string of the "useful" class members
     # 
-    def args(self):
+    def args(as_list=False):
 
         # random_seed has its own column
-        excludes=[ 'args', '__module__', 'NOTICE', 'DETAILS', 'TRACE', '__dict__', '__weakref__', '__doc__', '__str__',
+        excludes=[ 'args',
+                  '__module__',
+                  '__dict__',
+                  '__weakref__',
+                  '__doc__',
+                  '__str__',
+                  'NOTICE',
+                  'DETAILS',
+                  'TRACE',
                   'solday',
                   'database',
-                  'debug', 'debug_sql', 'dump', 'log_level',
-                  'simulation',
-                  'random_seed'
+                  'debug',
+                  'debug_sql',
+                  'dump',
+                  'log_level',
                  ]
 
-        res=""
+        res=[]
 
 
-        for v in sorted(self.__dict__.keys()):
+        for v in sorted(thisApp.__dict__.keys()):
 
             if v not in excludes:
 
-                res += f"{v}={self.__dict__[v]}\n"
+                res.append( f"{v}={thisApp.__dict__[v]}" )
 
-        return res
+        if as_list is True:
+            return res
 
-    def __str__(self):
-        return self.args()
+        return " ".join(res)
+
+    def __str__():
+        return args()
 
 ##
 # Dummy class to hold configuration details for the generator

@@ -71,7 +71,7 @@ class CensereCLI(click.Group):
     '--dump',
         default=False,
         is_flag=True,
-        help="Dump the simulation parameters to stdout (CENSERE_DUMP)")
+        help="Dump the simulation parameters to stdout and exit (CENSERE_DUMP)")
 @click.option(
     '--debug-sql',
         default=False,

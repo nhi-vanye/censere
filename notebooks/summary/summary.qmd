@@ -1,0 +1,190 @@
+---
+title: "Summary of Simulation Results"
+subtitle: "Censere - Simulating the Human Settlement of Mars"
+
+output:
+  html:
+    embed-resources: true
+    toc: true
+    df-print: kable
+    code-tools:
+      source: true
+      toggle: false
+      caption: none
+params:
+  dbpathname: /dev/null
+engine: knitr
+keep-md: true
+date: now
+---
+
+```{r}
+#| echo: FALSE
+#| include: FALSE
+library(reticulate)
+use_virtualenv("../.py312-arm64", required = TRUE)
+py_config()
+```
+
+```{python}
+#| echo: FALSE
+#| include: FALSE
+#| cache: FALSE
+import os
+import pandas
+import sqlite3
+import datetime
+import pathlib
+
+import matplotlib.pyplot as plt
+import matplotlib.dates
+
+```
+# Abstract
+
+This summarises a simulation run.
+
+## Simulation Analysis
+
+This requires an existing database: <TODO>
+
+
+```{python}
+#| echo: FALSE
+#| include: FALSE
+
+
+# prompt
+#dbpathname = "data/9d00d5a5-9c54-45d0-b699-61feaba17af0.db"
+
+dbfile = pathlib.Path(r.params['dbpathname'])
+dbpath = str(dbfile)
+dbfile_mtime = dbfile.stat().st_mtime
+
+database_mtime = datetime.datetime.fromtimestamp(dbfile_mtime).isoformat()
+database_size = dbfile.stat().st_size
+
+num_simulations = 0
+
+```
+
+```{python}
+#| echo: FALSE
+#| cache: FALSE
+dbconn = sqlite3.connect(str(dbfile))
+
+summary = pandas.read_sql_query( "SELECT * FROM summary", dbconn)
+simulations = pandas.read_sql_query( "SELECT * FROM simulations", dbconn)
+demographics = pandas.read_sql_query( "SELECT * FROM demographics", dbconn)
+populations = pandas.read_sql_query( "SELECT * FROM populations", dbconn)
+settlers = pandas.read_sql_query( "SELECT * FROM settlers", dbconn)
+events = pandas.read_sql_query( "SELECT * FROM events", dbconn)
+
+num_simulations = len(simulations)
+
+# data fixups
+# datetime, categories etc...
+
+# we are dealing with times of centuries, Pandas default 'ns' resolution will throw an exception around 2262
+## TODO Pandas has a limit for datetime of 2262, so we need to come up with another approach if we need the datetime
+#summary['earth_datetime'] = pandas.to_datetime( summary['earth_datetime'], utc=True, unit="s", format="%Y-%m-%d %H:%M:%S.%f%Z" )
+
+summary['simulation_id'] = summary['simulation_id'].astype("category")
+summary['sols'] = 1 + summary['solday'] / 668.0
+
+#simulations['initial_mission_lands'] = pandas.to_datetime( simulations['initial_mission_lands'], utc=True, unit='ms' )
+#simulations['begin_datetime'] = pandas.to_datetime( simulations['begin_datetime'], utc=True, unit='ms' )
+#simulations['end_datetime'] = pandas.to_datetime( simulations['end_datetime'], utc=True, unit='ms' )
+#simulations['mission_ends'] = pandas.to_datetime( simulations['mission_ends'], utc=True, unit='ms' )
+
+# see above TODO
+#demographics['earth_datetime'] = pandas.to_datetime( demographics['earth_datetime'], utc=True, unit='ms' )
+demographics['sols'] = 1 + demographics['solday'] / 668.0
+
+#populations['earth_datetime'] = pandas.to_datetime( populations['earth_datetime'], utc=True, unit='ms' )
+populations['sols'] = 1 + populations['solday'] / 668.0
+
+settlers['sex'] = settlers['sex'].astype("category")
+settlers['orientation'] = settlers['orientation'].astype("category")
+settlers['birth_location'] = settlers['birth_location'].astype("category")
+settlers['current_location'] = settlers['current_location'].astype("category")
+settlers['family_name'] = settlers['family_name'].astype("category")
+```
+
+::: {.callout-note}
+
+|          Value | Details                    |
+|---------------:|:---------------------------|
+|           Path | `{r} py$dbpath` |
+|      File Size | `{r} py$database_size` bytes     |
+|  Last Modified | `{r} py$database_mtime`    |
+|  # Simulations | `{r} py$num_simulations`   |
+:::
+
+
+```{python population_chart}
+#| echo: FALSE
+
+import plotly.express as px
+import plotly.io as pio
+
+
+fig = px.scatter(summary, 
+            x="sols",
+            y="population",
+            color="simulation_id",
+            labels = {
+                "population" : "Population",
+                "sols" : "Sol Years"
+            },
+            title='Mars Population over Time'
+    ).update_layout(showlegend=False)
+fig.show()
+
+```
+
+## Population Birth and Death Rates
+
+
+```{python birth_chart}
+#| echo: FALSE
+
+import plotly.express as px
+import plotly.io as pio
+
+
+fig = px.scatter(demographics, 
+            x="sols",
+            y="avg_annual_birth_rate",
+            color="simulation_id",
+            labels = {
+                "avg_annual_birth_rate" : "Population Birth Rate",
+                "sols" : "Sol Years"
+            },
+            title='Population Births per 1000'
+    ).update_layout(showlegend=False)
+fig.show()
+
+```
+
+```{python death_chart}
+#| echo: FALSE
+
+import plotly.express as px
+import plotly.io as pio
+
+
+fig = px.scatter(demographics, 
+            x="sols",
+            y="avg_annual_death_rate",
+            color="simulation_id",
+            labels = {
+                "avg_annual_death_rate" : "Population Death Rate",
+                "sols" : "Sol Years"
+            },
+            title='Population Deaths per 1000'
+    ).update_layout(showlegend=False)
+fig.show()
+
+```
+

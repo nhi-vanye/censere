@@ -1,0 +1,14 @@
+project:
+  title: "Mars Censere"
+  output-dir: _output
+  execute-dir: project
+  type: website
+
+website:
+  title: "Mars Censere"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - summary/summary.qmd
+

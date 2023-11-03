@@ -1,24 +1,6 @@
 Developer Guidelines
 ====================
 
-Build-All Scripts
-=================
-
-There are two helper scripts that all developers should use
-
-Either `build-all.sh` (on macOS or Linux) or `build-all.ps` on Windows.
-
-They automate the steps that are run as part of the CI build - on your local 
-computer.
-
-The scripts must be used before pushing up to GitLab or the CI builds will 
-fail.
-
-They are not identical, `build-all.sh` will run the build step in a Docker 
-Container, `build-all.ps1` does not.
-
-
-
 Preferred Conduct
 -----------------
 

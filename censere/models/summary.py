@@ -17,6 +17,7 @@ import censere.utils as UTILS
 
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
+from .resources import CommodityResevoirCapacity as CommodityResevoirCapacity
 
 ##
 # Collect summary details
@@ -41,6 +42,7 @@ class Summary(playhouse.signals.Model):
     # but that is not very easy to plot
     # so provide convert to a datetime
     # based on inital_mission_lands date
+    # BUT, pandas doesn't handle datetime after April 2262 - TODO
     earth_datetime = peewee.DateTimeField()
 
     adults = peewee.IntegerField( default=0 )
@@ -62,6 +64,8 @@ class Summary(playhouse.signals.Model):
 
     earth_born = peewee.IntegerField( default=0 )
     mars_born = peewee.IntegerField( default=0 )
+
+    electricity_capacity = peewee.FloatField( default=0.0)
 
     def initialize( self):
 
@@ -154,6 +158,18 @@ class Summary(playhouse.signals.Model):
             ( Settler.birth_location == LocationEnum.Mars )
         ).count()
 
+        try:
+            electricity_stored = CommodityResevoirCapacity.select(
+                peewee.fn.Sum(CommodityResevoirCapacity.capacity)
+            ).where(
+                ( CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
+                ( CommodityResevoirCapacity.solday == thisApp.solday ) &
+                ( CommodityResevoirCapacity.commodity == "electricity" )
+            ).scalar()
+        except:
+            electricity_stored = 0.0
+
+
         self.simulation_id = thisApp.simulation
 
         self.solday = thisApp.solday
@@ -177,4 +193,6 @@ class Summary(playhouse.signals.Model):
 
         self.earth_born = earth_born
         self.mars_born = mars_born
+
+        self.electricity_stored = electricity_stored
 

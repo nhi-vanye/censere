@@ -4,6 +4,8 @@
 
 import peewee
 
+from .local import mod as mod
+
 db = peewee.SqliteDatabase( None )
 
 import censere.models
@@ -21,3 +23,9 @@ def create_tables():
     censere.models.Settler.create_table()
     censere.models.Simulation.create_table()
     censere.models.Summary.create_table()
+    censere.models.Commodity.create_table()
+    censere.models.CommodityConsumer.create_table()
+    censere.models.CommodityResevoir.create_table()
+    censere.models.CommodityResevoirCapacity.create_table()
+    censere.models.CommoditySupplier.create_table()
+    censere.models.CommodityUsage.create_table()

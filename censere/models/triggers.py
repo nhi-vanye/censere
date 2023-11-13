@@ -1,16 +1,23 @@
 
 import logging
 
+import pprint
+
+import peewee
 import playhouse.signals 
 
 from censere.config import thisApp
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
+import censere.events as EVENTS
 
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
+from .resources import CommodityResevoir as CommodityResevoir
+from .resources import CommodityResevoirCapacity as CommodityResevoirCapacity
+from .resources import CommodityUsage as CommodityUsage
 
 LOGGER = logging.getLogger("c.m.triggers")
 DEVLOG = logging.getLogger("d.devel")
@@ -153,7 +160,7 @@ def relationship_post_save(sender, instance, created):
             )
 
             LOGGER.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-            LOGGER.log( thisApp.DETAILS, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+            LOGGER.log( thisApp.DETAIL, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
 
         else:
 
@@ -188,4 +195,91 @@ def relationship_post_save(sender, instance, created):
 #   update a person's resource consumption (oxygen etc) as they grow from birth
 #   update habitation needs as families change
 
+## 
+#
+@playhouse.signals.post_save(sender=CommodityUsage)
+def commoditytransaction_post_save(sender, instance, created):
+    """
+    This will get called for every CommodityUsage - there's one
+    per supplier/consumer.
+
+    This combines each supplier/consumer values into a net change per Sol.
+    """
+
+    LOGGER.log( logging.DEBUG, '%d.%03d CommodityUsage post-processing by %s', *UTILS.from_soldays( thisApp.solday ), instance.name)
+
+    if created:
+
+        query = CommodityResevoirCapacity.select(
+            CommodityResevoirCapacity.store_id,
+            CommodityResevoirCapacity.capacity,
+            CommodityResevoir.max_capacity,
+            CommodityResevoir.name,
+            CommodityResevoir.commodity
+        ).filter(
+            ( CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
+            ( CommodityResevoirCapacity.solday == thisApp.solday ) &
+            ( CommodityResevoirCapacity.commodity_id == instance.commodity_id )
+        ).join(
+            CommodityResevoir,
+                peewee.JOIN.LEFT_OUTER, attr='resevoir',
+                on=( CommodityResevoirCapacity.store_id == CommodityResevoir.store_id )
+        ).dicts()
+
+
+        total_store_count = CommodityResevoir.select(
+            peewee.fn.Count(CommodityResevoir.store_id).alias('store_count'),
+        ).filter(
+            ( CommodityResevoir.simulation_id == thisApp.simulation ) &
+            ( CommodityResevoir.commodity_id == instance.commodity_id )
+        ).scalar()
+
+        for row in query.execute():
+
+            store = CommodityResevoirCapacity.get(CommodityResevoirCapacity.store_id == row['store_id'], solday=thisApp.solday )
+
+            added = instance.credit / total_store_count
+            used = instance.debit / total_store_count
+
+            store.capacity -= used
+
+            if ( store.capacity ) < 0.0:
+
+                store.capacity = 0.0
+
+                EVENTS.register_callback(
+                    when =  thisApp.solday + 1,
+                    periodic = 0,
+                    order = 0, # most important
+                    callback_func=EVENTS.callbacks.resource_starvation,
+                    kwargs = { 
+                        "commodity" : row['commodity'],
+                        "store" : row['name'],
+                    }
+                )
+
+            store.capacity += added
+
+            if store.capacity > row['max_capacity']:
+                if ( thisApp.solday % 28 ) == 0:
+                    LOGGER.log( logging.INFO,
+                           '%d.%03d Resevoir %s is full (%.3f)',
+                           *UTILS.from_soldays( thisApp.solday ),
+                           row['name'],
+                           row['max_capacity'])
+
+            store.capacity = min(row['max_capacity'], store.capacity )
+
+            wrote = store.save()
+
+            if wrote:
+                LOGGER.log( thisApp.DETAIL,
+                           '%d.%03d %s updated %s from %.3f to %.3f ( +%.3f -%.3f )',
+                           *UTILS.from_soldays( thisApp.solday ),
+                           instance.name,
+                           row['name'],
+                           row['capacity'],
+                           store.capacity,
+                           added,
+                           used)
 

@@ -13,6 +13,9 @@ in the future
 from __future__ import division
 
 import logging
+import pprint
+
+import peewee
 
 from censere.config import thisApp
 
@@ -86,7 +89,7 @@ def settler_born(**kwargs):
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        LOGGER.error( '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
+        LOGGER.log( thisApp.NOTICE, '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
         return
 
     mother.pregnant = False
@@ -136,6 +139,7 @@ def settler_born(**kwargs):
 
     register_callback(
         when=thisApp.solday + age_at_death,
+        order = 20,
         callback_func=EVENTS.settler_dies,
         kwargs= { "simulation": thisApp.simulation, "id" : m.settler_id, "name":"{} {}".format( m.first_name, m.family_name) }
     )
@@ -182,6 +186,7 @@ def settler_born(**kwargs):
             register_callback( 
                 # handle the "cool off" period...
                 when=when,
+                order=20,
                 callback_func=EVENTS.settler_born,
                 kwargs= {
                     "simulation": thisApp.simulation,
@@ -242,6 +247,7 @@ def mission_lands(**kwargs):
 
         register_callback( 
             when= max( date_of_death, thisApp.solday + RANDOM.randrange(1, 660)),
+            order=20,
             callback_func=EVENTS.settler_dies,
             kwargs= { "simulation": thisApp.simulation, "id" : a.settler_id, "name":"{} {}".format( a.first_name, a.family_name) }
         )
@@ -257,6 +263,9 @@ def mission_lands(**kwargs):
 
     # only register next landing if this is the first landing on this day
     # otherwise we get a cascading landings
+
+    # switched to useing periodic
+    """
     if idx == 0:
 
         for i in range( RANDOM.parse_random_value( thisApp.ships_per_mission ) ):
@@ -264,12 +273,14 @@ def mission_lands(**kwargs):
 
             register_callback( 
                 when =  thisApp.solday + RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+                order=5,
                 callback_func=EVENTS.mission_lands,
                 kwargs = { 
                     "simulation": thisApp.simulation,
                     "settlers" : RANDOM.parse_random_value( thisApp.settlers_per_ship )
                 }
             )
+    """
 
 ##
 # Break a relationship
@@ -287,3 +298,351 @@ def end_relationship(**kwargs):
     rel.end_solday = thisApp.solday
 
     rel.save()
+
+
+def commodities_landed(**kwargs):
+
+    resources = []
+
+    if "resources" in kwargs:
+        resources = kwargs["resources"]
+
+    if thisApp.solday < 0:
+        LOGGER.log( thisApp.NOTICE, "%d.%03d Mission (Seed) landed with %d resources specifications", *UTILS.from_soldays( thisApp.solday ), len(resources))
+    else:
+        LOGGER.log( thisApp.NOTICE, "%d.%03d Mission landed with %d resource specifications", *UTILS.from_soldays( thisApp.solday ), len(resources))
+
+    for res in resources:
+
+        fields = res.split(" ")
+
+        # examples
+        #   count=randint:2,4 supply=electricity availbility=randint:99,100 supplies=gauss:0.4,0.0001 description=RTG",
+        #   count=randint:1,3 store=electricity availbility=randint:99,100 initial-capacity=gauss:4.4,0.1 max-capacity=gauss:10,1 equipment=battery",
+        count = fields[0].split("=")
+
+        for idx in range(RANDOM.parse_random_value( count[1] ) ):
+
+            parsed = UTILS.parse_resources( fields[1:] )
+
+            defaults = {
+                # sets the commodity
+                "supply" : False,
+                "store" : False,
+                "consume" : False,
+
+                "availability" : "",
+
+                # suppliers
+                "supplies" : "randint:0,0",
+
+                # consumers
+                "consumes" : "randint:0,0",
+
+                # stores
+                "initial-capacity" : "randint:0,0",
+                "max-capacity" : "",
+
+                "description" : ""
+            }
+
+            if parsed.get("consume", False):
+
+                r = MODELS.CommodityConsumer()
+
+                r.initialize(
+                    parsed.get("consumes", defaults["consumes"]),
+                    commodity=parsed.get("consume"),
+                    description=parsed.get("description", defaults["description"]),
+                )
+
+                r.save(force_insert=True)
+                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s consumer %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.consumer_id )
+
+            if parsed.get("store", False):
+
+                r = MODELS.CommodityResevoir()
+
+                r.initialize(
+                    parsed.get("max-capacity", defaults["max-capacity"]),
+                    initial_capacity=parsed.get("initial-capacity", defaults["initial-capacity"]),
+                    commodity=parsed.get("store"),
+                    description=parsed.get("description", defaults["description"]),
+                )
+
+                r.save(force_insert=True)
+                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s resevoir %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.store_id )
+
+                c = MODELS.CommodityResevoirCapacity()
+
+                c.initialize(r.store_id,
+                             r.commodity,
+                             r.commodity_id,
+                             capacity=r.initial_capacity)
+
+                c.solday=thisApp.solday
+                c.save(force_insert=True)
+
+                EVENTS.register_callback(
+                    when =  thisApp.solday + 1,
+                    order = 1,
+                    periodic = 1,
+                    callback_func=per_sol_setup_each_commodity_resevoir_storage,
+                    kwargs = {
+                        "store_id" : c.store_id,
+                        "commodity" : c.commodity,
+                        "commodity_id" : c.commodity_id
+                    }
+                )
+
+
+            if parsed.get("supply", False):
+
+                r = MODELS.CommoditySupplier()
+
+                r.initialize(
+                    parsed.get("supplies", defaults["supplies"]),
+                    commodity=parsed.get("supply"),
+                    description=parsed.get("description", defaults["description"]),
+                )
+
+                r.save(force_insert=True)
+
+                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s supply %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.supplier_id )
+
+
+def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
+    """
+    This is triggered every sol BUT begins one sol after creation so 
+    that yestersol is already present
+
+    It just copies from yestersol so that we're ready for tosol's consumption/supply
+
+    By being triggered for each resevoir separately it keeps this simple
+
+    This is run as the first callback of the Sol (order = 1)
+
+    """
+
+    if "store_id" not in kwargs:
+        return
+
+    if "commodity_id" not in kwargs:
+        return
+
+    if "commodity" not in kwargs:
+        return
+
+    capacity = MODELS.CommodityResevoirCapacity.select(
+        MODELS.CommodityResevoirCapacity.capacity
+    ).filter(
+        ( MODELS.CommodityResevoirCapacity.store_id == kwargs["store_id"] ) &
+        ( MODELS.CommodityResevoirCapacity.solday == (thisApp.solday - 1) )
+    ).scalar()
+
+    c = MODELS.CommodityResevoirCapacity()
+
+    c.initialize( kwargs['store_id'],
+                 kwargs['commodity'],
+                 kwargs['commodity_id'],
+                 capacity=capacity)
+
+    c.solday = thisApp.solday
+
+    c.save(force_insert=True)
+
+
+def per_sol_commodity_consumption(**kwargs):
+
+    if kwargs.get("idx",0) != 0:
+        return
+
+    try:
+
+        query = MODELS.Commodity.select(
+            MODELS.Commodity.simulation_id,
+            MODELS.Commodity.commodity_id,
+            MODELS.Commodity.commodity,
+            MODELS.CommodityConsumer.consumer_id,
+            MODELS.CommodityConsumer.name.alias('consumer_name'),
+            MODELS.CommodityConsumer.is_online.alias('consumer_online'),
+            MODELS.CommodityConsumer.consumes,
+            MODELS.CommodityConsumer.is_per_settler,
+        ).filter(
+            ( MODELS.Commodity.simulation_id == thisApp.simulation ) &
+            ( MODELS.CommodityConsumer.is_online == True )
+        ).join(
+            MODELS.CommodityConsumer,
+            peewee.JOIN.LEFT_OUTER,
+            attr='consumer',
+            on=(MODELS.CommodityConsumer.commodity_id == MODELS.Commodity.commodity_id)
+        ).dicts()
+
+        # This handles the fixed commodity
+        for row in query.execute():
+
+            ru = MODELS.CommodityUsage()
+
+            ru.initialize( row['commodity'], row['commodity_id'])
+
+            ru.simulation_id = thisApp.simulation
+
+            ru.solday = thisApp.solday
+
+
+            if row['consumer_id']:
+                ru.key_type = 'consumer'
+                ru.key_id = row['consumer_id']
+                ru.name = row['consumer_name']
+
+                ru.debit = RANDOM.parse_random_value(row['consumes'])
+
+                if row['is_per_settler']:
+                    ru.debit = ru.debit * thisApp.current_settler_count
+
+            if ru.key_id:
+                # there is a trigger that updates the resevoir capacity
+                # from these changes...
+                ru.save(force_insert=True)
+
+                LOGGER.log( thisApp.DETAIL, "%d.%03d Updated %s's use of %s", *UTILS.from_soldays( thisApp.solday ), ru.name, ru.commodity)
+
+
+    except Exception as e:
+
+        LOGGER.exception( "%d.%03d: %s", *UTILS.from_soldays( thisApp.solday ), str(e))
+
+
+def per_sol_commodity_supply(**kwargs):
+
+    if kwargs.get("idx",0) != 0:
+        return
+
+    try:
+
+        query = MODELS.Commodity.select(
+            MODELS.Commodity.simulation_id,
+            MODELS.Commodity.commodity_id,
+            MODELS.Commodity.commodity,
+            MODELS.CommoditySupplier.supplier_id,
+            MODELS.CommoditySupplier.name.alias('supplier_name'),
+            MODELS.CommoditySupplier.is_online.alias('supplier_online'),
+            MODELS.CommoditySupplier.supplies,
+        ).filter(
+            ( MODELS.Commodity.simulation_id == thisApp.simulation ) &
+            ( MODELS.CommoditySupplier.is_online == True )
+        ).join(
+            MODELS.CommoditySupplier,
+            peewee.JOIN.LEFT_OUTER,
+            attr='supplier',
+            on=(MODELS.CommoditySupplier.commodity_id == MODELS.Commodity.commodity_id)
+        ).dicts()
+
+        for row in query.execute():
+
+            ru = MODELS.CommodityUsage()
+
+            ru.initialize( row['commodity'], row['commodity_id'])
+
+            ru.simulation_id = thisApp.simulation
+
+            ru.solday = thisApp.solday
+
+
+            if row['supplier_id']:
+                ru.key_type = 'supplier'
+                ru.key_id = row['supplier_id']
+                ru.name = row['supplier_name']
+
+                ru.credit = RANDOM.parse_random_value(row['supplies'])
+
+            if ru.key_id:
+                # there is a trigger that updates the resevoir capacity
+                # from these changes...
+                ru.save(force_insert=True)
+
+                LOGGER.log( thisApp.DETAIL, "%d.%03d Updated %s's use of %s", *UTILS.from_soldays( thisApp.solday ), ru.name, ru.commodity)
+
+
+
+    except Exception as e:
+
+        LOGGER.exception( "%d.%03d: %s", *UTILS.from_soldays( thisApp.solday ), str(e))
+
+
+def per_sol_commodity_usage(**kwargs):
+
+    per_sol_commodity_consumption(**kwargs)
+
+    per_sol_commodity_supply(**kwargs)
+
+
+def commodity_goes_online(**kwargs):
+
+    res = None
+
+    if "id" not in kwargs:
+        return
+
+    if "table" not in kwargs:
+        return
+
+
+    if kwargs['table'] == MODELS.CommodityType.Consumer:
+
+        res = MODELS.CommodityConsumer.get(consumer_id=kwargs['id'])
+
+    if kwargs['table'] == MODELS.CommodityType.Supplier:
+
+        res = MODELS.CommoditySupplier.get(supplier_id=kwargs['id'])
+
+    if res:
+
+        res.is_online = True
+
+        res.save()
+
+
+def commodity_goes_offline(**kwargs):
+
+    res = None
+
+    if "id" not in kwargs:
+        return
+
+    if "table" not in kwargs:
+        return
+
+
+    if kwargs['table'] == MODELS.CommodityType.Consumer:
+
+        res = MODELS.CommodityConsumer.get(consumer_id=kwargs['id'])
+
+    if kwargs['table'] == MODELS.CommodityType.Supplier:
+
+        res = MODELS.CommoditySupplier.get(supplier_id=kwargs['id'])
+
+    if res:
+
+        res.is_online = True
+
+        res.save()
+
+
+def resource_starvation(**kwargs):
+    # TODO
+    # This is sent from a trigger so we'll end up getting
+    # this for every save to the CommodityUsage table (aka lots)
+    #
+    # rethink - do check in main loop rather than trigger ?
+
+    LOGGER.log( logging.NOTICE,
+               '%d.%03d CommodityResevoir %s is empty',
+               *UTILS.from_soldays( thisApp.solday ),
+               kwargs['store'])
+
+    # TODO need to trigger some error condition, we've run out of X
+    #  - reduce consumption
+    #  - increase supply
+    #  - everyone (slowly) dies until consumption matches supply
+

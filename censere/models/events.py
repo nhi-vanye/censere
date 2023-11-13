@@ -28,6 +28,13 @@ class Event(playhouse.signals.Model):
     registered = peewee.IntegerField()
 
     when = peewee.IntegerField( index=True, unique=False )
+    # the callback will additionally be triggered when
+    # solday % periodic == 0
+    periodic = peewee.IntegerField( default = 0 )
+
+    # allow ordering of callbacks within a single Sol
+    # (low ones are executed first)
+    order = peewee.IntegerField( default=20)
 
     callback_func = peewee.CharField( 64 )
 

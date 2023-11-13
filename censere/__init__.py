@@ -35,6 +35,11 @@ LOGGING = {
             "formatter": "trace",
             "stream"  : "ext://sys.stdout"
         },
+        "peewee": {
+            "class": "logging.StreamHandler",
+            "formatter": "cli",
+            "stream"  : "ext://sys.stdout"
+        },
     },
     "loggers": {
         "": {
@@ -89,6 +94,11 @@ LOGGING = {
         "d.trace": {
             "level": "INFO",
             "handlers": [ "trace" ],
+            'propagate': False,
+        },
+        "peewee": {
+            "level": "INFO",
+            "handlers": [ "peewee" ],
             'propagate': False,
         },       
     },

@@ -8,6 +8,7 @@
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 from censere.config import thisApp
 
@@ -18,6 +19,7 @@ import censere.utils as UTILS
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
 from .resources import CommodityResevoirCapacity as CommodityResevoirCapacity
+from .resources import Resource as Resource
 
 ##
 # Collect summary details
@@ -35,37 +37,39 @@ class Summary(playhouse.signals.Model):
         table_name = 'summary'
 
     # Unique identifier for the simulation
-    simulation_id = peewee.UUIDField( )
+    simulation_id = APSW.UUIDField( )
 
-    solday = peewee.IntegerField( )
+    solday = APSW.IntegerField( )
     # All the calculations are based on soldays
     # but that is not very easy to plot
     # so provide convert to a datetime
     # based on inital_mission_lands date
     # BUT, pandas doesn't handle datetime after April 2262 - TODO
-    earth_datetime = peewee.DateTimeField()
+    earth_datetime = APSW.DateTimeField()
 
-    adults = peewee.IntegerField( default=0 )
-    children = peewee.IntegerField( default=0 )
+    adults = APSW.IntegerField( default=0 )
+    children = APSW.IntegerField( default=0 )
 
-    males = peewee.IntegerField( default=0 )
-    females = peewee.IntegerField( default=0 )
+    males = APSW.IntegerField( default=0 )
+    females = APSW.IntegerField( default=0 )
 
-    hetrosexual = peewee.IntegerField( default=0 )
-    homosexual = peewee.IntegerField( default=0 )
-    bisexual = peewee.IntegerField( default=0 )
+    hetrosexual = APSW.IntegerField( default=0 )
+    homosexual = APSW.IntegerField( default=0 )
+    bisexual = APSW.IntegerField( default=0 )
 
-    population = peewee.IntegerField( default=0 )
+    population = APSW.IntegerField( default=0 )
 
-    singles = peewee.IntegerField( default=0 )
-    couples = peewee.IntegerField( default=0 )
+    singles = APSW.IntegerField( default=0 )
+    couples = APSW.IntegerField( default=0 )
 
-    deaths = peewee.IntegerField( default=0 )
+    deaths = APSW.IntegerField( default=0 )
 
-    earth_born = peewee.IntegerField( default=0 )
-    mars_born = peewee.IntegerField( default=0 )
+    earth_born = APSW.IntegerField( default=0 )
+    mars_born = APSW.IntegerField( default=0 )
 
-    electricity_capacity = peewee.FloatField( default=0.0)
+    electricity_capacity = APSW.FloatField( default=0.0)
+    water_capacity = APSW.FloatField( default=0.0)
+    o2_capacity = APSW.FloatField( default=0.0)
 
     def initialize( self):
 
@@ -164,11 +168,32 @@ class Summary(playhouse.signals.Model):
             ).where(
                 ( CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
                 ( CommodityResevoirCapacity.solday == thisApp.solday ) &
-                ( CommodityResevoirCapacity.commodity == "electricity" )
+                ( CommodityResevoirCapacity.commodity == Resource.Electricity )
             ).scalar()
-        except:
+        except Exception as e:
             electricity_stored = 0.0
 
+        try:
+            water_stored = CommodityResevoirCapacity.select(
+                peewee.fn.Sum(CommodityResevoirCapacity.capacity)
+            ).where(
+                ( CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
+                ( CommodityResevoirCapacity.solday == thisApp.solday ) &
+                ( CommodityResevoirCapacity.commodity == Resource.Water )
+            ).scalar()
+        except Exception as e:
+            water_stored = 0.0
+
+        try:
+            o2_stored = CommodityResevoirCapacity.select(
+                peewee.fn.Sum(CommodityResevoirCapacity.capacity)
+            ).where(
+                ( CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
+                ( CommodityResevoirCapacity.solday == thisApp.solday ) &
+                ( CommodityResevoirCapacity.commodity == Resource.O2 )
+            ).scalar()
+        except Exception as e:
+            o2_stored = 0.0
 
         self.simulation_id = thisApp.simulation
 
@@ -195,4 +220,6 @@ class Summary(playhouse.signals.Model):
         self.mars_born = mars_born
 
         self.electricity_stored = electricity_stored
+        self.water_stored = water_stored
+        self.o2_stored = o2_stored
 

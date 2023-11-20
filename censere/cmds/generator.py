@@ -49,6 +49,12 @@ import censere.version as VERSION
 LOGGER = logging.getLogger("c.cli.generator")
 DEVLOG = logging.getLogger("d.devel")
 
+# Allow options of this type to be read from environment variables as a list
+# with a `;` separating items.
+# To override a default (i.e. --resource), use an environment with a single `;`
+class StringList(click.ParamType):
+    envvar_list_splitter = ';'
+
 def load_parameters_from_file(ctx, param, value ):
     if value:
         with open( value, "r") as params:
@@ -139,10 +145,10 @@ of as a percentage - i.e. 99.999 (aka five-nines).
 Using that method a resource with 99.999% availability would be
 offline for under 6minutes per (Earth year)
 
-To simplify the calculations, we want to deal with a resource being
-offline for a multiple of whole days. So an uptime of 99.999% would
-mean the resource would be unavailable one Sol in 100000 (~147
-Martian years)
+We calculate availabilty on a daily basis and if unavailable we
+take the resource off-line for the entire Sol.
+
+See the RESOURCES.md file for more details on resources.
 
 
 RANDOMNESS
@@ -168,7 +174,17 @@ and compare multiple runs.
 # creating the tables
 def initialize_database():
 
-    DB.db.init( thisApp.database )
+    if thisApp.use_memory_database:
+        import apsw
+
+        # run the simulation in memory and write to disk on a regular basis
+        DB.db.init( ":memory:" ) #thisApp.database )
+
+        DB.backup = apsw.Connection( thisApp.database )
+
+    else:
+        DB.db.init( thisApp.database )
+
 
     FUNC.register_all( DB.db )
 
@@ -180,14 +196,27 @@ def register_initial_landing():
     for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_mission, default_value=1 ) ):
 
         EVENTS.register_callback(
-            when =  1,
-            order = 20,
-            periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+            runon =  1,
+            priority = 20,
+            periodic=0,
             callback_func=EVENTS.callbacks.mission_lands,
             kwargs = {
-                "settlers" : RANDOM.parse_random_value( thisApp.settlers_per_initial_ship )
+                "settlers" : thisApp.settlers_per_initial_ship
             }
         )
+
+    for i in range( RANDOM.parse_random_value( thisApp.ships_per_mission ) ):
+
+        EVENTS.register_callback(
+                runon=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+                priority=5,
+                periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+                callback_func=EVENTS.mission_lands,
+                kwargs = {
+                    "simulation": thisApp.simulation,
+                    "settlers" : thisApp.settlers_per_ship
+                }
+            )
 
 
 def register_resources():
@@ -202,7 +231,7 @@ def register_resources():
         # cache the resource id to make it easy to reference the resource without
         # a database lookup
         thisApp.commodity_ids[com.commodity] = com.commodity_id
-
+    
     # Create the Consumers that represents the per-settler resource consumption
     for res in thisApp.resource_consumption_per_settler:
         fields = res.split(" ")
@@ -228,8 +257,8 @@ def register_resources():
             thisApp.commodity_ids[ f"{parsed.get('consume')}-settler" ] = r.consumer_id
 
             EVENTS.register_callback(
-                when =  1,
-                order = 20,
+                runon =  1,
+                priority = 20,
                 callback_func=EVENTS.callbacks.commodity_goes_online,
                 kwargs = {
                     "table" : MODELS.CommodityType.Consumer,
@@ -237,9 +266,12 @@ def register_resources():
                 }
             )
 
+    # Register the callbacks that do the heavy lifting of managing the
+    # supply and consumption of resources. Additional callbacks are
+    # registered as needed
     EVENTS.register_callback(
-            when =  thisApp.seed_resources_lands,
-            order = 20,
+            runon =  thisApp.seed_resources_lands,
+            priority = 20,
             callback_func=EVENTS.callbacks.commodities_landed,
             kwargs = {
                 "resources" : thisApp.seed_resource
@@ -247,9 +279,9 @@ def register_resources():
         )
 
     EVENTS.register_callback(
-            when =  1,
+            runon =  1,
             periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
-            order = 20,
+            priority = 20,
             callback_func=EVENTS.callbacks.commodities_landed,
             kwargs = {
                 "resources" : thisApp.resource
@@ -257,13 +289,36 @@ def register_resources():
         )
 
     EVENTS.register_callback(
-            when =  thisApp.seed_resources_lands+1,
+            runon =  thisApp.seed_resources_lands+1,
             periodic = 1,
-            order = 20,
-            callback_func=EVENTS.callbacks.per_sol_commodity_usage,
+            priority = 25,
+            callback_func=EVENTS.callbacks.per_sol_commodity_maintenance,
             kwargs = { }
         )
 
+    EVENTS.register_callback(
+            runon =  thisApp.seed_resources_lands+1,
+            periodic = 1,
+            priority = 40,
+            callback_func=EVENTS.callbacks.per_sol_commodity_consumption,
+            kwargs = { }
+        )
+
+    EVENTS.register_callback(
+            runon =  thisApp.seed_resources_lands+1,
+            periodic = 1,
+            priority = 50,
+            callback_func=EVENTS.callbacks.per_sol_commodity_supply,
+            kwargs = { }
+        )
+
+    EVENTS.register_callback(
+            runon =  thisApp.seed_resources_lands+1,
+            periodic = 1,
+            priority = 100,
+            callback_func=EVENTS.callbacks.per_sol_update_commodity_resevoir_storage,
+            kwargs = { }
+        )
 
 def get_current_settler_count():
 
@@ -321,7 +376,10 @@ def get_singles_count( ):
 
     return count
 
-def get_current_commodity_storage():
+def get_commodity_storage( solday=None ):
+
+    if solday is None:
+        solday = thisApp.solday
 
     commodities={}
 
@@ -333,12 +391,12 @@ def get_current_commodity_storage():
                 peewee.fn.Sum(MODELS.CommodityResevoirCapacity.capacity)
             ).where(
                 ( MODELS.CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
-                ( MODELS.CommodityResevoirCapacity.solday == thisApp.solday ) &
+                ( MODELS.CommodityResevoirCapacity.solday == solday ) &
                 ( MODELS.CommodityResevoirCapacity.commodity == commodity )
             ).scalar()
 
-        except:
-            pass
+        except Exception as e:
+            LOGGER.exception(e)
 
         if commodities[commodity] is None:
             commodities[commodity] = 0.0
@@ -357,9 +415,9 @@ def add_summary_entry():
     return { "solday" : s.solday,
             "earth_datetime" : s.earth_datetime,
             "population": s.population,
-            "electricity" : s.electricity_stored,
-            "water" : float('NaN'),
-            "o2" : float('NaN'),
+            "electricity" : s.electricity_stored or float("NaN"),
+            "water" : s.water_stored or float("NaN"),
+            "o2" : s.o2_stored or float("NaN"),
            }
 
 
@@ -414,20 +472,102 @@ def add_annual_demographics( ):
 
 def run_seed_mission():
 
+    if thisApp.enable_profiling:
+        thisApp.profilingHandle.enable()
+
     while thisApp.solday < 0 and thisApp.solday < thisApp.limit_count:
 
-        EVENTS.invoke_callbacks()
+        with DB.db.atomic() as txn:
 
+            EVENTS.invoke_callbacks()
 
+            if ( thisApp.solday % 28 ) == 0:
+
+                res = add_summary_entry( )
+
+                if thisApp.report_commodity_status:
+                    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Commodities banked: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
+
+        # commit the transaction before backing it up
         if ( thisApp.solday % 28 ) == 0:
-
-            res = get_current_commodity_storage()
-
-            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Commodities: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
+            if thisApp.use_memory_database:
+                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
+                    while not sync.done:
+                        sync.step(4096)
 
         thisApp.solday += 1
 
+    if thisApp.enable_profiling:
+        thisApp.profilingHandle.disable()
 
+
+def run_mission():
+
+    if thisApp.enable_profiling:
+        thisApp.profilingHandle.enable()
+
+    while get_limit_count( thisApp.limit ) < thisApp.limit_count:
+
+        thisApp.current_settler_count = get_current_settler_count()
+
+        ( solyear, sol ) = UTILS.from_soldays( thisApp.solday )
+
+        current_singles_count = get_singles_count()
+
+        # Invoke actions every day...
+
+        # Run any callback scheduled for this solday
+        EVENTS.invoke_callbacks( )
+
+        # Poulation building
+        if RANDOM.random() < float(thisApp.fraction_singles_pairing_per_day) * current_singles_count :
+            ACTIONS.make_families( )
+        # TODO need a model for relationship breakdown
+        # break_families()
+
+        # Need a model for multi-person accidents
+        #  work or family
+        #  occupation
+        #  infection/disease
+        # consider multi-person accidents, either work or families
+
+        # Model resources - both consumed and produced
+        # Model inflation
+
+
+        # give a ~monthly (every 28 sols) and end of year log message
+        if ( sol % 28 ) == 0 or sol == 668:
+            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
+
+            if thisApp.cache_details:
+                LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+
+            res = add_summary_entry( )
+
+            if thisApp.report_commodity_status:
+                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Commodities banked: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
+
+            if thisApp.use_memory_database:
+                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
+                    while not sync.done:
+                        sync.step(4096)
+
+        if solyear > 1 and ( sol % 668 ) == 0:
+
+            add_annual_demographics( )
+
+            if thisApp.use_memory_database:
+                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
+                    while not sync.done:
+                        sync.step(4096)
+
+        thisApp.solday += 1
+        # from wikipedia
+        # https://en.wikipedia.org/wiki/Timekeeping_on_Mars#Sols
+        thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147)
+
+    if thisApp.enable_profiling:
+        thisApp.profilingHandle.disable()
 
 
 ##
@@ -530,40 +670,60 @@ def run_seed_mission():
 # Resources
 #
 @click.option( '--seed-resource',
-        metavar="count=RANDOM [supply|store]=ENUM availability=RANDOM [supplies=RANDOM] [initial-capacity=RANDOM] [max-capacity=RANDOM]",
+        metavar="count=RANDOM [supply|store|consume]=ENUM availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] [initial-capacity=RANDOM] [max-capacity=RANDOM]",
+        type=StringList(),
         default=[
             # "count=randint:2,4 source=power type=generator avail=randint:99,100 generates=normal:0.4,0.0001 equipment=RTG",
             # TODO:  RTG should have a supply that gradually diminishes over time...
-            "count=randint:1,2 supply=electricity availability=randint:99,100 supplies=normal:1.4,0.0001 description=RTG",
-            "count=randint:1,2 store=electricity availability=randint:99,100 initial-capacity=normal:4.0,0.1 max-capacity=normal:10,1 description=battery",
+            # 2kW is large for an RTG, but need reliable base supply
+            "count=randint:8,16 supply=electricity availability=binomial:0.9999 supplies=normal:2,0.2 description=RTG",
+            "count=randint:8,16 store=electricity availability=binomial:0.99 initial-capacity=normal:4.0,0.1 max-capacity=normal:25,1 description=battery",
             "count=randint:1,1 consume=electricity consumes=normal:2,0.2 description=site",
+            "count=randint:2,4 store=water availability=binomial:0.9 initial-capacity=normal:1000,100 max-capacity=normal:1500,500 description=tank",
+            "count=randint:2,4 store=o2 availability=binomial:0.9 initial-capacity=normal:10000,100 max-capacity=normal:15000,500 description=tank",
         ],
         multiple=True,
         help="Resource supply/demand from seed mission to first settler mission "
               "(CENSERE_GENERATOR_SEED_RESOURCE)")
 @click.option( '--resource',
-        metavar="count=RANDOM resource=ENUM type=ENUM avail=RANDOM [generates=RANDOM]",
+        metavar="count=RANDOM [supply|store|consume]=ENUM availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] [initial-capacity=RANDOM] [max-capacity=RANDOM]",
         default=[
-            "count=randint:1,2 supply=electricity availability=randint:99,100 supplies=normal:0.4,0.0001 description=RTG",
-            "count=randint:1,2 store=electricity availability=randint:99,100 initial-capacity=normal:4.0,0.1 max-capacity=normal:10,1 description=battery",
+            "count=randint:4,8 store=electricity availability=binomial:0.99 initial-capacity=normal:4.0,0.1 max-capacity=normal:25,1 description=battery",
+
+            "count=randint:4,4 supply=electricity availability=binomial:0.95 supplies=normal:1.5,0.3 description=PV",
             "count=randint:1,1 consume=electricity consumes=normal:4,0.2 description=site",
+
+            "count=randint:4,8 store=water availability=binomial:0.9 initial-capacity=normal:10000,100 max-capacity=normal:12000,500 description=tank",
+            "count=randint:2,4 supply=water availability=binomial:0.9 supplies=normal:100,5 description=recycle",
+            "count=randint:2,4 supply=o2 availability=binomial:0.9 supplies=normal:5000,500 description=recycle",
         ],
         multiple=True,
+        type=StringList(),
         help="Additional commodities arriving on each mission "
               "(CENSERE_GENERATOR_RESOURCE)")
 @click.option( '--resource-consumption-per-settler',
         metavar="consume=ENUM consumes=RANDOM",
+        type=StringList(),
         default=[
             "consume=electricity consumes=normal:0.5,0.05 description=settlers",
+            "consume=water consumes=normal:4.0,0.25 description=drinking",
+            "consume=o2 consumes=normal:400,10 description=breathing",
         ],
         multiple=True,
         help="Resource consumption per settler per Sol "
               "(CENSERE_GENERATOR_RESOURCE_CONSUMTION_PER_SETTLER)")
+@click.option( '--allow-negative-commodities',
+        default=False,
+        help="Allow commodity capacity to go negative, helps in tuning commodity supply "
+              "(CENSERE_GENERATOR_ALLOW_NEGATIVE_COMMODITIES)")
 # mission parameters
 #
 @click.option( '--seed-resources-lands',
         metavar="SOLS",
-        default= -2*759,
+        # time for two miniumum transfer orbits + 1 for go/no-go decisions 
+        # https://www.jpl.nasa.gov/edu/teach/activity/lets-go-to-mars-calculating-launch-windows/
+        # 259 Days = 252 Sols
+        default= -(3*252),
         type=int,
         help="Number of Sols before initial mission lands that the "
               "resource seed mission lands (CENSERE_GENERATOR_SEED_RESOURCES_LANDS)")
@@ -618,6 +778,9 @@ def run_seed_mission():
         default="",
         type=click.Path(),
         help="Enable Profiling and safe to FILE")
+@click.option( '--use-memory-database/--no-memory-database',
+        default=True,
+        help="Use SQLite :memory: as main database, and flush to disk every 28 Sols. While faster this can impact memory footprint in limited resource environments")
 def cli( ctx,
         random_seed,
         continue_simulation,
@@ -643,6 +806,7 @@ def cli( ctx,
         seed_resource,
         resource,
         resource_consumption_per_settler,
+        allow_negative_commodities,
 
         seed_resources_lands,
         initial_mission_lands,
@@ -656,7 +820,8 @@ def cli( ctx,
 
         cache_details,
         # hints is hidden
-        profile
+        profile,
+        use_memory_database
        ):
     """Generate simulation data"""
 
@@ -693,12 +858,24 @@ def cli( ctx,
     thisApp.seed_resource = seed_resource
     thisApp.resource = resource
     thisApp.resource_consumption_per_settler = resource_consumption_per_settler
+    thisApp.allow_negative_commodities = allow_negative_commodities
 
     ## add legacy aliases
     thisApp.settlers_per_initial_ship = thisApp.initial_settlers_per_ship
     thisApp.ships_per_initial_mission = thisApp.initial_ships_per_mission
 
     thisApp.enable_profiling = profile
+    thisApp.use_memory_database = use_memory_database
+
+    thisApp.report_commodity_status = True
+
+    if use_memory_database and thisApp.database:
+        logging.fatal("Incompatable settings, use-memory-database must be used in conjunction with --database-dir")
+        sys.exit(1)
+
+    if thisApp.enable_profiling:
+        thisApp.profilingHandle = cProfile.Profile()
+
 
     # add a defult note
     if thisApp.notes == '':
@@ -713,6 +890,8 @@ def cli( ctx,
         peewee_logger = logging.getLogger('peewee')
         peewee_logger.addHandler(logging.StreamHandler())
         peewee_logger.setLevel(logging.DEBUG)
+        sfilter = censere.AddStackFilter(levels={logging.DEBUG})
+        peewee_logger.addFilter(sfilter)
 
     if thisApp.random_seed == -1:
 
@@ -750,17 +929,30 @@ def cli( ctx,
         thisApp.solday = 0
         thisApp.solday = thisApp.seed_resources_lands - 1
 
+        # all calculations are done in sols (integers from day of settler landing)
+        # but convert to earth datetime to make elapsed time easier to comprehend
+        # for consistancy downstream we need to ensure datetimes have a consistant format
+        # i.e. with microsseconds so add a microsecond...
+        thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+
+        thisApp.seed_mission_earth_time = thisApp.earth_time - ( thisApp.seed_resources_lands - 1) * datetime.timedelta( seconds=88775, microseconds=244147)
+
+        thisApp.earth_time = thisApp.seed_mission_earth_time
+
+
         thisApp.current_settler_count = get_current_settler_count()
 
         s = MODELS.Simulation( )
 
         s.simulation_id = thisApp.simulation
         s.random_seed = thisApp.random_seed
+        s.seed_mission_lands = thisApp.seed_resources_lands
+        s.seed_mission_earth_time = thisApp.seed_mission_earth_time
         s.initial_mission_lands = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
         s.begin_datetime = datetime.datetime.now()
-        s.limit = thisApp.limit
+        s.limit_type = thisApp.limit
         s.limit_count = thisApp.limit_count
-        s.args = thisApp.args(thisApp)
+        s.args = thisApp.args(sep='@')
 
         if len(thisApp.notes) > 0:
             s.notes = thisApp.notes
@@ -778,7 +970,7 @@ def cli( ctx,
     LOGGER.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeted %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
+    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeting %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
 
 
@@ -801,6 +993,11 @@ def cli( ctx,
 
         register_initial_landing()
 
+    if thisApp.use_memory_database:
+        with DB.backup.backup("main", DB.db.connection(), "main") as sync:
+            while not sync.done:
+                sync.step(4096)
+
     # all calculations are done in sols (integers from day of settler landing)
     # but convert to earth datetime to make elapsed time easier to comprehend
     # for consistancy downstream we need to ensure datetimes have a consistant format
@@ -822,55 +1019,14 @@ def cli( ctx,
 
     d.save()
 
-    while get_limit_count( thisApp.limit ) < thisApp.limit_count:
+    # Run the main mission simulation loop
+    run_mission()
 
-        thisApp.current_settler_count = get_current_settler_count()
+    if thisApp.enable_profiling:
+        stats = pstats.Stats(thisApp.profilingHandle).sort_stats('ncalls')
+        stats.dump_stats( thisApp.enable_profiling )
 
-        ( solyear, sol ) = UTILS.from_soldays( thisApp.solday )
-
-        current_singles_count = get_singles_count()
-
-        # Invoke actions every day...
-
-        # Run any callback scheduled for this solday
-        EVENTS.invoke_callbacks( )
-
-        # Poulation building
-        if RANDOM.random() < float(thisApp.fraction_singles_pairing_per_day) * current_singles_count :
-            ACTIONS.make_families( )
-        # TODO need a model for relationship breakdown
-        # break_families()
-
-        # Need a model for multi-person accidents
-        #  work or family
-        #  occupation
-        #  infection/disease
-        # consider multi-person accidents, either work or families
-
-        # Model resources - both consumed and produced
-        # Model inflation
-
-
-        # give a ~monthly (every 28 sols) and end of year log message
-        if ( sol % 28 ) == 0 or sol == 668:
-            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
-
-            if thisApp.cache_details:
-                LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
-
-            res = add_summary_entry( )
-
-            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Available Commodities: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
-
-        if solyear > 1 and ( sol % 668 ) == 0:
-
-            add_annual_demographics( )
-
-        thisApp.solday += 1
-        # from wikipedia
-        # https://en.wikipedia.org/wiki/Timekeeping_on_Mars#Sols
-        thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147)
-
+    # Write the final summary entry and other simulation details....
     res = add_summary_entry()
 
     add_annual_demographics( )
@@ -888,6 +1044,11 @@ def cli( ctx,
                 ( MODELS.Simulation.simulation_id == thisApp.simulation )
             ).execute()
     )
+
+    if thisApp.use_memory_database:
+        with DB.backup.backup("main", DB.db.connection(), "main") as sync:
+            while not sync.done:
+                sync.step(4096)
 
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Completed.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )

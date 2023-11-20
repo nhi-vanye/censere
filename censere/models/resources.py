@@ -11,6 +11,7 @@ import sys
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 from censere.config import thisApp, current_solday, current_simulation
 
@@ -73,13 +74,13 @@ class Commodity(playhouse.signals.Model):
         return "{} ({})".format( self.commodity, self.commodity_id ) 
 
     # Unique identifier for a single physical commodity
-    commodity_id = peewee.CharField( 32, index=True, unique=True, primary_key=True )
+    commodity_id = APSW.CharField( 32, index=True, unique=True, primary_key=True )
 
     # allow the same database to be used for multple executions
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
 
     # Human Name
-    commodity = peewee.CharField( 16, default=Resource.Other )
+    commodity = APSW.CharField( 16, default=Resource.Other )
 
     def initialize(self, commodity=Resource.Other ):
 
@@ -116,24 +117,26 @@ class CommodityResevoir(playhouse.signals.Model):
     def __str__(self):
         return "CommodityResevoir:{} ({}) on %d %f".format( self.name, self.store_id, self.solday, self.current_capacity ) 
 
-    store_id = peewee.CharField( 32, index=True, unique=False )
+    store_id = APSW.CharField( 32, index=True, unique=False )
 
-    name = peewee.CharField( null=True )
+    name = APSW.CharField( null=True )
 
-    commodity_id = peewee.CharField( 32, index=True, unique=False )
-    commodity = peewee.CharField( null=True)
+    commodity_id = APSW.CharField( 32, index=True, unique=False )
+    commodity = APSW.CharField( null=True)
 
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
+
+    availability = APSW.CharField( default="randint:1,1", null=True)
 
     # current status - updated by external availability callbacks
-    is_online = peewee.BooleanField( default=True )
+    is_online = APSW.BooleanField( default=True )
 
-    description = peewee.CharField( null=True)
+    description = APSW.CharField( null=True)
 
     # could use DB constraints to limit, but its easier at the application
     # so we don't have to handle database exceptions
-    initial_capacity = peewee.FloatField( default=0.0 )
-    max_capacity = peewee.FloatField( default=0.0)
+    initial_capacity = APSW.FloatField( default=0.0 )
+    max_capacity = APSW.FloatField( default=0.0)
 
     def initialize(self, max_capacity, initial_capacity=0.0, commodity=Resource.Other, description="" ):
         self.simulation_id = thisApp.simulation
@@ -163,7 +166,7 @@ class CommodityResevoir(playhouse.signals.Model):
         if idx not in commodity_counts:
             commodity_counts[idx] = 1
 
-        self.name = f"{idx}-{commodity_counts[idx]}"
+        self.name = f"{idx}-{commodity_counts[idx]:03d}"
         self.description = description
 
         commodity_counts[idx] += 1
@@ -180,23 +183,25 @@ class CommoditySupplier(playhouse.signals.Model):
             (('simulation_id', 'commodity_id', 'supplier_id'), True),
         )
 
-    supplier_id = peewee.CharField( 32, index=True, unique=True, primary_key=True )
+    supplier_id = APSW.CharField( 32, index=True, unique=True, primary_key=True )
 
-    name = peewee.CharField( )
+    name = APSW.CharField( )
 
-    commodity_id = peewee.CharField( 32, index=True, unique=False )
-    commodity = peewee.CharField( null=True)
+    commodity_id = APSW.CharField( 32, index=True, unique=False )
+    commodity = APSW.CharField( null=True)
 
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
+
+    availability = APSW.CharField( default="randint:1,1", null=True)
 
     # current status - updated by external availability callbacks
-    is_online = peewee.BooleanField( default=True )
+    is_online = APSW.BooleanField( default=True )
 
-    description = peewee.CharField( null=True)
+    description = APSW.CharField( null=True)
 
     # we store the model i.e. randint:1,4 not the calculated
     # value to make it dynamic
-    supplies = peewee.CharField( default="randint:0,0" )
+    supplies = APSW.CharField( default="randint:0,0" )
 
     def initialize(self, supplies, commodity=Resource.Other, description="" ):
 
@@ -218,7 +223,7 @@ class CommoditySupplier(playhouse.signals.Model):
         if idx not in commodity_counts:
             commodity_counts[idx] = 1
 
-        self.name = f"{idx}-{commodity_counts[idx]}"
+        self.name = f"{idx}-{commodity_counts[idx]:03d}"
         self.description = description
 
         commodity_counts[idx] += 1
@@ -235,26 +240,28 @@ class CommodityConsumer(playhouse.signals.Model):
             (('simulation_id', 'commodity_id', 'consumer_id'), True),
         )
 
-    consumer_id = peewee.CharField( 32, index=True, unique=True, primary_key=True )
+    consumer_id = APSW.CharField( 32, index=True, unique=True, primary_key=True )
 
-    name = peewee.CharField( )
+    name = APSW.CharField( )
 
-    commodity_id = peewee.CharField( 32, index=True, unique=False )
-    commodity = peewee.CharField( null=True)
+    commodity_id = APSW.CharField( 32, index=True, unique=False )
+    commodity = APSW.CharField( null=True)
 
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
+
+    availability = APSW.CharField( default="randint:1,1", null=True)
 
     # current status - updated by external availability callbacks
-    is_online = peewee.BooleanField( default=True )
+    is_online = APSW.BooleanField( default=True )
 
-    description = peewee.CharField( null=True)
+    description = APSW.CharField( null=True)
 
     # we store the model i.e. randint:1,4 not the calculated
     # value to make it dynamic
-    consumes = peewee.CharField( default="randint:0,0" )
+    consumes = APSW.CharField( default="randint:0,0" )
 
     # if True, consumes is per-settler so multiply by living population
-    is_per_settler = peewee.BooleanField( 12 )
+    is_per_settler = APSW.BooleanField( 12 )
 
     def initialize(self, consumes, commodity=Resource.Other, description="" ):
 
@@ -278,7 +285,7 @@ class CommodityConsumer(playhouse.signals.Model):
         if idx not in commodity_counts:
             commodity_counts[idx] = 1
 
-        self.name = f"{idx}-{commodity_counts[idx]}"
+        self.name = f"{idx}-{commodity_counts[idx]:03d}"
         self.description = description
 
         commodity_counts[idx] += 1
@@ -303,23 +310,25 @@ class CommodityUsage(playhouse.signals.Model):
         return "{} ({})".format( self.commodity_type, self.commodity_id ) 
 
     # allow the same database to be used for multple executions
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
 
-    commodity = peewee.CharField( 16, default="other" )
+    commodity = APSW.CharField( 16, default="other" )
 
-    commodity_id = peewee.CharField( 32, index=True, unique=False )
+    commodity_id = APSW.CharField( 32, index=True, unique=False )
 
     # Link back to the balance / credit /debit 
-    key_type = peewee.CharField(32 )
-    key_id = peewee.CharField(32, index=True, unique=False )
+    key_type = APSW.CharField(32 )
+    key_id = APSW.CharField(32, index=True, unique=False )
+
+    is_online = APSW.BooleanField( default=True)
 
     # name corresponding to key_id
-    name = peewee.CharField( 16, default="other" )
+    name = APSW.CharField( 16, default="other" )
 
-    solday = peewee.IntegerField()
+    solday = APSW.IntegerField()
 
-    debit = peewee.FloatField( default=0.0, null=True)
-    credit = peewee.FloatField( default=0.0, null=True)
+    debit = APSW.FloatField( default=0.0, null=True)
+    credit = APSW.FloatField( default=0.0, null=True)
 
     def initialize(self, commodity, commodity_id, debit=None, credit=None ):
 
@@ -332,6 +341,8 @@ class CommodityUsage(playhouse.signals.Model):
 
         if credit:
             self.credit = credit
+
+        is_online = True
 
 class CommodityResevoirCapacity(playhouse.signals.Model):
 
@@ -347,16 +358,18 @@ class CommodityResevoirCapacity(playhouse.signals.Model):
     def __str__(self):
         return "CommodityResevoirCapacity:{} on {} {}".format( self.store_id, self.solday, self.capacity ) 
 
-    store_id = peewee.CharField( 32, index=True, unique=False )
+    store_id = APSW.CharField( 32, index=True, unique=False )
 
-    simulation_id = peewee.UUIDField( index=True, unique=False )
+    simulation_id = APSW.UUIDField( index=True, unique=False )
 
-    commodity = peewee.CharField( 32, index=True, unique=False )
-    commodity_id = peewee.CharField( 32, index=True, unique=False )
+    commodity = APSW.CharField( 32, index=True, unique=False )
+    commodity_id = APSW.CharField( 32, index=True, unique=False )
 
-    solday = peewee.IntegerField()
+    solday = APSW.IntegerField()
 
-    capacity = peewee.FloatField( default=0.0 )
+    capacity = APSW.FloatField( default=0.0 )
+
+    is_online = APSW.BooleanField( default=True)
 
     def initialize(self, store_id, commodity, commodity_id, capacity=0.0 ):
 

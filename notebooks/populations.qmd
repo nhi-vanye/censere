@@ -1,0 +1,132 @@
+---
+title: "Population Dynamics"
+
+params:
+  dbpathname: /dev/null
+---
+
+```{r install}
+#| echo: FALSE
+#| include: FALSE
+install.packages("renv")
+install.packages("rmarkdown")
+install.packages("RSQLite")
+
+install.packages("dplyr")
+
+install.packages("sqldf")
+
+install.packages("plotly")
+install.packages("ggplot2")
+
+install.packages("reactable")
+
+# rolling data aggregation
+install.packages("zoo")
+
+```
+
+```{r imports}
+#| echo: FALSE
+#| include: FALSE
+#| cache: FALSE
+library(DBI)
+library(dplyr)
+library(sqldf)
+library(ggplot2)
+library(plotly)
+
+library(zoo)
+library(reactable)
+
+```
+
+# Abstract
+
+This summarises the population on Mars over time.
+
+
+```{r load_data}
+#| echo: FALSE
+#| include: FALSE
+#| cache: FALSE
+
+dbfile = params$dbpathname
+
+dbconn <- dbConnect(RSQLite::SQLite(), dbfile)
+
+```
+
+```{r process_data}
+#| echo: FALSE
+#| cache: FALSE
+
+summary <- dbReadTable(dbconn, "summary")
+demographics <- dbReadTable(dbconn, "demographics")
+
+summary$simulation_id = as.factor(summary$simulation_id)
+demographics$simulation_id = as.factor(demographics$simulation_id)
+
+```
+
+```{r population_chart}
+#| echo: FALSE
+#| warning: false
+
+ggplot(summary) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom", 
+          legend.direction = "horizontal" ) +
+    ylab("Population") +
+    xlab("Sols") +
+    geom_line(
+      aes(x = solday, y = population, color=simulation_id)
+    ) +
+    geom_vline( xintercept=1, color="purple" ) +
+    scale_color_brewer( palette = "Set1" )
+
+```
+
+## Population Birth and Death Rates
+
+
+```{r birth_chart}
+#| echo: FALSE
+#| warning: false
+
+
+ggplot(demographics) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom", 
+          legend.direction = "horizontal" ) +
+    ylab("Births per 1000 people") +
+    xlab("Sols") +
+    geom_point(
+      aes(x = solday, y = avg_annual_birth_rate, color=simulation_id)
+    ) +
+    geom_vline( xintercept=1, color="purple" ) +
+    scale_color_brewer( palette = "Set1" )
+
+```
+
+```{r death_chart}
+#| echo: FALSE
+#| warning: false
+
+ggplot(demographics) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom", 
+          legend.direction = "horizontal" ) +
+    ylab("Deaths per 1000 people") +
+    xlab("Sols") +
+    geom_point(
+      aes(x = solday, y = avg_annual_death_rate, color=simulation_id)
+    ) +
+    geom_vline( xintercept=1, color="purple" ) +
+    scale_color_brewer( palette = "Set1" )
+
+```
+

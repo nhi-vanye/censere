@@ -2,14 +2,29 @@
 #
 # see LICENSE.md for license details
 
+import apsw.bestpractice
+
 import peewee
+import playhouse.apsw_ext as APSW
+
+apsw.bestpractice.apply(apsw.bestpractice.recommended)
 
 from .local import mod as mod
 
-db = peewee.SqliteDatabase( None )
+# I hate peewee's use of double quotes around tables and fields, the SQL looks ugly
+
+# -use-memory-database requires APSW
+class NoQuotesAPSW(APSW.APSWDatabase):
+    quote = ( '', '' )
+
+class NoQuotes(peewee.SqliteDatabase):
+    quote = ( '', '' )
+
+db = NoQuotesAPSW( None )
+
+backup = None
 
 import censere.models
-
 
 ## 
 # Each model (in models/) needs to have its table created

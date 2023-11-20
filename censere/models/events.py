@@ -9,6 +9,7 @@
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 import censere.db as DB
 
@@ -23,23 +24,23 @@ class Event(playhouse.signals.Model):
         table_name = 'events'
 
     # Unique identifier for the simulation
-    simulation_id = peewee.UUIDField( )
+    simulation_id = APSW.UUIDField( )
 
-    registered = peewee.IntegerField()
+    registered = APSW.IntegerField()
 
-    when = peewee.IntegerField( index=True, unique=False )
+    runon = APSW.IntegerField( index=True, unique=False )
     # the callback will additionally be triggered when
     # solday % periodic == 0
-    periodic = peewee.IntegerField( default = 0 )
+    periodic = APSW.IntegerField( default = 0 )
 
     # allow ordering of callbacks within a single Sol
     # (low ones are executed first)
-    order = peewee.IntegerField( default=20)
+    priority = APSW.IntegerField( default=20)
 
-    callback_func = peewee.CharField( 64 )
+    callback_func = APSW.CharField( 64 )
 
-    idx = peewee.IntegerField( default=0 )
+    idx = APSW.IntegerField( default=0 )
 
-    args = peewee.TextField( default="{}" )
+    args = APSW.TextField( default="{}" )
 
 

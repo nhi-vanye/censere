@@ -1,14 +1,50 @@
 project:
-  title: "Mars Censere"
+  title: "Censere"
   output-dir: _output
   execute-dir: project
-  type: website
+  type: book
+
+engine: knitr
+
+date: now
+
+toc: true
+toc-title: Contents
+number-sections: FALSE
+
+fig-dpi : 300
+
+keep-md: TRUE
+
+format:  
+  html:
+    default-image-extension: svg
+    embed-resources: true
+    toc: true
+    code-tools:
+      source: true
+      toggle: false
+      caption: none
+    df-print: kable
+  pdf:
+    default-image-extension: pdf
+    toc: true
+    colorlinks: true
+    documentclass: scrreport
+    papersize: a4
 
 website:
-  title: "Mars Censere"
+  title: "Censere - Simulation Results"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - summary/summary.qmd
+      - populations.qmd
+      - resources.qmd
 
+book:
+  title: "Censere - Simulation Results"
+  subtitle: "Censere - a Framework for Numerically Simulating the Human Settlement of Mars"
+  date: now
+  chapters:
+    - index.qmd
+    - populations.qmd
+    - resources.qmd

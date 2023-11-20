@@ -54,6 +54,7 @@ class thisApp(object):
     resource = None
     resource_consumption_per_settler = None
     resource_consumption_per_sol = None
+    allow_negative_commodities = None
 
     # runtime
     simulation = ""
@@ -62,11 +63,12 @@ class thisApp(object):
     # as they don't change within a simulation
     commodity_ids = {}
 
+    profilingHandle = None
+
     # used to build a printable string of the "useful" class members
     # 
-    def args(as_list=False):
+    def args(sep=" ", as_list=False):
 
-        # random_seed has its own column
         excludes=[ 'args',
                   '__module__',
                   '__dict__',
@@ -74,29 +76,42 @@ class thisApp(object):
                   '__doc__',
                   '__str__',
                   'NOTICE',
-                  'DETAILS',
+                  'DETAIL',
                   'TRACE',
+                  'profilingHandle'
+                  'use_memory_database',
+                  'cache_details',
+                  'enable_profiling',
+                  'commodity_ids',
                   'solday',
                   'database',
                   'debug',
                   'debug_sql',
                   'dump',
                   'log_level',
+                  'database_dir',
+                  'profilingHandle',
+                  'random_seed',
+                  'top_dir',
+                  'use_memory_database',
+                  'verbose'
                  ]
 
         res=[]
 
 
-        for v in sorted(thisApp.__dict__.keys()):
+        for v in thisApp.__dict__.keys():
 
             if v not in excludes:
 
                 res.append( f"{v}={thisApp.__dict__[v]}" )
 
+        res.sort()
+
         if as_list is True:
             return res
 
-        return " ".join(res)
+        return sep.join(res)
 
     def __str__():
         return args()

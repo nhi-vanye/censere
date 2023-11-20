@@ -10,6 +10,7 @@
 from __future__ import division
 
 import peewee
+import playhouse.apsw_ext as APSW
 import playhouse.signals
 
 from censere.config import thisApp
@@ -33,24 +34,24 @@ class Demographic(playhouse.signals.Model):
         table_name = 'demographics'
 
     # Unique identifier for the simulation
-    simulation_id = peewee.UUIDField( )
+    simulation_id = APSW.UUIDField( )
 
-    solday = peewee.IntegerField( )
+    solday = APSW.IntegerField( )
     # All the calculations are based on soldays
     # but that is not very easy to plot
     # so provide a convertion to a datetime
     # based on inital_mission_lands date
-    earth_datetime = peewee.DateTimeField()
+    earth_datetime = APSW.DateTimeField()
 
-    avg_annual_birth_rate = peewee.FloatField( null=True, default=0.0 )
-    avg_annual_death_rate = peewee.FloatField( null=True, default=0.0 )
+    avg_annual_birth_rate = APSW.FloatField( null=True, default=0.0 )
+    avg_annual_death_rate = APSW.FloatField( null=True, default=0.0 )
 
-    avg_partnerships = peewee.FloatField( null=True, default=0.0 )
-    num_partnerships_started = peewee.IntegerField( null=True, default=0 )
-    num_partnerships_ended = peewee.IntegerField( null=True, default=0 )
+    avg_partnerships = APSW.FloatField( null=True, default=0.0 )
+    num_partnerships_started = APSW.IntegerField( null=True, default=0 )
+    num_partnerships_ended = APSW.IntegerField( null=True, default=0 )
 
-    num_single_settlers = peewee.IntegerField( null=True, default=0 )
-    num_partnered_settlers = peewee.IntegerField( null=True, default=0 )
+    num_single_settlers = APSW.IntegerField( null=True, default=0 )
+    num_partnered_settlers = APSW.IntegerField( null=True, default=0 )
 
     def initialize( self ):
 

@@ -11,6 +11,7 @@ import numpy
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 from censere.config import thisApp
 
@@ -30,20 +31,20 @@ class Population(playhouse.signals.Model):
         table_name = 'populations'
 
     # Unique identifier for the simulation
-    simulation_id = peewee.UUIDField( )
+    simulation_id = APSW.UUIDField( )
 
-    solday = peewee.IntegerField( )
+    solday = APSW.IntegerField( )
     # All the calculations are based on soldays
     # but that is not very easy to plot
     # so provide a convertion to a datetime
     # based on inital_mission_lands date
-    earth_datetime = peewee.DateTimeField()
+    earth_datetime = APSW.DateTimeField()
 
 
-    bucket = peewee.CharField( 8 )
-    sol_years = peewee.IntegerField( 8 )
-    sex = peewee.CharField( 1 )
-    value = peewee.IntegerField( )
+    bucket = APSW.CharField( 8 )
+    sol_years = APSW.IntegerField( 8 )
+    sex = APSW.CharField( 1 )
+    value = APSW.IntegerField( )
 
 def get_population_histogram( ):
 

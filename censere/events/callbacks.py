@@ -815,10 +815,12 @@ def commodity_goes_online(**kwargs):
 
         res.save()
 
-        LOGGER.log( logging.INFO,
-               '%d.%03d Taking %s on-line',
-               *UTILS.from_soldays( thisApp.solday ),
-               res.name)
+        LOGGER.log(thisApp.NOTICE,
+                   '%d.%03d %s %s %s is on-line',
+                   *UTILS.from_soldays( thisApp.solday ),
+                   res.commodity.capitalize(),
+                   kwargs['table'],
+                   res.name)
 
 
 def commodity_goes_offline(**kwargs):
@@ -850,10 +852,12 @@ def commodity_goes_offline(**kwargs):
 
         res.save()
 
-        LOGGER.log( logging.INFO,
-               '%d.%03d Taking %s off-line',
-               *UTILS.from_soldays( thisApp.solday ),
-               res.name)
+        LOGGER.log( thisApp.NOTICE,
+                   '%d.%03d %s %s %s is off-line',
+                   *UTILS.from_soldays( thisApp.solday ),
+                   res.commodity.capitalize(),
+                   kwargs['table'],
+                   res.name)
 
 
 def resource_starvation(**kwargs):

@@ -486,7 +486,7 @@ def run_seed_mission():
                 res = add_summary_entry( )
 
                 if thisApp.report_commodity_status:
-                    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Commodities banked: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
+                    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
 
         # commit the transaction before backing it up
         if ( thisApp.solday % 28 ) == 0:
@@ -545,7 +545,7 @@ def run_mission():
             res = add_summary_entry( )
 
             if thisApp.report_commodity_status:
-                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Commodities banked: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
+                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
 
             if thisApp.use_memory_database:
                 with DB.backup.backup("main", DB.db.connection(), "main") as sync:
@@ -869,7 +869,7 @@ def cli( ctx,
 
     thisApp.report_commodity_status = True
 
-    if use_memory_database and thisApp.database:
+    if use_memory_database is True and thisApp.database_dir == "":
         logging.fatal("Incompatable settings, use-memory-database must be used in conjunction with --database-dir")
         sys.exit(1)
 

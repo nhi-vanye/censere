@@ -7,7 +7,8 @@
 # R packages
 packrat/*
 
-# any local sqlite files
+# any local sqlite or log files in topdir
+# there are db files in sims/
 *.db
 *.sql*
 data/*

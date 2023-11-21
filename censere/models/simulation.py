@@ -6,6 +6,7 @@
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 import censere.db as DB
 
@@ -22,31 +23,33 @@ class Simulation(playhouse.signals.Model):
         table_name = 'simulations'
 
     # Unique identifier for the simulation
-    simulation_id = peewee.UUIDField( unique=True)
+    simulation_id = APSW.UUIDField( unique=True)
 
-    initial_mission_lands = peewee.DateTimeField()
+    seed_mission_lands = APSW.IntegerField( null=True)
+    seed_mission_earth_time = APSW.DateTimeField( null=True)
+    initial_mission_lands = APSW.DateTimeField()
 
     # record the wall time we ran the simulation
-    begin_datetime = peewee.DateTimeField( )
-    end_datetime = peewee.DateTimeField( null=True )
+    begin_datetime = APSW.DateTimeField( )
+    end_datetime = APSW.DateTimeField( null=True )
 
-    limit = peewee.CharField( )
-    limit_count = peewee.IntegerField( )
+    limit_type = APSW.CharField( )
+    limit_count = APSW.IntegerField( )
 
     # how many days did the simulation run for
-    mission_ends = peewee.DateTimeField( null=True )
+    mission_ends = APSW.DateTimeField( null=True )
 
-    final_soldays = peewee.IntegerField( null=True)
-    final_population = peewee.IntegerField( null=True)
+    final_soldays = APSW.IntegerField( null=True)
+    final_population = APSW.IntegerField( null=True)
 
     ## record arguments used to configure simulation
-    args = peewee.TextField( null=True )
+    args = APSW.TextField( null=True )
 
     # add a column for storing simulation notes
     # Nothing in generator will add to this column, its for
     # storing descriptive text found during analysis
     # include a default to avoid storing NULLs which hamper graphing
-    notes = peewee.TextField( null=True, default='' )
+    notes = APSW.TextField( null=True, default='' )
 
-    random_seed = peewee.IntegerField( null=True )
-    random_state = peewee.TextField( null=True )
+    random_seed = APSW.IntegerField( null=True )
+    random_state = APSW.TextField( null=True )

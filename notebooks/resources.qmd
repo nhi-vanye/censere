@@ -1,0 +1,243 @@
+---
+title: "The Supply and Consumption of Resources"
+
+params:
+  dbpathname: /dev/null
+---
+
+```{r install}
+#| echo: FALSE
+#| include: FALSE
+install.packages("renv")
+install.packages("rmarkdown")
+install.packages("RSQLite")
+
+install.packages("dplyr")
+
+install.packages("sqldf")
+
+install.packages("plotly")
+install.packages("ggplot2")
+
+
+# rolling data aggregation
+install.packages("runner")
+
+```
+
+```{r imports}
+#| echo: FALSE
+#| include: FALSE
+#| cache: FALSE
+library(DBI)
+library(dplyr)
+library(sqldf)
+library(ggplot2)
+library(plotly)
+
+library(runner)
+
+```
+## Abstract
+
+This chapter summarises resource supply, storage and consumption.
+
+
+```{r load_data}
+#| echo: FALSE
+#| include: FALSE
+#| cache: FALSE
+
+dbfile = params$dbpathname
+
+dbconn <- dbConnect(RSQLite::SQLite(), dbfile)
+
+```
+
+
+```{r process_data}
+#| echo: FALSE
+#| include: FALSE
+
+
+commodity_resevoir_storage <- dbReadTable(dbconn, "commodity_resevoir_storage")
+commodity_activity <- dbReadTable(dbconn, "commodity_activity")
+
+commodity_activity$commodity <- as.factor(commodity_activity$commodity)
+
+banked <- sqldf("
+SELECT solday, commodity, sum(capacity) as banked
+FROM commodity_resevoir_storage
+GROUP BY solday,commodity                
+ORDER BY solday asc
+")
+
+consumed <- sqldf("
+SELECT solday, commodity, sum(debit) as daily_consumption
+FROM commodity_activity
+WHERE key_type = 'consumer'
+GROUP BY solday,commodity
+ORDER BY solday asc
+")
+
+banked$commodity <- as.factor(banked$commodity)
+consumed$commodity <- as.factor(consumed$commodity)
+
+
+suppliers = commodity_activity[commodity_activity$key_type == 'supplier',]
+
+```
+
+## Quantity of Resources Stored
+
+
+```{r resource_abs_storage}
+#| echo: FALSE
+#| warning: false
+#| cap-location: margin
+
+ggplot(banked) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom", 
+          legend.direction = "horizontal" ) +
+    ylab("Stored Commodity") +
+    xlab("Sols") +
+    geom_col(
+      aes(x = solday, y = banked)
+    ) +
+    geom_vline( xintercept=1, color="purple" ) +
+    scale_fill_brewer( palette = "Set1" ) +
+    facet_wrap(. ~ commodity, scales = "free")
+
+```
+
+## Resource Runway
+
+```{r resource_runway}
+#| echo: FALSE
+#| label: resource_runway
+#| warning: false
+#| cap-location: margin
+
+runway <- merge(banked,consumed,by=c("solday","commodity"))
+
+# TODO: we should really use a rolling mean, but there's something wierd
+# going on around day -96 and 0 - there's a dicontinuity
+runway$num_days <- runway$banked / runway$daily_consumption
+#runway$mean_7sol <- zoo::rollmean(runway$daily_consumption, k = 7, fill = NA)
+#runway$mean_7sol <- mean_run(runway$daily_consumption, k=14, lag=-14, na_pad = FALSE)
+#runway$mean_28sol <- zoo::rollmean(runway$daily_consumption, k = 28, fill = NA)
+
+runway$banked <- as.integer(runway$banked)
+runway$num_days <- as.integer(runway$num_days)
+
+ggplot(runway) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.position = "bottom", 
+          legend.direction = "horizontal",
+          ) +
+    ylab("# Sols Consumption Stored") +
+    xlab("Sols") +
+    geom_line(
+      aes(x = solday, y = num_days, color=commodity)
+    ) +
+    guides(linetype = guide_legend(override.aes = list(size = 10)) ) +
+    geom_vline( xintercept=1, color="purple", text="Settlers Land" ) +
+    scale_color_brewer( palette = "Set1" )
+
+```
+
+## Resource Suppliers
+
+### Electricity
+
+```{r electricity_resource_suppliers}
+#| echo: FALSE
+#| label: electricity_resources
+#| warning: false
+#| column: page
+#| cap-location: margin
+#| fig-width: 6
+#| fig-height: 6
+
+
+ggplot(suppliers[ suppliers$commodity == "electricity",] ) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+            legend.position = "none",
+           text = element_text(size=10),
+        axis.text.x = element_text(angle=90, hjust=1) 
+    ) +
+    ylab("Resource Supplied (kW)") +
+    xlab("Sols") +
+    geom_col(
+        aes(x = solday, y = credit, color=commodity)
+    ) +
+    geom_vline( xintercept=1, color="purple", text="Settlers Land" ) +
+    scale_color_brewer( palette = "Set1" ) +
+    facet_wrap(. ~ name)
+
+
+```
+
+### Water
+
+```{r water_resource_suppliers}
+#| echo: FALSE
+#| label: water_resources
+#| warning: false
+#| column: page
+#| cap-location: margin
+#| fig-width: 6
+#| fig-height: 6
+
+ggplot(suppliers[ suppliers$commodity == "water",] ) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+            legend.position = "none", 
+           text = element_text(size=10),
+        axis.text.x = element_text(angle=90, hjust=1) 
+    ) +
+    ylab("Resource Supplied (l)") +
+    xlab("Sols") +
+    geom_col(
+        aes(x = solday, y = credit, color=commodity)
+    ) +
+    geom_vline( xintercept=1, color="purple", text="Settlers Land" ) +
+    scale_color_brewer( palette = "Set1" ) +
+    facet_wrap(. ~ name)
+
+
+```
+
+### Oxygen
+
+```{r o2_resource_suppliers}
+#| echo: FALSE
+#| label: o2_resources
+#| warning: false
+#| column: page
+#| cap-location: margin
+#| fig-width: 6
+#| fig-height: 6
+
+ggplot(suppliers[ suppliers$commodity == "o2",] ) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+            legend.position = "none", 
+           text = element_text(size=10),
+        axis.text.x = element_text(angle=90, hjust=1) 
+    ) +
+    ylab("Resource Supplied (l)") +
+    xlab("Sols") +
+    geom_col(
+        aes(x = solday, y = credit, color=commodity)
+    ) +
+    geom_vline( xintercept=1, color="purple", text="Settlers Land" ) +
+    scale_color_brewer( palette = "Set1" ) +
+    facet_wrap(. ~ name)
+
+
+```

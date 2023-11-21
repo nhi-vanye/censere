@@ -52,7 +52,7 @@ class CensereCLI(click.Group):
         type=int,
         help="Set system-wide verbosity")
 @click.option(
-    '--debug',
+    '--debug/--no-debug',
         default=False,
         is_flag=True,
         help="Run in development mode (additional logging)")
@@ -73,7 +73,7 @@ class CensereCLI(click.Group):
         is_flag=True,
         help="Dump the simulation parameters to stdout and exit (CENSERE_DUMP)")
 @click.option(
-    '--debug-sql',
+    '--debug-sql/--no-debug-sql',
         default=False,
         is_flag=True,
         help="Enable debug mode for SQL queries (CENSERE_DEBUG_SQL)")
@@ -110,7 +110,7 @@ or
 """)
 
     logging.addLevelName(thisApp.NOTICE, "NOTICE")
-    logging.addLevelName(thisApp.DETAILS, "DETAIL")
+    logging.addLevelName(thisApp.DETAIL, "DETAIL")
     logging.addLevelName(thisApp.TRACE, "TRACE")
 
     logging.config.dictConfig( censere.LOGGING )
@@ -123,7 +123,7 @@ or
         logging.getLogger("d.trace").setLevel("ERROR")
 
     for kv in log_level:
-        s = kv.split("=")
+        s = kv.split(":")
         logging.getLogger( s[0] ).setLevel( s[1] )
         
 

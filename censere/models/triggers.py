@@ -1,16 +1,23 @@
 
 import logging
 
+import pprint
+
+import peewee
 import playhouse.signals 
 
 from censere.config import thisApp
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
+import censere.events as EVENTS
 
 from .settler import Settler as Settler
 from .settler import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
+from .resources import CommodityResevoir as CommodityResevoir
+from .resources import CommodityResevoirCapacity as CommodityResevoirCapacity
+from .resources import CommodityUsage as CommodityUsage
 
 LOGGER = logging.getLogger("c.m.triggers")
 DEVLOG = logging.getLogger("d.devel")
@@ -153,7 +160,7 @@ def relationship_post_save(sender, instance, created):
             )
 
             LOGGER.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-            LOGGER.log( thisApp.DETAILS, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+            LOGGER.log( thisApp.DETAIL, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
 
         else:
 
@@ -187,5 +194,4 @@ def relationship_post_save(sender, instance, created):
 #   update a person's productivity as the age/pregnant/maternity/paternity leave
 #   update a person's resource consumption (oxygen etc) as they grow from birth
 #   update habitation needs as families change
-
 

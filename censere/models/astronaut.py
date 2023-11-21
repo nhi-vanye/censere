@@ -11,6 +11,8 @@ Completely re-written November 2019: Richard Offer
 
 import logging
 
+import playhouse.apsw_ext as APSW
+
 from censere.config import thisApp
 
 import censere.db as DB

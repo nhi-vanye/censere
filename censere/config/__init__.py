@@ -8,8 +8,9 @@
 
 # Application configuration
 class thisApp(object):
-    NOTICE = 25     # status messages
-    DETAILS = 15    # info + additional details
+    NOTICE = 25     # higher value status messages
+    # INFO == 20
+    DETAIL = 15    # info + additional details
     TRACE = 1
 
     verbose = None
@@ -36,6 +37,7 @@ class thisApp(object):
     relationship_length = None
     sols_between_siblings = None
     use_ivf = None
+    seed_resources_lands = None
     initial_mission_lands = None
     limit = None
     limit_count = None
@@ -45,15 +47,28 @@ class thisApp(object):
     settlers_per_ship = None
     ships_per_mission = None
     cache_details = None
+    enable_profiling = None
+
+    seed_resource = None
+    seed_resource_consumption_per_sol = None
+    resource = None
+    resource_consumption_per_settler = None
+    resource_consumption_per_sol = None
+    allow_negative_commodities = None
 
     # runtime
     simulation = ""
 
+    # cache the IDs for the basic resource to avoid lookups
+    # as they don't change within a simulation
+    commodity_ids = {}
+
+    profilingHandle = None
+
     # used to build a printable string of the "useful" class members
     # 
-    def args(as_list=False):
+    def args(sep=" ", as_list=False):
 
-        # random_seed has its own column
         excludes=[ 'args',
                   '__module__',
                   '__dict__',
@@ -61,32 +76,57 @@ class thisApp(object):
                   '__doc__',
                   '__str__',
                   'NOTICE',
-                  'DETAILS',
+                  'DETAIL',
                   'TRACE',
+                  'profilingHandle'
+                  'use_memory_database',
+                  'cache_details',
+                  'enable_profiling',
+                  'commodity_ids',
                   'solday',
                   'database',
                   'debug',
                   'debug_sql',
                   'dump',
                   'log_level',
+                  'database_dir',
+                  'profilingHandle',
+                  'random_seed',
+                  'top_dir',
+                  'use_memory_database',
+                  'verbose'
                  ]
 
         res=[]
 
 
-        for v in sorted(thisApp.__dict__.keys()):
+        for v in thisApp.__dict__.keys():
 
             if v not in excludes:
 
                 res.append( f"{v}={thisApp.__dict__[v]}" )
 
+        res.sort()
+
         if as_list is True:
             return res
 
-        return " ".join(res)
+        return sep.join(res)
 
     def __str__():
         return args()
+
+def current_simulation():
+    """wraps the variable thisApp.solday so that peewee can use it dynamically
+    """
+
+    return thisApp.simulation
+
+def current_solday():
+    """wraps the variable thisApp.solday so that peewee can use it dynamically
+    """
+
+    return thisApp.solday
 
 ##
 # Dummy class to hold configuration details for the generator

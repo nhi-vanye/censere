@@ -253,12 +253,16 @@ def random():
 
     return NPRND.random()
 
+def randf(low:float, high:float) -> float:
 
-## return a random number between start and stop
+    return ( (high - low ) * NPRND.random_sample() ) + low
+
+
+## return a random integer between start and stop
 #
 # Return a random integer N such that a <= N < b.
 #
-def randrange( start, stop ):
+def randrange( start:int, stop:int ) -> int:
 
     return NPRND.randint( start, stop )
 
@@ -266,26 +270,31 @@ def randrange( start, stop ):
 #
 # Return a random integer N such that a <= N <= b. Alias for randrange(a, b+1)
 #
-def randint( start, stop ):
+def randint( start:int, stop:int ) -> int:
 
     if start == stop:
         return start
 
     return randrange( start, stop + 1  )
 
-def gauss( mean, sigma):
+def normal( mean:float, sigma:float) -> float:
 
-    return mean + ( NPRND.randn() * sigma )
+    return NPRND.normal( mean, sigma )
 
 def triangle( minimum, peak, maximum):
+    "works with int or float"
 
     return NPRND.triangular( minimum, peak, maximum )
 
-def choice( lst):
+def binomial( probability:float) -> bool:
+
+    return NPRND.binomial( 1, probability, 1 ) == 1
+
+def choice( lst:list):
 
     return NPRND.choice( lst )
 
-def choices( lst, weights=None ):
+def choices( lst:list, weights=None ):
 
     return NPRND.choice( lst, None, p=[ (i/100.0) for i in weights ] )
 
@@ -304,6 +313,9 @@ def life_expectancy():
 # 
 def parse_random_value( key, default_value=None, key_in_earth_years=False ):
 
+    if key == "":
+        return default_value
+
     val = key.split(":")
 
     value = default_value
@@ -317,9 +329,13 @@ def parse_random_value( key, default_value=None, key_in_earth_years=False ):
         values = [ float(i) for i in val[1].split(",") ]
         value = triangle( values[0], values[1], values[2] )
 
-    elif val[0] == "gauss":
+    elif val[0] == "normal":
         values = [ float(i) for i in val[1].split(",") ]
-        value = gauss( values[0], values[1] ),
+        value = normal( values[0], values[1] )
+
+    elif val[0] == "binomial":
+        values = [ float(i) for i in val[1].split(",") ]
+        value = binomial( values[0] )
 
     elif val[0] == "randint":
 

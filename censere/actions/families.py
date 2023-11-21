@@ -105,7 +105,7 @@ def make(*args ):
         relationship_ends = thisApp.solday + relationship_length
 
         EVENTS.register_callback(
-            when= relationship_ends,
+            runon= relationship_ends,
             callback_func=CALLBACKS.end_relationship,
             kwargs= { "relationship_id" : r.relationship_id, "simulation": thisApp.simulation }
         )
@@ -185,7 +185,7 @@ def make(*args ):
 
                     # register a function to be called at `when`
                     EVENTS.register_callback(
-                        when= birth_day,
+                        runon= birth_day,
                         callback_func=CALLBACKS.settler_born,
                         kwargs= {
                             "biological_mother" : mother,

@@ -4,6 +4,7 @@
 
 import peewee
 import playhouse.signals
+import playhouse.apsw_ext as APSW
 
 import censere.db as DB
 
@@ -35,20 +36,20 @@ class Relationship( playhouse.signals.Model ):
     def __repr__(self):
         return "{} {} <-> {}".format( self.relationship_id, self.first, self.second ) 
 
-    simulation_id = peewee.UUIDField()
+    simulation_id = APSW.UUIDField()
 
-    relationship_id = peewee.CharField( 32 )
+    relationship_id = APSW.CharField( 32 )
 
     # These are not marked as foreign keys to allow relationships to people
     # that do not exist in the database
     # i.e. parents of astronauts
     #
     # TODO - we could tighten it up and make `first` a foreign key
-    first = peewee.UUIDField()
-    second = peewee.UUIDField()
+    first = APSW.UUIDField()
+    second = APSW.UUIDField()
 
-    relationship = peewee.IntegerField()
+    relationship = APSW.IntegerField()
 
-    begin_solday = peewee.IntegerField()
-    end_solday = peewee.IntegerField( default=0 )
+    begin_solday = APSW.IntegerField()
+    end_solday = APSW.IntegerField( default=0 )
 

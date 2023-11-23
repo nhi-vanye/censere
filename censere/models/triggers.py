@@ -1,23 +1,16 @@
 
 import logging
 
-import pprint
+import playhouse.signals
 
-import peewee
-import playhouse.signals 
-
-from censere.config import thisApp
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
-import censere.events as EVENTS
+from censere.config import thisApp
 
-from .settler import Settler as Settler
-from .settler import LocationEnum as LocationEnum
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
-from .resources import CommodityResevoir as CommodityResevoir
-from .resources import CommodityResevoirCapacity as CommodityResevoirCapacity
-from .resources import CommodityUsage as CommodityUsage
+from .settler import LocationEnum as LocationEnum
+from .settler import Settler as Settler
 
 LOGGER = logging.getLogger("c.m.triggers")
 DEVLOG = logging.getLogger("d.devel")
@@ -75,7 +68,7 @@ def settler_post_save(sender, instance, created):
         return
 
     for i in instance._dirty_field_cache:
-        
+
         if i.name == "death_solday":
 
             LOGGER.debug( "%d.%03d Updated death_solday for %s %s (%s)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
@@ -83,11 +76,11 @@ def settler_post_save(sender, instance, created):
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
 
-            for r in Relationship().select().filter( 
+            for r in Relationship().select().filter(
                 ( Relationship.relationship == RelationshipEnum.partner ) &
                 ( Relationship.end_solday == 0 ) &
-                ( 
-                    ( Relationship.first == instance.settler_id ) | 
+                (
+                    ( Relationship.first == instance.settler_id ) |
                     ( Relationship.second == instance.settler_id )
                 )):
 
@@ -111,7 +104,7 @@ def relationship_pre_save(sender, instance, created):
     if not created:
         instance._dirty_field_cache = instance.dirty_fields
 
-## 
+##
 #
 @playhouse.signals.post_save(sender=Relationship)
 def relationship_post_save(sender, instance, created):
@@ -125,10 +118,11 @@ def relationship_post_save(sender, instance, created):
 
             # instance.second is one of the biological parents of instance.first
             # so look at reltionships that are on that parent
-            for row in Relationship.select().where( 
+            # pylint: disable-next=not-an-iterable
+            for row in Relationship.select().where(
                 ( Relationship.first == instance.second ) &
                 # not a partner relationship
-                ( Relationship.relationship > 0 ) ) : 
+                ( Relationship.relationship > 0 ) ) :
 
                 r = Relationship()
 
@@ -150,12 +144,12 @@ def relationship_post_save(sender, instance, created):
     if instance.relationship == RelationshipEnum.partner:
         if created:
 
-            ( 
-                Settler.update( 
-                    { Settler.state: 'couple'} 
-                ).where( 
+            (
+                Settler.update(
+                    { Settler.state: 'couple'}
+                ).where(
                     ( Settler.settler_id == instance.first ) |
-                    ( Settler.settler_id == instance.second ) 
+                    ( Settler.settler_id == instance.second )
                 ).execute()
             )
 
@@ -167,7 +161,7 @@ def relationship_post_save(sender, instance, created):
             # iterate over dirty fields
 
             for i in instance._dirty_field_cache:
-        
+
                 if i.name == "end_solday":
 
                     # relationship has ended
@@ -177,10 +171,10 @@ def relationship_post_save(sender, instance, created):
                         # triggers (pre_save or post_save)
                         # update each of the partners to make them single again
                         # if they are not dead.
-                        ( 
-                            Settler.update( 
-                                { Settler.state: 'single'} 
-                            ).where( 
+                        (
+                            Settler.update(
+                                { Settler.state: 'single'}
+                            ).where(
                                 ( ( Settler.settler_id == instance.first ) |
                                 ( Settler.settler_id == instance.second ) ) &
                                 ( Settler.death_solday == 0 )
@@ -194,4 +188,3 @@ def relationship_post_save(sender, instance, created):
 #   update a person's productivity as the age/pregnant/maternity/paternity leave
 #   update a person's resource consumption (oxygen etc) as they grow from birth
 #   update habitation needs as families change
-

@@ -9,6 +9,6 @@ def parse_resources( fields : list ) -> dict:
 
         words = field.split("=")
 
-        resources[ words[0] ] = words[1]
+        resources[ words[0].strip() ] = words[1].strip()
 
     return resources

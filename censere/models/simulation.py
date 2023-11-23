@@ -4,19 +4,18 @@
 
 # Stores details on a given simulation run.
 
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
+import playhouse.signals
 
 import censere.db as DB
 
 
 ##
 # Store details about the simulation
-# There will be additional details in the `summary` table 
+# There will be additional details in the `summary` table
 # that are suitable for charting
 class Simulation(playhouse.signals.Model):
-    
+
     class Meta:
         database = DB.db
 

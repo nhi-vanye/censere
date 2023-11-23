@@ -24,7 +24,7 @@ class thisApp(object):
     notes = None
     database_dir = ""
     astronaut_age_range = None
-    astronaut_gender_ratio = None 
+    astronaut_gender_ratio = None
     astronaut_life_expectancy = None
     common_ancestor = None
     first_child_delay = None
@@ -66,8 +66,9 @@ class thisApp(object):
     profilingHandle = None
 
     # used to build a printable string of the "useful" class members
-    # 
-    def args(sep=" ", as_list=False):
+    #
+    @classmethod
+    def args(cls, sep=" ", as_list=False):
 
         excludes=[ 'args',
                   '__module__',
@@ -113,8 +114,9 @@ class thisApp(object):
 
         return sep.join(res)
 
-    def __str__():
-        return args()
+    @classmethod
+    def __str__(cls):
+        return cls.args()
 
 def current_simulation():
     """wraps the variable thisApp.solday so that peewee can use it dynamically
@@ -161,7 +163,6 @@ class MergeOptions():
     def register(self, parser):
 
         super().register(parser)
- 
+
         parser.add_argument( 'args', nargs="+",
             help='List of databases to combine into DATABASE' )
-

@@ -7,13 +7,13 @@ Completely re-written November 2019: Richard Offer
 """
 
 # Module governing the attributes of the settlers
-# Updated to use an ORM for storage in database 
+# Updated to use an ORM for storage in database
 
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
+import playhouse.signals
 
 import censere.db as DB
+
 
 class LocationEnum():
     other = 'other'
@@ -41,7 +41,7 @@ class Settler(playhouse.signals.Model):
     ## provide a internal representation function
     # to make debugging easier
     def __repr__(self):
-        return "{} {} ({})".format( self.first_name, self.family_name, self.settler_id ) 
+        return "{} {} ({})".format( self.first_name, self.family_name, self.settler_id )
 
     # allow the same database to be used for multple executions
     simulation_id = APSW.UUIDField( index=True, unique=False )
@@ -80,7 +80,7 @@ class Settler(playhouse.signals.Model):
     # obviously only valid for `f`
     pregnant = APSW.BooleanField( default=False )
 
-    # TODO 
+    # TODO
     # how to track health state ???
 
     # Track Martian or Earther
@@ -97,5 +97,3 @@ class Settler(playhouse.signals.Model):
 
     # How productive is person ??
     productivity = APSW.IntegerField( default=50 )
-
-

@@ -11,20 +11,18 @@ Completely re-written November 2019: Richard Offer
 
 import logging
 
-import playhouse.apsw_ext as APSW
-
+import censere.db as DB
+import censere.utils.random as RANDOM
 from censere.config import thisApp
 
-import censere.db as DB
-
-import censere.utils.random as RANDOM
-
-from .settler import Settler as Settler
+from .names import (
+    get_random_family_name,
+    get_random_female_first_name,
+    get_random_male_first_name,
+)
 from .settler import LocationEnum as LocationEnum
+from .settler import Settler as Settler
 
-from .names import get_random_male_first_name
-from .names import get_random_female_first_name
-from .names import get_random_family_name
 
 class Astronaut(Settler):
 
@@ -32,7 +30,7 @@ class Astronaut(Settler):
         database = DB.db
 
         table_name = 'settlers'
-    
+
     def initialize(self, solday, sex=None, config=None):
 
         if config == None:
@@ -55,7 +53,7 @@ class Astronaut(Settler):
             if self.sex == 'm':
                 self.first_name = get_random_male_first_name()
 
-                # \TODO straight:homosexual:bisexual = 90:6:4 
+                # \TODO straight:homosexual:bisexual = 90:6:4
                 self.orientation = RANDOM.choices( [ 'f', 'm', 'mf' ], [int(i) for i in thisApp.orientation.split(",") ] )[0]
 
             else:
@@ -76,20 +74,19 @@ class Astronaut(Settler):
 
         self.current_location = LocationEnum.Mars
 
-        # add dummy biological parents to make consanguinity 
+        # add dummy biological parents to make consanguinity
         # easier (no special cases)
-        # There is an assumption that astronauts are not 
+        # There is an assumption that astronauts are not
         # related to any earlier astronaut
         self.biological_father = RANDOM.id()
         self.biological_mother = RANDOM.id()
 
         # earth age in earth days converted to sols, then backdated from now
         try:
-            self.birth_solday =  solday - RANDOM.parse_random_value( thisApp.astronaut_age_range, key_in_earth_years=True ) 
+            self.birth_solday =  solday - RANDOM.parse_random_value( thisApp.astronaut_age_range, key_in_earth_years=True )
         except Exception as e:
             logging.error( 'Failed to set birth_solday %s',thisApp.astronaut_age_range )
 
         self.cohort = solday
 
         self.productivity = 100
-

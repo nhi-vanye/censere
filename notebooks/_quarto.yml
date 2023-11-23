@@ -1,6 +1,5 @@
 project:
   title: "Censere"
-  output-dir: _output
   execute-dir: project
   type: book
 
@@ -16,7 +15,7 @@ fig-dpi : 300
 
 keep-md: TRUE
 
-format:  
+format:
   html:
     default-image-extension: svg
     embed-resources: true

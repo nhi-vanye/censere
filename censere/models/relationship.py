@@ -2,11 +2,11 @@
 #
 # see LICENSE.md for license details
 
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
+import playhouse.signals
 
 import censere.db as DB
+
 
 class RelationshipEnum():
     partner = 0
@@ -34,7 +34,7 @@ class Relationship( playhouse.signals.Model ):
         )
 
     def __repr__(self):
-        return "{} {} <-> {}".format( self.relationship_id, self.first, self.second ) 
+        return "{} {} <-> {}".format( self.relationship_id, self.first, self.second )
 
     simulation_id = APSW.UUIDField()
 
@@ -52,4 +52,3 @@ class Relationship( playhouse.signals.Model ):
 
     begin_solday = APSW.IntegerField()
     end_solday = APSW.IntegerField( default=0 )
-

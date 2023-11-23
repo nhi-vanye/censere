@@ -8,23 +8,20 @@
 # Stores demographic results
 
 import numpy
-
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
-
-from censere.config import thisApp
+import playhouse.signals
 
 import censere.db as DB
-
+from censere.config import thisApp
 
 from .settler import Settler as Settler
+
 
 ##
 # Collect population details
 #
 class Population(playhouse.signals.Model):
-    
+
     class Meta:
         database = DB.db
 
@@ -49,12 +46,12 @@ class Population(playhouse.signals.Model):
 def get_population_histogram( ):
 
 
-    q = Settler.select( 
+    q = Settler.select(
             thisApp.solday - Settler.birth_solday,
             Settler.sex
-        ).where( 
+        ).where(
             ( Settler.simulation_id == thisApp.simulation ) &
-            ( Settler.death_solday == 0 ) 
+            ( Settler.death_solday == 0 )
         ).tuples()
 
     f = []
@@ -76,4 +73,3 @@ def get_population_histogram( ):
     females = numpy.histogram( f, bins=bins )
 
     return ( males, females )
-

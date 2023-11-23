@@ -3,13 +3,12 @@
 # see LICENSE.md for license details
 
 import apsw.bestpractice
-
 import peewee
 import playhouse.apsw_ext as APSW
 
 apsw.bestpractice.apply(apsw.bestpractice.recommended)
 
-from .local import mod as mod
+from .local import mod as mod  # pylint: disable=unused-import
 
 # I hate peewee's use of double quotes around tables and fields, the SQL looks ugly
 
@@ -22,11 +21,12 @@ class NoQuotes(peewee.SqliteDatabase):
 
 db = NoQuotesAPSW( None )
 
-backup = None
+backup = NoQuotesAPSW( None )
 
 import censere.models
 
-## 
+
+##
 # Each model (in models/) needs to have its table created
 # so there should be an entry here.
 def create_tables():

@@ -7,17 +7,17 @@
 
 # Stores summary results
 
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
+import playhouse.signals
 
 import censere.db as DB
+
 
 ##
 # Store Events for future invocation
 #
 class Event(playhouse.signals.Model):
-    
+
     class Meta:
         database = DB.db
 
@@ -42,5 +42,3 @@ class Event(playhouse.signals.Model):
     idx = APSW.IntegerField( default=0 )
 
     args = APSW.TextField( default="{}" )
-
-

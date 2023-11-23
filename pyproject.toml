@@ -12,7 +12,7 @@ version = "0.5.0"
 authors = [
     {name = "Richard Offer", email = "richard@whitequeen.com"},
 ]
-description = "'Mars Population Simulation software."
+description = "'Numerical Simulation Framework for Modelling the Human Settlement of Mars"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -21,17 +21,13 @@ classifiers = [
 ]
 dependencies = [
     "attrs",
+    "bandit",
     "click",
     "Cython",
-    "dash",
-    "dash-core-components",
-    "dash-html-components",
-    "dash-table",
     "exceptiongroup",
-    "Flask",
     "iniconfig",
+    "isort",
     "itsdangerous",
-    "Jinja2",
     "MarkupSafe",
     "matplotlib",
     "numpy",
@@ -39,19 +35,17 @@ dependencies = [
     "pandas",
     "peewee",
     "pip",
-    "plotly",
     "pluggy",
     "py-cpuinfo",
     "pyparsing",
+    "pylint",
     "pytest",
     "pytest-benchmark",
     "python-dateutil",
     "pytz",
     "setuptools",
     "six",
-    "tenacity",
     "tomli",
-    "Werkzeug",
     "wheel"
 ]
 
@@ -68,7 +62,11 @@ packages = [
 
 ]
 
+[tool.isort]
+profile = "black"
+
+[tool.bandit]
+exclude_dirs = ["tests", "path/to/file"]
 
 [project.scripts]
 mars-censere = "censere.cli:cli"
-

@@ -9,14 +9,13 @@
 
 import sys
 
-import peewee
-import playhouse.signals
 import playhouse.apsw_ext as APSW
-
-from censere.config import thisApp, current_solday, current_simulation
+import playhouse.signals
 
 import censere.db as DB
 import censere.utils.random as RANDOM
+from censere.config import thisApp
+
 
 class Resource():
     Other = 'other'
@@ -71,7 +70,7 @@ class Commodity(playhouse.signals.Model):
     ## provide a internal representation function
     # to make debugging easier
     def __repr__(self):
-        return "{} ({})".format( self.commodity, self.commodity_id ) 
+        return "{} ({})".format( self.commodity, self.commodity_id )
 
     # Unique identifier for a single physical commodity
     commodity_id = APSW.CharField( 32, index=True, unique=True, primary_key=True )
@@ -115,7 +114,7 @@ class CommodityResevoir(playhouse.signals.Model):
         )
 
     def __str__(self):
-        return "CommodityResevoir:{} ({}) on %d %f".format( self.name, self.store_id, self.solday, self.current_capacity ) 
+        return f"CommodityResevoir:{self.name} ({self.store_id}) {self.max_capacity}"
 
     store_id = APSW.CharField( 32, index=True, unique=False )
 
@@ -156,7 +155,7 @@ class CommodityResevoir(playhouse.signals.Model):
         self.initial_capacity = min(self.max_capacity,
                                     RANDOM.parse_random_value(initial_capacity) )
 
-        global commodity_counts
+        global commodity_counts # pylint: disable=global-variable-not-assigned
 
         if description:
             idx = description
@@ -213,7 +212,7 @@ class CommoditySupplier(playhouse.signals.Model):
 
         self.supplies = supplies
 
-        global commodity_counts
+        global commodity_counts # pylint: disable=global-variable-not-assigned
 
         if description:
             idx = description
@@ -275,7 +274,7 @@ class CommodityConsumer(playhouse.signals.Model):
 
         self.is_settler = False
 
-        global commodity_counts
+        global commodity_counts # pylint: disable=global-variable-not-assigned
 
         if description:
             idx = description
@@ -307,7 +306,7 @@ class CommodityUsage(playhouse.signals.Model):
     ## provide a internal representation function
     # to make debugging easier
     def __repr__(self):
-        return "{} ({})".format( self.commodity_type, self.commodity_id ) 
+        return "{} ({})".format( self.commodity_type, self.commodity_id )
 
     # allow the same database to be used for multple executions
     simulation_id = APSW.UUIDField( index=True, unique=False )
@@ -316,7 +315,7 @@ class CommodityUsage(playhouse.signals.Model):
 
     commodity_id = APSW.CharField( 32, index=True, unique=False )
 
-    # Link back to the balance / credit /debit 
+    # Link back to the balance / credit /debit
     key_type = APSW.CharField(32 )
     key_id = APSW.CharField(32, index=True, unique=False )
 
@@ -356,7 +355,7 @@ class CommodityResevoirCapacity(playhouse.signals.Model):
         )
 
     def __str__(self):
-        return "CommodityResevoirCapacity:{} on {} {}".format( self.store_id, self.solday, self.capacity ) 
+        return "CommodityResevoirCapacity:{} on {} {}".format( self.store_id, self.solday, self.capacity )
 
     store_id = APSW.CharField( 32, index=True, unique=False )
 
@@ -381,5 +380,3 @@ class CommodityResevoirCapacity(playhouse.signals.Model):
         self.commodity_id = commodity_id
 
         self.capacity = capacity
-
-

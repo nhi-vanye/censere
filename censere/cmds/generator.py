@@ -4,47 +4,44 @@
 #
 # see LICENSE.md for license details
 
-import os
-import sys
-
 import base64
+import cProfile
 import datetime
 import logging
+import os
 import pathlib
-import pickle as ENC
-import uuid
-import pprint
-
-import cProfile
+import pickle as ENC  # nosec B403
 import pstats
-
-import peewee
+import sys
+import uuid
 
 import click
+import peewee
 
 import censere
+import censere.actions as ACTIONS
+import censere.db as DB
+import censere.events as EVENTS
+import censere.models as MODELS
+import censere.models.functions as FUNC
+
+# Import the database triggers to handle automation inside the DB
+# Not called directly, but still needed
+import censere.models.triggers as TRIGGERS  # pylint: disable=unused-import
+import censere.utils as UTILS
+import censere.utils.random as RANDOM
+import censere.version as VERSION
+from censere.config import thisApp
 
 #from censere.config import GeneratorOptions as OPTIONS
 
-from censere.config import thisApp
-
-import censere.db as DB
-
-import censere.events as EVENTS
-
-import censere.models as MODELS
-# Import the database triggers to handle automation inside the DB
-# Not called directly, but still needed
-import censere.models.triggers as TRIGGERS #pylint: disable=unused-import
-import censere.models.functions as FUNC
 
 
-import censere.actions as ACTIONS
 
-import censere.utils as UTILS
-import censere.utils.random as RANDOM
 
-import censere.version as VERSION
+
+
+
 
 LOGGER = logging.getLogger("c.cli.generator")
 DEVLOG = logging.getLogger("d.devel")
@@ -57,14 +54,13 @@ class StringList(click.ParamType):
 
 def load_parameters_from_file(ctx, param, value ):
     if value:
-        with open( value, "r") as params:
-            for line in params:
-                line = line.strip()
-                if line[0] == '#':
-                    next
-                comps = line.split("=", maxsplit=2)
-                os.environ[ comps[0] ] = comps[1].strip()
-
+        import tomllib
+        with open( value, "rb") as params:
+            data = tomllib.load(params)
+            for var,val in data.items():
+                if type(val) == "str":
+                    val = value.strip()
+                os.environ[ var ] = str(val)
 
 def print_hints_and_exit(ctx, param, value):
 
@@ -76,9 +72,13 @@ The Database should be on a local disk - not in Dropbox etc.
 Parameter File
 ==============
 
-The parameter file uses the environment variable names in the following format
+The TOML formatted parameter file uses the environment variable names in the following format
 
 CENSERE_GENERATOR_SEED=1234
+
+For variables that support multiple values (i.e. seed-resource) separate each resource with a `;`. If you want to split the value over multiple lines in the paramter file, then use TOML's triple quoted string - but you still need to use `;` to separate the items
+
+If you want to set an empty variable, you may need to use a single `;` rather than empty string.
 
 The parameter file will provide an updated default, passing the corresponding
 option directly on the command line will override it.
@@ -231,15 +231,21 @@ def register_resources():
         # cache the resource id to make it easy to reference the resource without
         # a database lookup
         thisApp.commodity_ids[com.commodity] = com.commodity_id
-    
+
     # Create the Consumers that represents the per-settler resource consumption
+    # pylint: disable-next=not-an-iterable
+    if len(thisApp.resource_consumption_per_settler):
+        thisApp.report_commodity_status = True
+
+    # pylint: disable-next=not-an-iterable
     for res in thisApp.resource_consumption_per_settler:
+
         fields = res.split(" ")
 
         parsed = UTILS.parse_resources( fields )
 
         if parsed.get("consume", ""):
-            
+
             r = MODELS.CommodityConsumer()
 
             r.initialize(
@@ -485,12 +491,13 @@ def run_seed_mission():
 
                 res = add_summary_entry( )
 
-                if thisApp.report_commodity_status:
+                if thisApp.report_commodity_status is True:
                     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
 
         # commit the transaction before backing it up
         if ( thisApp.solday % 28 ) == 0:
             if thisApp.use_memory_database:
+                # pylint: disable-next=not-context-manager
                 with DB.backup.backup("main", DB.db.connection(), "main") as sync:
                     while not sync.done:
                         sync.step(4096)
@@ -531,7 +538,6 @@ def run_mission():
         #  infection/disease
         # consider multi-person accidents, either work or families
 
-        # Model resources - both consumed and produced
         # Model inflation
 
 
@@ -539,15 +545,16 @@ def run_mission():
         if ( sol % 28 ) == 0 or sol == 668:
             LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
 
-            if thisApp.cache_details:
+            if thisApp.cache_details is True:
                 LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
 
             res = add_summary_entry( )
 
-            if thisApp.report_commodity_status:
+            if thisApp.report_commodity_status is True:
                 LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
 
             if thisApp.use_memory_database:
+                # pylint: disable-next=not-context-manager
                 with DB.backup.backup("main", DB.db.connection(), "main") as sync:
                     while not sync.done:
                         sync.step(4096)
@@ -557,6 +564,7 @@ def run_mission():
             add_annual_demographics( )
 
             if thisApp.use_memory_database:
+                # pylint: disable-next=not-context-manager
                 with DB.backup.backup("main", DB.db.connection(), "main") as sync:
                     while not sync.done:
                         sync.step(4096)
@@ -720,7 +728,7 @@ def run_mission():
 #
 @click.option( '--seed-resources-lands',
         metavar="SOLS",
-        # time for two miniumum transfer orbits + 1 for go/no-go decisions 
+        # time for two miniumum transfer orbits + 1 for go/no-go decisions
         # https://www.jpl.nasa.gov/edu/teach/activity/lets-go-to-mars-calculating-launch-windows/
         # 259 Days = 252 Sols
         default= -(3*252),
@@ -867,7 +875,7 @@ def cli( ctx,
     thisApp.enable_profiling = profile
     thisApp.use_memory_database = use_memory_database
 
-    thisApp.report_commodity_status = True
+    thisApp.report_commodity_status = False
 
     if use_memory_database is True and thisApp.database_dir == "":
         logging.fatal("Incompatable settings, use-memory-database must be used in conjunction with --database-dir")
@@ -965,7 +973,7 @@ def cli( ctx,
 
         thisApp.solday = s.final_soldays
 
-        RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) )
+        RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) ) # nosec B301
 
     LOGGER.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
@@ -994,6 +1002,7 @@ def cli( ctx,
         register_initial_landing()
 
     if thisApp.use_memory_database:
+        # pylint: disable-next=not-context-manager
         with DB.backup.backup("main", DB.db.connection(), "main") as sync:
             while not sync.done:
                 sync.step(4096)
@@ -1046,6 +1055,7 @@ def cli( ctx,
     )
 
     if thisApp.use_memory_database:
+        # pylint: disable-next=not-context-manager
         with DB.backup.backup("main", DB.db.connection(), "main") as sync:
             while not sync.done:
                 sync.step(4096)
@@ -1054,5 +1064,5 @@ def cli( ctx,
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
     LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
-    LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
-
+    if thisApp.cache_details is True:
+        LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )

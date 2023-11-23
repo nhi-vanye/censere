@@ -3,7 +3,7 @@
 # see LICENSE.md for license details
 
 """ @package events
- 
+
 This module implements common event callback functions, these are
 registered using `events.register_callback()` to be triggered at some point
 in the future
@@ -13,18 +13,14 @@ in the future
 from __future__ import division
 
 import logging
-import pprint
 
 import peewee
 
-from censere.config import thisApp
-
+import censere.events as EVENTS
 import censere.models as MODELS
-
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
-
-import censere.events as EVENTS
+from censere.config import thisApp
 
 from .store import register_callback as register_callback
 
@@ -57,7 +53,7 @@ def settler_dies(**kwargs):
 
         c.save()
 
-## A person should be born - 
+## A person should be born -
 # the new person object is created only if mother is still alive
 #
 def settler_born(**kwargs):
@@ -79,8 +75,8 @@ def settler_born(**kwargs):
     mother = None
 
     try:
-        father = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_father) ) 
-        mother = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_mother) ) 
+        father = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_father) )
+        mother = MODELS.Settler.get( MODELS.Settler.settler_id == str(biological_mother) )
 
     except Exception as e:
 
@@ -183,7 +179,7 @@ def settler_born(**kwargs):
                 *UTILS.from_soldays( thisApp.solday ),
                 m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
 
-            register_callback( 
+            register_callback(
                 # handle the "cool off" period...
                 runon=when,
                 priority=20,
@@ -191,7 +187,7 @@ def settler_born(**kwargs):
                 kwargs= {
                     "simulation": thisApp.simulation,
                     "biological_mother" : mother.settler_id,
-                    "biological_father": father.settler_id 
+                    "biological_father": father.settler_id
                 }
             )
 
@@ -207,7 +203,7 @@ def settler_born(**kwargs):
 
 ##
 # A new lander arrives with #settlers
-# 
+#
 # TODO handle children (imagine aged 10-18, younger than that might be real world difficult)
 def mission_lands(**kwargs):
 
@@ -217,9 +213,10 @@ def mission_lands(**kwargs):
     # between multiple missions landing on the same day
     idx = 0
     if "idx" in kwargs:
-        idx = kwargs['idx'] 
+        idx = kwargs['idx']
 
     LOGGER.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
+
 
     for i in range(settlers):
 
@@ -246,7 +243,7 @@ def mission_lands(**kwargs):
 
         date_of_death = a.birth_solday + age_at_death
 
-        register_callback( 
+        register_callback(
             runon= max( date_of_death, thisApp.solday + RANDOM.randrange(1, 660)),
             priority=20,
             callback_func=EVENTS.settler_dies,
@@ -256,11 +253,11 @@ def mission_lands(**kwargs):
 
 ##
 # Break a relationship
-# 
-# 
+#
+#
 def end_relationship(**kwargs):
 
-    id = kwargs['relationship_id'] 
+    id = kwargs['relationship_id']
 
     LOGGER.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
 
@@ -279,11 +276,8 @@ def commodities_landed(**kwargs):
     if "resources" in kwargs:
         resources = kwargs["resources"]
 
-    for res in resources:
-        if not res:
-            thisApp.report_commodity_status = False
-        else:
-            thisApp.report_commodity_status = True
+    if len( resources ) and resources[0] != "":
+        thisApp.report_commodity_status = True
 
     if thisApp.solday < 0:
         LOGGER.log( thisApp.NOTICE, "%d.%03d Mission (Seed) landed with %d resources specifications", *UTILS.from_soldays( thisApp.solday ), len(resources))
@@ -397,7 +391,7 @@ def commodities_landed(**kwargs):
 
 def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
     """
-    This is triggered every sol BUT begins one sol after creation so 
+    This is triggered every sol BUT begins one sol after creation so
     that yestersol is already present
 
     It just copies from yestersol so that we're ready for tosol's consumption/supply
@@ -453,7 +447,7 @@ def per_sol_commodity_consumption(**kwargs):
             MODELS.CommodityConsumer.consumes,
             MODELS.CommodityConsumer.is_per_settler,
         ).filter(
-            MODELS.Commodity.simulation_id == thisApp.simulation 
+            MODELS.Commodity.simulation_id == thisApp.simulation
         ).join(
             MODELS.CommodityConsumer,
             peewee.JOIN.LEFT_OUTER,
@@ -516,7 +510,7 @@ def per_sol_commodity_supply(**kwargs):
             MODELS.CommoditySupplier.is_online.alias('supplier_online'),
             MODELS.CommoditySupplier.supplies,
         ).filter(
-            MODELS.Commodity.simulation_id == thisApp.simulation 
+            MODELS.Commodity.simulation_id == thisApp.simulation
         ).join(
             MODELS.CommoditySupplier,
             peewee.JOIN.LEFT_OUTER,
@@ -567,7 +561,7 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
 
     this is scheduled after all the CommodityUsage data has been updated for the day.
 
-    This just needs to apply the Sol's delta to the current record (already 
+    This just needs to apply the Sol's delta to the current record (already
     setup with Sol's starting value in per_sol_setup_each_commodity_resevoir_storage)
     """
 
@@ -588,7 +582,7 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
         ).filter(
             ( MODELS.CommodityResevoir.simulation_id == thisApp.simulation ) &
             ( MODELS.CommodityResevoirCapacity.solday == thisApp.solday ) &
-            ( MODELS.CommodityResevoir.is_online == True ) 
+            ( MODELS.CommodityResevoir.is_online == True )
         ).join(
             MODELS.CommodityResevoirCapacity,
             peewee.JOIN.LEFT_OUTER, attr='capacity',
@@ -602,7 +596,8 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
 
             stores[ row['commodity_id'] ].append( row )
 
-    except Exception as e:
+    # pylint: disable-next=bare-except
+    except: # nosec try_except_pass
         pass
 
     tosol_deltas = {}
@@ -625,18 +620,19 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
                 tosol_deltas[ row['commodity_id'] ] = 0.0
 
             tosol_deltas[ row['commodity_id'] ] -= row['debit']
-            
+
 
             tosol_deltas[ row['commodity_id'] ] += row['credit']
 
-    except:
+    # pylint: disable-next=bare-except
+    except: # nosec try_except_pass
         pass
 
 
     for commodity,stores in stores.items():
 
         if commodity not in tosol_deltas or len(stores) == 0:
-            next
+            continue
 
         total_capacity_across_all_stores = 0.0
 
@@ -671,7 +667,7 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
                 periodic = 0,
                 priority = 0, # most important
                 callback_func=EVENTS.callbacks.resource_starvation,
-                kwargs = { 
+                kwargs = {
                     "commodity" : commodity
                 }
             )
@@ -697,7 +693,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 # bring it back online tomorrowsol, but _before_ its re-evelauated
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_offline,
-                kwargs = { 
+                kwargs = {
                     "id" : row.supplier_id,
                     "table" : MODELS.CommodityType.Supplier
                 }
@@ -709,7 +705,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 # bring it back online tomorrowsol, but _before_ its re-evelauated
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_online,
-                kwargs = { 
+                kwargs = {
                     "id" : row.supplier_id,
                     "table" : MODELS.CommodityType.Supplier
                 }
@@ -732,7 +728,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 periodic = 0,
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_offline,
-                kwargs = { 
+                kwargs = {
                     "id" : row.consumer_id,
                     "table" : MODELS.CommodityType.Consumer
                 }
@@ -743,7 +739,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 periodic = 0,
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_online,
-                kwargs = { 
+                kwargs = {
                     "id" : row.consumer_id,
                     "table" : MODELS.CommodityType.Consumer
                 }
@@ -767,7 +763,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 periodic = 0,
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_offline,
-                kwargs = { 
+                kwargs = {
                     "id" : row.store_id,
                     "table" : MODELS.CommodityType.Resevoir
                 }
@@ -779,7 +775,7 @@ def per_sol_commodity_maintenance(**kwargs):
                 periodic = 0,
                 priority = 24,
                 callback_func=EVENTS.callbacks.commodity_goes_online,
-                kwargs = { 
+                kwargs = {
                     "id" : row.store_id,
                     "table" : MODELS.CommodityType.Resevoir
                 }
@@ -871,4 +867,3 @@ def resource_starvation(**kwargs):
     #  - reduce consumption
     #  - increase supply
     #  - everyone (slowly) dies until consumption matches supply
-

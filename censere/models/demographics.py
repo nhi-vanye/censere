@@ -9,19 +9,18 @@
 
 from __future__ import division
 
-import peewee
 import playhouse.apsw_ext as APSW
 import playhouse.signals
 
-from censere.config import thisApp
-
 import censere.db as DB
 import censere.utils as UTILS
+from censere.config import thisApp
 
-from .summary import Summary as Summary
-from .settler import Settler as Settler
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
+from .settler import Settler as Settler
+from .summary import Summary as Summary
+
 
 ##
 # Collect demographic details
@@ -144,4 +143,3 @@ class Demographic(playhouse.signals.Model):
             ( Settler.death_solday == 0 ) &
             ( Settler.birth_solday < (thisApp.solday - UTILS.years_to_sols(18) ) )
             ).count()
-

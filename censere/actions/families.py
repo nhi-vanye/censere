@@ -4,22 +4,16 @@
 
 from __future__ import division
 
-import logging
-
 import peewee
 
-from censere.config import thisApp
-
+import censere.events.callbacks as CALLBACKS
+import censere.events.store as EVENTS
 import censere.models as MODELS
-
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
+from censere import LOGGER
+from censere.config import thisApp
 
-import censere.events.store as EVENTS
-import censere.events.callbacks as CALLBACKS
-
-LOGGER = logging.getLogger("c.a.families")
-DEVLOG = logging.getLogger("d.devel")
 
 ##
 # Make a single new family out of two singles
@@ -30,7 +24,9 @@ DEVLOG = logging.getLogger("d.devel")
 # \param args - not normally used, but required for pytest benchmarking
 def make(*args ):
 
-    LOGGER.log( logging.INFO, '%d.%d (%d) Trying to make a new family', *UTILS.from_soldays( thisApp.solday ), thisApp.solday )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.info( f'{year}.{sol:03d} Trying to make a new family' )
 
     partner = MODELS.Settler.alias()
 
@@ -95,9 +91,7 @@ def make(*args ):
         r.relationship=MODELS.RelationshipEnum.partner
         r.begin_solday=thisApp.solday
 
-        LOGGER.log( logging.INFO, '%d.%d Creating family between %s %s and %s %s',
-            *UTILS.from_soldays( thisApp.solday ),
-            row['first_name1'], row['family_name1'], row['first_name2'], row['family_name2'] )
+        LOGGER.info( f'{year}.{sol:03d} Creating family between {row["first_name1"]} {row["family_name1"]} and {row["first_name2"]} {row["family_name2"]}')
 
         r.save()
 
@@ -172,13 +166,9 @@ def make(*args ):
                     if m.pregnant:
                         birth_day += 668
 
-                    LOGGER.log( thisApp.NOTICE, '%d.%03d %s %s and %s %s (%s,%s) are expecting a child on %d.%03d',
-                        *UTILS.from_soldays( thisApp.solday ),
-                        row['first_name1'], row['family_name1'],
-                        row['first_name2'], row['family_name2'],
-                        mother, father,
-                        *UTILS.from_soldays( birth_day )
-                    )
+                    (birthyear, birthsol) = UTILS.from_soldays( birth_day )
+
+                    LOGGER.info( f'{year}.{sol:03d} {row["first_name1"]} {row["family_name1"]} and {row["first_name2"]} {row["family_name2"]} ({mother},{father}) are expecting a child on {birthyear}.{birthsol:03d}')
 
                     m.pregnant = True
                     m.save()
@@ -195,7 +185,7 @@ def make(*args ):
                     )
 
 
-    LOGGER.log( logging.INFO, '%d.%d (%d) Made %d new families', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, num_relationships )
+    LOGGER.info( f'{year}.{sol:03d} ({thisApp.solday}) Made {num_relationships} new families' )
 
 ##
 # break up a family (while partners are alive)

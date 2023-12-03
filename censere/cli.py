@@ -4,22 +4,27 @@
 
 # CLI driver for the mars-censere application
 
-import click
 
 import os
 import pathlib
 
-import logging
-import logging.config
+import click
 
 import censere
-
+from censere import LOGGER
 from censere.config import thisApp
 
-LOGGER = logging.getLogger("c.cli")
-DEVLOG = logging.getLogger("d.devel")
-
 TOPDIR = str(pathlib.PosixPath(censere.__file__).parent)
+
+CFG = os.path.join(
+        click.get_app_dir("censere", force_posix=True),
+        'config.ini')
+
+CENSERE_LOG_DIR = "./"
+
+if "CENSERE_LOG_DIR" in os.environ:
+    CENSERE_LOG_DIR = os.environ[ "CENSERE_LOG_DIR" ]
+
 
 cmd_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "cmds"))
 
@@ -57,11 +62,15 @@ class CensereCLI(click.Group):
         is_flag=True,
         help="Run in development mode (additional logging)")
 @click.option(
-    '--log-level',
-        'log_level',
-        metavar="LOGGER=LEVEL",
-        help="Override logging level for given logger",
-        multiple=True)
+    '--enable-logger',
+        'logger_name',
+        type=click.Choice([
+            "censere.cmds.generator",
+            "censere.cmds.merge",
+        ]),
+    metavar="LOGGER",
+    help="Enable (internal) logger",
+    multiple=True)
 @click.option(
     '--database',
         default="censere.db",
@@ -77,13 +86,20 @@ class CensereCLI(click.Group):
         default=False,
         is_flag=True,
         help="Enable debug mode for SQL queries (CENSERE_DEBUG_SQL)")
-def cli(ctx, verbose, debug, log_level, database, dump, debug_sql):
+def cli(ctx, verbose, debug, logger_name, database, dump, debug_sql):
+
+    LOGGER.enable("censere.cli")
+    LOGGER.enable("censere.cmds.generator")
+    LOGGER.enable("censere.cmds.merge")
+
+    for l in logger_name:
+        LOGGER.enable(l)
 
     ctx.ensure_object(thisApp)
 
     # these are class variables so we can set them globally
+    thisApp.debug = debug
     thisApp.verbose = verbose
-    thisApp.log_level = log_level
     thisApp.database = database
     thisApp.dump = dump
     thisApp.debug_sql = debug_sql
@@ -95,7 +111,7 @@ def cli(ctx, verbose, debug, log_level, database, dump, debug_sql):
 
         click.echo("")
         click.echo("COMMANDS: ")
-        cmds = r.list_commands( ctx = ctx) 
+        cmds = r.list_commands( ctx = ctx)
         for c in cmds:
             name = c.replace('.py','')
             mod = __import__(f"censere.cmds.{name}", None, None, ["cli"])
@@ -109,25 +125,5 @@ or
     `censere <CMD> --hints`
 """)
 
-    logging.addLevelName(thisApp.NOTICE, "NOTICE")
-    logging.addLevelName(thisApp.DETAIL, "DETAIL")
-    logging.addLevelName(thisApp.TRACE, "TRACE")
-
-    logging.config.dictConfig( censere.LOGGING )
 
     thisApp.top_dir = str(pathlib.PosixPath(censere.__file__).parent)
-
-    if thisApp.debug is False:
-        # disable d.* logging
-        logging.getLogger("d.devel").setLevel("ERROR")
-        logging.getLogger("d.trace").setLevel("ERROR")
-
-    for kv in log_level:
-        s = kv.split(":")
-        logging.getLogger( s[0] ).setLevel( s[1] )
-        
-
-#if __name__ == '__main__':
-
-#    cli( obj=None , auto_envvar_prefix='CENSERE')
-

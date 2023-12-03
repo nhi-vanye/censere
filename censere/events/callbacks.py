@@ -12,20 +12,17 @@ in the future
 
 from __future__ import division
 
-import logging
-
 import peewee
 
 import censere.events as EVENTS
 import censere.models as MODELS
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
+from censere import LOGGER
 from censere.config import thisApp
 
 from .store import register_callback as register_callback
 
-LOGGER = logging.getLogger("c.e.callbacks")
-DEVLOG = logging.getLogger("d.devel")
 
 ## A person dies
 #
@@ -44,7 +41,9 @@ def settler_dies(**kwargs):
         LOGGER.error( "settler_dies event called with no person identifier")
         return
 
-    LOGGER.log( thisApp.NOTICE, "%d.%03d Settler %s (%s) dies ", *UTILS.from_soldays( thisApp.solday ), name, id )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.info( f"{year}.{sol:03d} Settler {name} ({id}) dies " )
 
     # Call the instance method to trigger callback handling.
     for c in MODELS.Settler().select().filter( ( MODELS.Settler.settler_id == id ) & ( MODELS.Settler.simulation_id == thisApp.simulation ) ):
@@ -71,6 +70,8 @@ def settler_born(**kwargs):
         LOGGER.error( "settler_born event called with no biological parents specified")
         return
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
     father = None
     mother = None
 
@@ -80,12 +81,12 @@ def settler_born(**kwargs):
 
     except Exception as e:
 
-        LOGGER.error( '%d.%03d Failed to find parents %s (%s) or %s (%s)', *UTILS.from_soldays( thisApp.solday ), father, str(biological_father), mother, str(biological_mother) )
+        LOGGER.error( f'{year}.{sol:03d} Failed to find parents {father} ({str(biological_father)}) or {mother} (str(biological_mother))')
         return
 
     # Mother died while pregnant - no child
     if mother.death_solday:
-        LOGGER.log( thisApp.NOTICE, '%d.%03d Mother %s died while pregnant.', *UTILS.from_soldays( thisApp.solday ), str(biological_mother) )
+        LOGGER.info( f'{year}.{sol:03d} Mother {str(biological_mother)} died while pregnant.' )
         return
 
     mother.pregnant = False
@@ -128,7 +129,7 @@ def settler_born(**kwargs):
 
     r2.save()
 
-    LOGGER.log( thisApp.NOTICE, '%d.%03d Martian %s %s (%s) born', *UTILS.from_soldays( thisApp.solday ), m.first_name, m.family_name, m.settler_id )
+    LOGGER.success( f'{year}.{sol:03d} Martian {m.first_nam} {m.family_name} ({m.settler_id}) born')
 
     age_at_death = RANDOM.parse_random_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
 
@@ -175,9 +176,9 @@ def settler_born(**kwargs):
 
             when = thisApp.solday + RANDOM.parse_random_value( thisApp.sols_between_siblings)
 
-            LOGGER.log( thisApp.NOTICE, '%d.%03d Sibling of %s %s (%s) to be born on %d.%03d',
-                *UTILS.from_soldays( thisApp.solday ),
-                m.first_name, m.family_name, m.settler_id, *UTILS.from_soldays( when )  )
+            (birth_year, birth_sol) = UTILS.from_soldays( when )
+
+            LOGGER.info( f'{year}.{sol:03d} Sibling of {m.first_name} {m.family_name} ({m.settler_id}) to be born on {birth_year}.{birth_sol:03d}' )
 
             register_callback(
                 # handle the "cool off" period...
@@ -192,14 +193,10 @@ def settler_born(**kwargs):
             )
 
         else:
-            LOGGER.log( thisApp.NOTICE, '%d.%03d No siblings for %s %s (%s)',
-                *UTILS.from_soldays( thisApp.solday ),
-                m.first_name, m.family_name, m.settler_id )
+            LOGGER.info( f'{year}.{sol:03d} No sibling for {m.first_name} {m.family_name} ({m.settler_id})' )
 
     else:
-        LOGGER.log( thisApp.NOTICE, '%d.%03d Parents of %s %s (%s) are no longer together, no siblings',
-                *UTILS.from_soldays( thisApp.solday ),
-                m.first_name, m.family_name, m.settler_id )
+        LOGGER.info( f'{year}.{sol:03d} Parents of {m.first_name} {m.family_name} ({m.settler_id}) are no longer together, no siblings')
 
 ##
 # A new lander arrives with #settlers
@@ -215,7 +212,9 @@ def mission_lands(**kwargs):
     if "idx" in kwargs:
         idx = kwargs['idx']
 
-    LOGGER.log( thisApp.NOTICE, "%d.%03d Mission landed with %d settlers", *UTILS.from_soldays( thisApp.solday ), settlers )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.success( f"{year}.{sol:03d} Mission landed with {settlers} settlers" )
 
 
     for i in range(settlers):
@@ -226,13 +225,13 @@ def mission_lands(**kwargs):
             a.initialize( thisApp.solday )
         except Exception as e:
 
-            LOGGER.error( 'Failed to initialize new astronaut: %s %s', str(e), str( a) )
+            LOGGER.error( f'{year}.{sol:03d} Failed to initialize new astronaut: {str(a)} ' )
 
             continue
 
         saved = a.save()
 
-        LOGGER.info( '%d.%03d Astronaut %s %s (%s) landed', *UTILS.from_soldays( thisApp.solday ), a.first_name, a.family_name, a.settler_id )
+        LOGGER.info( f'{year}.{sol:03d} Astronaut {a.first_name} {a.family_name} ({a.settler_id}) landed')
 
         # TODO model women outliving men
         # extra fudge `random.randrange(1, 660)` is to avoid the optics of a number of astronauts dying on the day they land
@@ -259,7 +258,9 @@ def end_relationship(**kwargs):
 
     id = kwargs['relationship_id']
 
-    LOGGER.info("%d.%03d Relationship %s ended", *UTILS.from_soldays( thisApp.solday ), id )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.info( f"{year}.{sol:03d} Relationship {id} ended" )
 
 
     rel = MODELS.Relationship.get( ( MODELS.Relationship.relationship_id == id ) & ( MODELS.Relationship.simulation_id == thisApp.simulation )  )
@@ -267,7 +268,6 @@ def end_relationship(**kwargs):
     rel.end_solday = thisApp.solday
 
     rel.save()
-
 
 def commodities_landed(**kwargs):
 
@@ -279,10 +279,12 @@ def commodities_landed(**kwargs):
     if len( resources ) and resources[0] != "":
         thisApp.report_commodity_status = True
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
     if thisApp.solday < 0:
-        LOGGER.log( thisApp.NOTICE, "%d.%03d Mission (Seed) landed with %d resources specifications", *UTILS.from_soldays( thisApp.solday ), len(resources))
+        LOGGER.success( f"{year}.{sol:03d} Mission (Seed) landed with {len(resources)} resources specified")
     else:
-        LOGGER.log( thisApp.NOTICE, "%d.%03d Mission landed with %d resource specifications", *UTILS.from_soldays( thisApp.solday ), len(resources))
+        LOGGER.success( f"{year}.{sol:03d} Mission landed with {len(resources)} resource specified")
 
     for res in resources:
 
@@ -334,7 +336,7 @@ def commodities_landed(**kwargs):
                 r.availability = parsed.get("availability", defaults["availability"])
 
                 r.save(force_insert=True)
-                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s consumer %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.consumer_id )
+                LOGGER.info( f"{year}.{sol:03d} Created {r.commodity} consumer {r.name} ({r.consumer_id})" )
 
             if parsed.get("store", False):
 
@@ -349,7 +351,7 @@ def commodities_landed(**kwargs):
                 r.availability = parsed.get("availability", defaults["availability"])
 
                 r.save(force_insert=True)
-                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s resevoir %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.store_id )
+                LOGGER.info( f"{year}.{sol:03d} Created {r.commodity} resevoir {r.name} ({r.store_id})" )
 
                 c = MODELS.CommodityResevoirCapacity()
 
@@ -386,7 +388,7 @@ def commodities_landed(**kwargs):
 
                 r.save(force_insert=True)
 
-                LOGGER.log( thisApp.DETAIL, "%d.%03d Created %s supply %s (%s)", *UTILS.from_soldays( thisApp.solday ), r.commodity, r.name, r.supplier_id )
+                LOGGER.info( f"{year}.{sol:03d} Created {r.commodity} supply {r.name} ({r.supplier_id})" )
 
 
 def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
@@ -411,6 +413,8 @@ def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
     if "commodity" not in kwargs:
         return
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
     capacity = MODELS.CommodityResevoirCapacity.select(
         MODELS.CommodityResevoirCapacity.capacity
     ).filter(
@@ -429,11 +433,12 @@ def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
 
     c.save(force_insert=True)
 
-
 def per_sol_commodity_consumption(**kwargs):
 
     if kwargs.get("idx",0) != 0:
         return
+
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     try:
 
@@ -486,18 +491,20 @@ def per_sol_commodity_consumption(**kwargs):
                 # from these changes...
                 ru.save(force_insert=True)
 
-                LOGGER.log( thisApp.DETAIL, "%d.%03d Updated %s's use of %s", *UTILS.from_soldays( thisApp.solday ), ru.name, ru.commodity)
+                LOGGER.info( f"{year}.{sol:03d} Updated {ru.name}'s use of {ru.commodity}")
 
 
     except Exception as e:
 
-        LOGGER.exception( "%d.%03d: %s", *UTILS.from_soldays( thisApp.solday ), str(e))
+        LOGGER.exception( f"{year}.{sol:03d}: ")
 
 
 def per_sol_commodity_supply(**kwargs):
 
     if kwargs.get("idx",0) != 0:
         return
+
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     try:
 
@@ -545,13 +552,13 @@ def per_sol_commodity_supply(**kwargs):
                 # from these changes...
                 ru.save(force_insert=True)
 
-                LOGGER.log( thisApp.DETAIL, "%d.%03d Updated %s's use of %s", *UTILS.from_soldays( thisApp.solday ), ru.name, ru.commodity)
+                LOGGER.info( f"{year}.{sol:03d} Updated {ru.name}'s use of {ru.commodity}")
 
 
 
     except Exception as e:
 
-        LOGGER.exception( "%d.%03d: %s", *UTILS.from_soldays( thisApp.solday ), str(e))
+        LOGGER.exception( f"{year}.{sol:03d}: ")
 
 
 def per_sol_update_commodity_resevoir_storage(**kwargs):
@@ -564,6 +571,8 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
     This just needs to apply the Sol's delta to the current record (already
     setup with Sol's starting value in per_sol_setup_each_commodity_resevoir_storage)
     """
+
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     # Supply and Consumption are global (i.e. not per resevoir) demand, so
     # don't join here or its gets big
@@ -673,6 +682,8 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
             )
 
 def per_sol_commodity_maintenance(**kwargs):
+
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     suppliers = MODELS.CommoditySupplier.select(
         MODELS.CommoditySupplier.supplier_id,
@@ -792,6 +803,7 @@ def commodity_goes_online(**kwargs):
     if "table" not in kwargs:
         return
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     if kwargs['table'] == MODELS.CommodityType.Consumer:
 
@@ -811,12 +823,7 @@ def commodity_goes_online(**kwargs):
 
         res.save()
 
-        LOGGER.log(thisApp.NOTICE,
-                   '%d.%03d %s %s %s is on-line',
-                   *UTILS.from_soldays( thisApp.solday ),
-                   res.commodity.capitalize(),
-                   kwargs['table'],
-                   res.name)
+        LOGGER.info( f'{year}.{sol:03d} {res.commodity.capitalize()} {kwargs["table"]} {res.name} is on-line')
 
 
 def commodity_goes_offline(**kwargs):
@@ -829,6 +836,7 @@ def commodity_goes_offline(**kwargs):
     if "table" not in kwargs:
         return
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     if kwargs['table'] == MODELS.CommodityType.Consumer:
 
@@ -848,20 +856,14 @@ def commodity_goes_offline(**kwargs):
 
         res.save()
 
-        LOGGER.log( thisApp.NOTICE,
-                   '%d.%03d %s %s %s is off-line',
-                   *UTILS.from_soldays( thisApp.solday ),
-                   res.commodity.capitalize(),
-                   kwargs['table'],
-                   res.name)
+        LOGGER.info( f'{year}.{sol:03d} {res.commodity.capitalize()} {kwargs["table"]} {res.name} is off-line')
 
 
 def resource_starvation(**kwargs):
 
-    LOGGER.log( logging.INFO,
-               '%d.%03d Commodity %s has been completely exhausted.',
-               *UTILS.from_soldays( thisApp.solday ),
-               kwargs['commodity'])
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.info( f'{year}.{sol:03d} Commodity {kwargs['commodity']} has been completely exhaustede')
 
     # TODO need to trigger some error condition, we've run out of X
     #  - reduce consumption

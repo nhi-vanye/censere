@@ -1,34 +1,35 @@
 
 import importlib
-import logging
 import json
 
+import censere.db as DB
+import censere.models as MODELS
+import censere.utils as UTILS
+from censere import LOGGER
 from censere.config import thisApp
 
-import censere.utils as UTILS
-
-import censere.models as MODELS
-
-import censere.db as DB
-
-LOGGER = logging.getLogger("c.e.store")
-DEVLOG = logging.getLogger("d.devel")
 
 ##
 # \param when - absolute solday to execute the function.
 # \param callback_func - fully qualified function
 def register_callback( runon=0, priority=20, periodic=0, name="", callback_func=None, kwargs=None ):
 
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
     if callback_func == None:
 
-        logging.error(f"Missing required arguments in call to register_callback( runon={runon}, callback={callback_func} {kwargs})")
+        LOGGER.error( f"Missing required arguments in call to register_callback( runon={runon}, callback={callback_func} {kwargs})")
 
         return
 
+    runon = int(runon)
+    (runon_yr, runon_sol) = UTILS.from_soldays( runon )
+
     if periodic == 0:
-        LOGGER.log( thisApp.DETAIL, "%d.%03d Registering %s() to be run once on %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, runon, *UTILS.from_soldays( runon ) )
+
+        LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}() to be run once on Sol {runon} ({runon_yr}.{runon_sol:03d})")
     else:
-        LOGGER.log( thisApp.DETAIL, "%d.%03d Registering %s() to be run every %d Sols starting on %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func.__name__, periodic, runon, *UTILS.from_soldays( runon ) )
+        LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}() to be run every {periodic} Sols starting on {runon} ({runon_yr}.{runon_sol:03d})" )
 
     try:
         idx = MODELS.Event.select().where(
@@ -52,14 +53,16 @@ def register_callback( runon=0, priority=20, periodic=0, name="", callback_func=
 
         e.save()
     except Exception as e:
-        LOGGER.log( logging.FATAL, "%d.%03d Failed to register callback %s() to be run at %d (%d.%d)", *UTILS.from_soldays( thisApp.solday ), callback_func, runon, *UTILS.from_soldays( runon ) )
+        LOGGER.critical( f"{year}.{sol:03d} Failed to register {callback_func}() to be run at {runon} ({runon_yr}.{runon_sol:03d})" )
         LOGGER.error( str(e))
 
 
 def invoke_callbacks( ):
     """Invoke callbacks register for the current Sol day"""
 
-    LOGGER.info( '%d.%03d Processing scheduled events', *UTILS.from_soldays( thisApp.solday ) )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    LOGGER.info( f'{year}.{sol:03d} Processing scheduled events' )
 
     query = MODELS.Event.select(
         MODELS.Event.callback_func,
@@ -67,7 +70,7 @@ def invoke_callbacks( ):
         MODELS.Event.args
     ).filter(
         ( MODELS.Event.simulation_id == thisApp.simulation ) &
-        ( 
+        (
           ( MODELS.Event.runon == thisApp.solday ) | ( thisApp.solday > MODELS.Event.runon ) & ( ( MODELS.Event.periodic > 0 ) & ( DB.mod(thisApp.solday, MODELS.Event.periodic) == 0 ) )
         )
     ).order_by(
@@ -81,8 +84,7 @@ def invoke_callbacks( ):
         try:
             mod_name, func_name = row.callback_func.rsplit('.',1)
 
-            LOGGER.log( logging.INFO, '%d.%03d   Calling %s()', *UTILS.from_soldays( thisApp.solday ), func_name )
-
+            LOGGER.info( f'{year}.{sol:03d}   Calling {func_name}()' )
 
             mod = importlib.import_module(mod_name)
 
@@ -92,14 +94,9 @@ def invoke_callbacks( ):
 
             func = getattr(mod, func_name)
 
-            LOGGER.log( logging.DEBUG, "%d.%03d Invoking callback %s( %s )", *UTILS.from_soldays( thisApp.solday ), row.callback_func, kwargs )
+            LOGGER.debug( f"{year}.{sol:03d}     {row.callback_func}( {kwargs} )" )
 
             result = func( **kwargs )
 
         except Exception as e:
-            LOGGER.exception( '%d.%03d Failure during invocation of event callback %s(): %s )', *UTILS.from_soldays( thisApp.solday ), row.callback_func, str(e) )
-
-
-
-
-
+            LOGGER.exception( f'{year}.{sol:03d} Failure during invocation of event callback {row.callback_func}(): )' )

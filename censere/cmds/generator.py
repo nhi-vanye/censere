@@ -16,14 +16,11 @@ import sys
 import uuid
 
 import click
-import peewee
 
 import censere
-import censere.actions as ACTIONS
+import censere.cmds.helpers as HELPER
 import censere.db as DB
-import censere.events as EVENTS
 import censere.models as MODELS
-import censere.models.functions as FUNC
 
 # Import the database triggers to handle automation inside the DB
 # Not called directly, but still needed
@@ -31,20 +28,13 @@ import censere.models.triggers as TRIGGERS  # pylint: disable=unused-import
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
 import censere.version as VERSION
+from censere import CONSOLE, LOGGER
 from censere.config import thisApp
 
-#from censere.config import GeneratorOptions as OPTIONS
+CENSERE_LOG_DIR = "./"
 
-
-
-
-
-
-
-
-
-LOGGER = logging.getLogger("c.cli.generator")
-DEVLOG = logging.getLogger("d.devel")
+if "CENSERE_LOG_DIR" in os.environ:
+    CENSERE_LOG_DIR = os.environ[ "CENSERE_LOG_DIR" ]
 
 # Allow options of this type to be read from environment variables as a list
 # with a `;` separating items.
@@ -167,416 +157,6 @@ and compare multiple runs.
 """)
 
         ctx.exit()
-
-
-## Initialize the database
-# Creating it if it doesn't exist and then
-# creating the tables
-def initialize_database():
-
-    if thisApp.use_memory_database:
-        import apsw
-
-        # run the simulation in memory and write to disk on a regular basis
-        DB.db.init( ":memory:" ) #thisApp.database )
-
-        DB.backup = apsw.Connection( thisApp.database )
-
-    else:
-        DB.db.init( thisApp.database )
-
-
-    FUNC.register_all( DB.db )
-
-    DB.create_tables()
-
-
-def register_initial_landing():
-
-    for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_mission, default_value=1 ) ):
-
-        EVENTS.register_callback(
-            runon =  1,
-            priority = 20,
-            periodic=0,
-            callback_func=EVENTS.callbacks.mission_lands,
-            kwargs = {
-                "settlers" : thisApp.settlers_per_initial_ship
-            }
-        )
-
-    for i in range( RANDOM.parse_random_value( thisApp.ships_per_mission ) ):
-
-        EVENTS.register_callback(
-                runon=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
-                priority=5,
-                periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
-                callback_func=EVENTS.mission_lands,
-                kwargs = {
-                    "simulation": thisApp.simulation,
-                    "settlers" : thisApp.settlers_per_ship
-                }
-            )
-
-
-def register_resources():
-
-    # create the basic resources
-    for commodity in [ MODELS.Resource.Other, MODELS.Resource.Electricity, MODELS.Resource.O2, MODELS.Resource.Water, MODELS.Resource.Fuel, MODELS.Resource.Food  ]:
-
-        com = MODELS.Commodity()
-        com.initialize( commodity=commodity)
-        com.save(force_insert=True)
-
-        # cache the resource id to make it easy to reference the resource without
-        # a database lookup
-        thisApp.commodity_ids[com.commodity] = com.commodity_id
-
-    # Create the Consumers that represents the per-settler resource consumption
-    # pylint: disable-next=not-an-iterable
-    if len(thisApp.resource_consumption_per_settler):
-        thisApp.report_commodity_status = True
-
-    # pylint: disable-next=not-an-iterable
-    for res in thisApp.resource_consumption_per_settler:
-
-        fields = res.split(" ")
-
-        parsed = UTILS.parse_resources( fields )
-
-        if parsed.get("consume", ""):
-
-            r = MODELS.CommodityConsumer()
-
-            r.initialize(
-                parsed.get("consumes", 0.0),
-                commodity=parsed.get("consume"),
-                description=parsed.get("description", "settlers"),
-            )
-
-            r.is_per_settler = True
-
-            # There are no settlers present until Solday 1
-            r.is_online = False
-            r.save(force_insert=True)
-
-            thisApp.commodity_ids[ f"{parsed.get('consume')}-settler" ] = r.consumer_id
-
-            EVENTS.register_callback(
-                runon =  1,
-                priority = 20,
-                callback_func=EVENTS.callbacks.commodity_goes_online,
-                kwargs = {
-                    "table" : MODELS.CommodityType.Consumer,
-                    "id" : r.consumer_id
-                }
-            )
-
-    # Register the callbacks that do the heavy lifting of managing the
-    # supply and consumption of resources. Additional callbacks are
-    # registered as needed
-    EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands,
-            priority = 20,
-            callback_func=EVENTS.callbacks.commodities_landed,
-            kwargs = {
-                "resources" : thisApp.seed_resource
-            }
-        )
-
-    EVENTS.register_callback(
-            runon =  1,
-            periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
-            priority = 20,
-            callback_func=EVENTS.callbacks.commodities_landed,
-            kwargs = {
-                "resources" : thisApp.resource
-            }
-        )
-
-    EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
-            periodic = 1,
-            priority = 25,
-            callback_func=EVENTS.callbacks.per_sol_commodity_maintenance,
-            kwargs = { }
-        )
-
-    EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
-            periodic = 1,
-            priority = 40,
-            callback_func=EVENTS.callbacks.per_sol_commodity_consumption,
-            kwargs = { }
-        )
-
-    EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
-            periodic = 1,
-            priority = 50,
-            callback_func=EVENTS.callbacks.per_sol_commodity_supply,
-            kwargs = { }
-        )
-
-    EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
-            periodic = 1,
-            priority = 100,
-            callback_func=EVENTS.callbacks.per_sol_update_commodity_resevoir_storage,
-            kwargs = { }
-        )
-
-def get_current_settler_count():
-
-    count = 0
-    try:
-        count = MODELS.Settler.select().where(
-            ( MODELS.Settler.simulation_id == thisApp.simulation ) &
-            ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-            ( MODELS.Settler.death_solday == 0 )
-        ).count()
-
-    except Exception as e:
-
-        LOGGER.error( e )
-
-    return count
-
-
-def get_limit_count( limit="population" ):
-
-    count = 0
-    try:
-        if limit == "sols":
-            count = thisApp.solday
-
-        if limit == "population":
-
-            count = MODELS.Settler.select().where(
-                ( MODELS.Settler.simulation_id == thisApp.simulation ) &
-                ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-                ( MODELS.Settler.death_solday == 0 )
-            ).count()
-
-    except Exception as e:
-
-        LOGGER.error( e )
-
-    return count
-
-def get_singles_count( ):
-
-    count = 0
-
-    try:
-        count = MODELS.Settler.select().where(
-            ( MODELS.Settler.simulation_id == thisApp.simulation ) &
-            ( MODELS.Settler.current_location == MODELS.LocationEnum.Mars ) &
-            ( MODELS.Settler.death_solday == 0 ) &
-            ( MODELS.Settler.state == 'single' )
-        ).count()
-
-    except Exception as e:
-
-        LOGGER.error( e )
-
-    return count
-
-def get_commodity_storage( solday=None ):
-
-    if solday is None:
-        solday = thisApp.solday
-
-    commodities={}
-
-    for commodity in [ MODELS.Resource.Other, MODELS.Resource.Electricity, MODELS.Resource.O2, MODELS.Resource.Water, MODELS.Resource.Fuel, MODELS.Resource.Food  ]:
-
-        try:
-
-            commodities[commodity] = MODELS.CommodityResevoirCapacity.select(
-                peewee.fn.Sum(MODELS.CommodityResevoirCapacity.capacity)
-            ).where(
-                ( MODELS.CommodityResevoirCapacity.simulation_id == thisApp.simulation ) &
-                ( MODELS.CommodityResevoirCapacity.solday == solday ) &
-                ( MODELS.CommodityResevoirCapacity.commodity == commodity )
-            ).scalar()
-
-        except Exception as e:
-            LOGGER.exception(e)
-
-        if commodities[commodity] is None:
-            commodities[commodity] = 0.0
-
-    return commodities
-
-
-def add_summary_entry():
-
-    s = MODELS.Summary()
-
-    s.initialize()
-
-    s.save()
-
-    return { "solday" : s.solday,
-            "earth_datetime" : s.earth_datetime,
-            "population": s.population,
-            "electricity" : s.electricity_stored or float("NaN"),
-            "water" : s.water_stored or float("NaN"),
-            "o2" : s.o2_stored or float("NaN"),
-           }
-
-
-def add_annual_demographics( ):
-
-    if thisApp.solday < 667:
-        return
-
-    # demographics includes birth and death rates
-    d = MODELS.Demographic()
-
-    d.initialize()
-
-    d.save()
-
-
-    # This is population age and gender breakdown
-    # useful for population pyramids
-    (males, females) = MODELS.get_population_histogram()
-
-    for r in range( len(males[0]) ):
-
-        p = MODELS.Population()
-
-        p.simulation_id = thisApp.simulation
-
-        p.solday = thisApp.solday
-        p.earth_datetime = thisApp.earth_time
-
-        p.bucket = "{}-{}".format( males[1][r], males[1][r+1])
-        p.sol_years = males[1][r]
-        p.sex = 'm'
-        p.value = males[0][r]
-
-        p.save()
-
-    for r in range( len( females[0]) ):
-
-        p = MODELS.Population()
-
-        p.simulation_id = thisApp.simulation
-
-        p.solday = thisApp.solday
-        p.earth_datetime = thisApp.earth_time
-        p.bucket = "{}-{}".format( females[1][r], females[1][r+1])
-        p.sol_years = females[1][r]
-        p.sex = 'f'
-        p.value = females[0][r]
-
-        p.save()
-
-
-def run_seed_mission():
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.enable()
-
-    while thisApp.solday < 0 and thisApp.solday < thisApp.limit_count:
-
-        with DB.db.atomic() as txn:
-
-            EVENTS.invoke_callbacks()
-
-            if ( thisApp.solday % 28 ) == 0:
-
-                res = add_summary_entry( )
-
-                if thisApp.report_commodity_status is True:
-                    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
-
-        # commit the transaction before backing it up
-        if ( thisApp.solday % 28 ) == 0:
-            if thisApp.use_memory_database:
-                # pylint: disable-next=not-context-manager
-                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
-                    while not sync.done:
-                        sync.step(4096)
-
-        thisApp.solday += 1
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.disable()
-
-
-def run_mission():
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.enable()
-
-    while get_limit_count( thisApp.limit ) < thisApp.limit_count:
-
-        thisApp.current_settler_count = get_current_settler_count()
-
-        ( solyear, sol ) = UTILS.from_soldays( thisApp.solday )
-
-        current_singles_count = get_singles_count()
-
-        # Invoke actions every day...
-
-        # Run any callback scheduled for this solday
-        EVENTS.invoke_callbacks( )
-
-        # Poulation building
-        if RANDOM.random() < float(thisApp.fraction_singles_pairing_per_day) * current_singles_count :
-            ACTIONS.make_families( )
-        # TODO need a model for relationship breakdown
-        # break_families()
-
-        # Need a model for multi-person accidents
-        #  work or family
-        #  occupation
-        #  infection/disease
-        # consider multi-person accidents, either work or families
-
-        # Model inflation
-
-
-        # give a ~monthly (every 28 sols) and end of year log message
-        if ( sol % 28 ) == 0 or sol == 668:
-            LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) #Settlers %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, get_limit_count("population") )
-
-            if thisApp.cache_details is True:
-                LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
-
-            res = add_summary_entry( )
-
-            if thisApp.report_commodity_status is True:
-                LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Stored Resources: Power=%.3f Water=%.3f O2=%.3f', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, res['electricity'], res['water'], res['o2']  )
-
-            if thisApp.use_memory_database:
-                # pylint: disable-next=not-context-manager
-                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
-                    while not sync.done:
-                        sync.step(4096)
-
-        if solyear > 1 and ( sol % 668 ) == 0:
-
-            add_annual_demographics( )
-
-            if thisApp.use_memory_database:
-                # pylint: disable-next=not-context-manager
-                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
-                    while not sync.done:
-                        sync.step(4096)
-
-        thisApp.solday += 1
-        # from wikipedia
-        # https://en.wikipedia.org/wiki/Timekeeping_on_Mars#Sols
-        thisApp.earth_time = thisApp.earth_time + datetime.timedelta( seconds=88775, microseconds=244147)
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.disable()
-
 
 ##
 # Main entry point for execution
@@ -877,8 +457,33 @@ def cli( ctx,
 
     thisApp.report_commodity_status = False
 
+    # this is the only thing that needs to be unique
+    # the reset of the IDs should be derrived from the seed value.
+    if thisApp.continue_simulation == "":
+        thisApp.simulation = str(uuid.uuid4())
+    else:
+        thisApp.simulation = thisApp.continue_simulation
+
+
+    LOGGER.remove()
+
+    # this log file is re-used so rotate it
+    LOGGER.add(
+            sink = f'{CENSERE_LOG_DIR}/censere.log',
+            format = "{time:HH:mm:ss} | {level: ^7} | {message}",
+            level = "SUCCESS",
+            rotation="500 MB"
+    )
+
+    # this one has more detail and is specific to a simulation
+    LOGGER.add(
+            sink = f'{CENSERE_LOG_DIR}/{thisApp.simulation}.log',
+            format = "{time:HH:mm:ss} | {level: ^7} | {message}",
+            level = "DEBUG" if thisApp.debug is True else "INFO",
+    )
+
     if use_memory_database is True and thisApp.database_dir == "":
-        logging.fatal("Incompatable settings, use-memory-database must be used in conjunction with --database-dir")
+        LOGGER.critical( "Incompatable settings, use-memory-database must be used in conjunction with --database-dir")
         sys.exit(1)
 
     if thisApp.enable_profiling:
@@ -910,15 +515,10 @@ def cli( ctx,
     if thisApp.dump:
         args = thisApp.args(as_list=True)
         for a in args:
-            LOGGER.log( thisApp.NOTICE, '%s', a )
+            click.echo( f'{a}' )
         sys.exit(0)
 
-    # this is the only thing that needs to be unique
-    # the reset of the IDs should be derrived from the seed value.
-    if thisApp.continue_simulation == "":
-        thisApp.simulation = str(uuid.uuid4())
-    else:
-        thisApp.simulation = thisApp.continue_simulation
+
 
     # takes priority over --database
     if thisApp.database_dir != "":
@@ -930,7 +530,7 @@ def cli( ctx,
         # overwrite anything set using --database
         thisApp.database = str(p)
 
-    initialize_database()
+    HELPER.initialize_database()
 
     if thisApp.continue_simulation == "":
 
@@ -948,7 +548,7 @@ def cli( ctx,
         thisApp.earth_time = thisApp.seed_mission_earth_time
 
 
-        thisApp.current_settler_count = get_current_settler_count()
+        thisApp.current_settler_count = HELPER.get_current_settler_count()
 
         s = MODELS.Simulation( )
 
@@ -975,31 +575,45 @@ def cli( ctx,
 
         RANDOM.set_state( ENC.loads(base64.b64decode(s.random_state)) ) # nosec B301
 
-    LOGGER.log( thisApp.NOTICE, 'Mars Censere %s', VERSION.__version__ )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Started.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Targeting %s = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, thisApp.limit_count )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updating %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+    # record to a log file before screen
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Mars Censere {VERSION.__version__}' )
+
+    LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Started.')
+    LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Seed = {thisApp.random_seed}')
+    LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Targeting {thisApp.limit} = {thisApp.limit_count}')
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updating thisApp.database')
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Mars Censere {VERSION.__version__}', bold=True )
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Started.', bold=True)
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Seed = {thisApp.random_seed}', bold=True)
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Targeting {thisApp.limit} = {thisApp.limit_count}', bold=True)
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updating thisApp.database', bold=True)
 
 
     if thisApp.continue_simulation == "":
 
         # just initializes a variable to zero
         # in time for calculating resource consumption
-        thisApp.current_settler_count = get_current_settler_count()
+        thisApp.current_settler_count = HELPER.get_current_settler_count()
 
-        register_resources()
+        HELPER.register_resources()
 
         # Resources are landed before humans, so we need to
         # loop from negative time until initial landing to
         # handle resource buildup...
         thisApp.solday = thisApp.seed_resources_lands - 1
 
-        run_seed_mission()
+        HELPER.run_seed_mission()
 
         thisApp.solday = 0
 
-        register_initial_landing()
+        HELPER.register_initial_landing()
 
     if thisApp.use_memory_database:
         # pylint: disable-next=not-context-manager
@@ -1029,16 +643,16 @@ def cli( ctx,
     d.save()
 
     # Run the main mission simulation loop
-    run_mission()
+    HELPER.run_mission()
 
     if thisApp.enable_profiling:
         stats = pstats.Stats(thisApp.profilingHandle).sort_stats('ncalls')
         stats.dump_stats( thisApp.enable_profiling )
 
     # Write the final summary entry and other simulation details....
-    res = add_summary_entry()
+    res = HELPER.add_summary_entry()
 
-    add_annual_demographics( )
+    HELPER.add_annual_demographics( )
 
     (
         MODELS.Simulation.update(
@@ -1060,9 +674,22 @@ def cli( ctx,
             while not sync.done:
                 sync.step(4096)
 
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Completed.', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation  )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Seed = %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.random_seed )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Final %s %d >= %d', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.limit, get_limit_count( thisApp.limit ), thisApp.limit_count )
-    LOGGER.log( thisApp.NOTICE, '%d.%03d (%d) Simulation %s Updated %s', *UTILS.from_soldays( thisApp.solday ), thisApp.solday, thisApp.simulation, thisApp.database )
+    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Completed.' )
+
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Seed = {thisApp.random_seed}')
+
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Final {thisApp.limit} %d >= {HELPER.get_limit_count( thisApp.limit )}' )
+
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updated {thisApp.database}')
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Completed.', bold=True )
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Seed = {thisApp.random_seed}', bold=True)
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Final {thisApp.limit} %d >= {HELPER.get_limit_count( thisApp.limit )}', bold=True )
+
+    CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updated {thisApp.database}', bold=True)
+
     if thisApp.cache_details is True:
-        LOGGER.log( logging.INFO, '%d.%d Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )
+        LOGGER.success( f'{year}.{sol:%03} ({thisApp.solday}) Family Policy %s', *UTILS.from_soldays( thisApp.solday ), MODELS.functions.family_policy.cache_info() )

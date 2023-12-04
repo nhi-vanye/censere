@@ -257,8 +257,11 @@ and compare multiple runs.
 #
 # Resources
 #
-@click.option( '--seed-resource',
-        metavar="count=RANDOM [supply|store|consume]=ENUM availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] [initial-capacity=RANDOM] [max-capacity=RANDOM]",
+@click.option( '--resources-per-initial-supply-ship',
+        metavar="count=RANDOM [supply|store|consume]=ENUM "
+              "availability=RANDOM [supplies=RANDOM] "
+              "[consumes=RANDOM] [initial-capacity=RANDOM] "
+              "[max-capacity=RANDOM]",
         type=StringList(),
         default=[
             # "count=randint:2,4 source=power type=generator avail=randint:99,100 generates=normal:0.4,0.0001 equipment=RTG",
@@ -271,10 +274,13 @@ and compare multiple runs.
             "count=randint:2,4 store=o2 availability=binomial:0.9 initial-capacity=normal:10000,100 max-capacity=normal:15000,500 description=tank",
         ],
         multiple=True,
-        help="Resource supply/demand from seed mission to first settler mission "
-              "(CENSERE_GENERATOR_SEED_RESOURCE)")
-@click.option( '--resource',
-        metavar="count=RANDOM [supply|store|consume]=ENUM availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] [initial-capacity=RANDOM] [max-capacity=RANDOM]",
+        help="Resource supply/demand from initial supply mission "
+              "to first human mission "
+              "(CENSERE_GENERATOR_RESOURCES_PER_INITIAL_SUPPLY_SHIP)")
+@click.option( '--resources-per-supply-ship',
+        metavar="count=RANDOM [supply|store|consume]=ENUM "
+              "availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] "
+              "[initial-capacity=RANDOM] [max-capacity=RANDOM]",
         default=[
             "count=randint:4,8 store=electricity availability=binomial:0.99 initial-capacity=normal:4.0,0.1 max-capacity=normal:25,1 description=battery",
 
@@ -287,9 +293,27 @@ and compare multiple runs.
         ],
         multiple=True,
         type=StringList(),
-        help="Additional commodities arriving on each mission "
-              "(CENSERE_GENERATOR_RESOURCE)")
-@click.option( '--resource-consumption-per-settler',
+        help="Additional resources arriving on each subsequent supply mission "
+              "(CENSERE_GENERATOR_RESOURCES_PER_SUPPLY_SHIP)")
+@click.option( '--resources-per-human-ship',
+        metavar="count=RANDOM [supply|store|consume]=ENUM "
+              "availability=RANDOM [supplies=RANDOM] [consumes=RANDOM] "
+              "[initial-capacity=RANDOM] [max-capacity=RANDOM]",
+        default=[
+            "count=randint:2,4 store=electricity availability=binomial:0.99 initial-capacity=normal:4.0,0.1 max-capacity=normal:25,1 description=battery",
+
+            "count=randint:4,4 supply=electricity availability=binomial:0.95 supplies=normal:1.5,0.3 description=PV",
+            "count=randint:1,1 consume=electricity consumes=normal:4,0.2 description=site",
+
+            "count=randint:4,8 store=water availability=binomial:0.9 initial-capacity=normal:10000,100 max-capacity=normal:12000,500 description=tank",
+            "count=randint:2,4 supply=water availability=binomial:0.9 supplies=normal:100,5 description=recycle",
+            "count=randint:2,4 supply=o2 availability=binomial:0.9 supplies=normal:5000,500 description=recycle",
+        ],
+        multiple=True,
+        type=StringList(),
+        help="Additional resources arriving on each human mission "
+              "(CENSERE_GENERATOR_RESOURCES_PER_HUMAN_SHIP)")
+@click.option( '--resource-consumption-per-human',
         metavar="consume=ENUM consumes=RANDOM",
         type=StringList(),
         default=[
@@ -299,26 +323,75 @@ and compare multiple runs.
         ],
         multiple=True,
         help="Resource consumption per settler per Sol "
-              "(CENSERE_GENERATOR_RESOURCE_CONSUMTION_PER_SETTLER)")
-@click.option( '--allow-negative-commodities',
+              "(CENSERE_GENERATOR_RESOURCE_CONSUMTION_PER_HUMAN)")
+@click.option( '--allow-negative-resources',
         default=False,
-        help="Allow commodity capacity to go negative, helps in tuning commodity supply "
-              "(CENSERE_GENERATOR_ALLOW_NEGATIVE_COMMODITIES)")
+        help="Allow available resources to become negative - helps in tuning commodity supply "
+              "(CENSERE_GENERATOR_ALLOW_NEGATIVE_RESOURCES)")
 # mission parameters
 #
-@click.option( '--seed-resources-lands',
-        metavar="SOLS",
-        # time for two miniumum transfer orbits + 1 for go/no-go decisions
-        # https://www.jpl.nasa.gov/edu/teach/activity/lets-go-to-mars-calculating-launch-windows/
-        # 259 Days = 252 Sols
-        default= -(3*252),
-        type=int,
-        help="Number of Sols before initial mission lands that the "
-              "resource seed mission lands (CENSERE_GENERATOR_SEED_RESOURCES_LANDS)")
-@click.option( '--initial-mission-lands',
+@click.option( '--martian-era-earthdate',
         metavar="DATETIME",
         default='2030-01-01 00:00:00.000000+00:00',
-        help="Earth date that initial mission lands on Mars (CENSERE_GENERATOR_INITIAL_MISSION_LANDS)")
+        help="Earth date corresponding to MartianEra (ME) 1.1 when initial (supply) mission lands (CENSERE_GENERATOR_MARTIAN_ERA_EARTHDATE)")
+@click.option( '--first-human-mission-lands',
+        metavar="SOLS",
+        # https://www.jpl.nasa.gov/edu/teach/activity/lets-go-to-mars-calculating-launch-windows/
+        # 259 Days = 252 Sols
+        # there's a optimal launch date every 26months, and the travel time
+        # is 252 Sols giving us X to generate supplies and make go/no-go
+        # decision
+        default=759,
+        type=int,
+        help="Sols after ME 1.1 that the inital human mission lands (CENSERE_GENERATOR_FIRST_HUMAN_MISSION_LANDS)")
+@click.option( '--supply-mission-period',
+        metavar="RANDOM",
+        default="randint:759,759",
+        help="Land a supply mission every RANDOM Sols (CENSERE_GENERATOR_SUPPLY_MISSION_PERIOD)")
+@click.option( '--human-mission-period',
+        metavar="RANDOM",
+        default="randint:759,759",
+        help="Land a human mission every RANDOM Sols (CENSERE_GENERATOR_HUMAN_MISSION_PERIOD)")
+@click.option( '--return-mission-period',
+        metavar="RANDOM",
+        default="randint:1498,1498",
+        help="Return mission back to Earth every RANDOM Sols (CENSERE_GENERATOR_RETURN_MISSION_PERIOD)")
+
+@click.option( '--ships-per-initial-supply-mission',
+        metavar="RANDOM",
+        default='randint:3,3',
+        help="Number of ships for the initial supply mission (CENSERE_GENERATOR_SHIPS_PER_INITIAL_SUPPLY_MISSION)")
+@click.option( '--ships-per-supply-mission',
+        metavar="RANDOM",
+        default='randint:3,3',
+        help="Number of ships for each subsequent supply mission (CENSERE_GENERATOR_SHIPS_PER_SUPPLY_MISSION)")
+
+@click.option( '--ships-per-initial-human-mission',
+        metavar="RANDOM",
+        default='randint:3,3',
+        help="Number of ships for the initial human mission (CENSERE_GENERATOR_SHIPS_PER_INITIAL_HUMAN_MISSION)")
+@click.option( '--ships-per-human-mission',
+        metavar="RANDOM",
+        default='randint:3,3',
+        help="Number of ships for each subsequent human mission (CENSERE_GENERATOR_SHIPS_PER_HUMAN_MISSION)")
+@click.option( '--ships-per-return-mission',
+        metavar="RANDOM",
+        default='randint:1,1',
+        help="Number of ships for each return mission (CENSERE_GENERATOR_SHIPS_PER_RETURN_MISSION)")
+
+@click.option( '--humans-per-initial-ship',
+        metavar="RANDOM",
+        default='randint:20,20',
+        help="Number of arriving astronauts (per ship) for the initial mission (CENSERE_GENERATOR_HUMANS_PER_INITIAL_SHIP)")
+@click.option( '--humans-per-ship',
+        metavar="RANDOM",
+        default='randint:40,40',
+        help="Number of arriving astronauts (per ship) for subsequent missions (CENSERE_GENERATOR_HUMANS_PER_SHIP)")
+@click.option( '--humans-per-return-ship',
+        metavar="RANDOM",
+        default='randint:10,10',
+        help="Number of astronauts (per ship) for return missions (CENSERE_GENERATOR_HUMANS_PER_RETURN_SHIP)")
+
 @click.option( '--limit',
         type=click.Choice(['sols', 'population'], case_sensitive=False),
         default='population',
@@ -327,26 +400,6 @@ and compare multiple runs.
         type=int,
         default=1000,
         help="Stop simulation when reaching this sols/population count (CENSERE_GENERATOR_LIMIT_COUNT)")
-@click.option( '--mission-lands',
-        metavar="RANDOM",
-        default="randint:759,759",
-        help="Land a new mission every RANDOM sols (CENSERE_GENERATOR_MISSION_LANDS)")
-@click.option( '--initial-settlers-per-ship',
-        metavar="RANDOM",
-        default='randint:20,20',
-        help="Number of arriving astronauts (per ship) for the initial mission (CENSERE_GENERATOR_INITIAL_SETTLERS_PER_SHIP)")
-@click.option( '--initial-ships-per-mission',
-        metavar="RANDOM",
-        default='randint:1,1',
-        help="Number of ships for the initial mission (CENSERE_GENERATOR_INITIAL_SHIPS_PER_MISSION)")
-@click.option( '--settlers-per-ship',
-        metavar="RANDOM",
-        default='randint:40,40',
-        help="Number of arriving astronauts (per ship) for subsequent missions (CENSERE_GENERATOR_SETTLERS_PER_SHIP)")
-@click.option( '--ships-per-mission',
-        metavar="RANDOM",
-        default='randint:1,1',
-        help="Number of ships for subsequent missions (CENSERE_GENERATOR_SHIPS_PER_MISSION)")
 #
 # debug options
 #
@@ -375,7 +428,6 @@ def cli( ctx,
         notes,
         database_dir,
         parameters,
-
         astronaut_age_range,
         astronaut_gender_ratio,
         astronaut_life_expectancy,
@@ -390,24 +442,28 @@ def cli( ctx,
         relationship_length,
         sols_between_siblings,
         use_ivf,
-
-        seed_resource,
-        resource,
-        resource_consumption_per_settler,
-        allow_negative_commodities,
-
-        seed_resources_lands,
-        initial_mission_lands,
+        resources_per_initial_supply_ship,
+        resources_per_supply_ship,
+        resources_per_human_ship,
+        resource_consumption_per_human,
+        allow_negative_resources,
+        martian_era_earthdate,
+        first_human_mission_lands,
+        supply_mission_period,
+        human_mission_period,
+        return_mission_period,
+        ships_per_initial_supply_mission,
+        ships_per_supply_mission,
+        ships_per_initial_human_mission,
+        ships_per_human_mission,
+        ships_per_return_mission,
+        humans_per_initial_ship,
+        humans_per_ship,
+        humans_per_return_ship,
         limit,
         limit_count,
-        mission_lands,
-        initial_settlers_per_ship,
-        initial_ships_per_mission,
-        settlers_per_ship,
-        ships_per_mission,
-
         cache_details,
-        # hints is hidden
+        #hints,
         profile,
         use_memory_database
        ):
@@ -418,11 +474,14 @@ def cli( ctx,
     thisApp.continue_simulation = continue_simulation
     thisApp.notes = notes
     thisApp.database_dir = database_dir
+
+    # model human society
     thisApp.astronaut_age_range = astronaut_age_range
     thisApp.astronaut_gender_ratio = astronaut_gender_ratio
     thisApp.astronaut_life_expectancy = astronaut_life_expectancy
     thisApp.common_ancestor = common_ancestor
     thisApp.first_child_delay = first_child_delay
+    # this is a wierd parameter, need better way to model
     thisApp.fraction_singles_pairing_per_day = fraction_singles_pairing_per_day
     thisApp.fraction_relationships_having_children = fraction_relationships_having_children
     thisApp.martian_gender_ratio = martian_gender_ratio
@@ -432,25 +491,37 @@ def cli( ctx,
     thisApp.relationship_length = relationship_length
     thisApp.sols_between_siblings = sols_between_siblings
     thisApp.use_ivf = use_ivf
-    thisApp.seed_resources_lands = seed_resources_lands
-    thisApp.initial_mission_lands = initial_mission_lands
+
+    #
+    thisApp.martian_era_earthdate = martian_era_earthdate
+    thisApp.first_human_mission_lands = first_human_mission_lands
+
+    thisApp.supply_mission_period = supply_mission_period
+    thisApp.human_mission_period = human_mission_period
+    thisApp.return_mission_period = return_mission_period
+
+    thisApp.ships_per_initial_supply_mission = ships_per_initial_supply_mission
+    thisApp.ships_per_supply_mission = ships_per_supply_mission
+
+    thisApp.ships_per_initial_human_mission = ships_per_initial_human_mission
+    thisApp.ships_per_human_mission = ships_per_human_mission
+    thisApp.ships_per_return_mission = ships_per_return_mission
+
+    thisApp.humans_per_initial_ship = humans_per_initial_ship
+    thisApp.humans_per_ship = humans_per_ship
+    thisApp.humans_per_return_ship = humans_per_return_ship
+
     thisApp.limit = limit
     thisApp.limit_count = limit_count
-    thisApp.mission_lands = mission_lands
-    thisApp.initial_settlers_per_ship = initial_settlers_per_ship
-    thisApp.initial_ships_per_mission = initial_ships_per_mission
-    thisApp.settlers_per_ship = settlers_per_ship
-    thisApp.ships_per_mission = ships_per_mission
+
     thisApp.cache_details = cache_details
 
-    thisApp.seed_resource = seed_resource
-    thisApp.resource = resource
-    thisApp.resource_consumption_per_settler = resource_consumption_per_settler
-    thisApp.allow_negative_commodities = allow_negative_commodities
+    thisApp.resources_per_initial_supply_ship = resources_per_initial_supply_ship
+    thisApp.resources_per_supply_ship = resources_per_supply_ship
+    thisApp.resources_per_human_ship = resources_per_human_ship
 
-    ## add legacy aliases
-    thisApp.settlers_per_initial_ship = thisApp.initial_settlers_per_ship
-    thisApp.ships_per_initial_mission = thisApp.initial_ships_per_mission
+    thisApp.resource_consumption_per_human = resource_consumption_per_human
+    thisApp.allow_negative_resources = allow_negative_resources
 
     thisApp.enable_profiling = profile
     thisApp.use_memory_database = use_memory_database
@@ -458,7 +529,7 @@ def cli( ctx,
     thisApp.report_commodity_status = False
 
     # this is the only thing that needs to be unique
-    # the reset of the IDs should be derrived from the seed value.
+    # the rest of the IDs should be derived from the seed value.
     if thisApp.continue_simulation == "":
         thisApp.simulation = str(uuid.uuid4())
     else:
@@ -467,10 +538,11 @@ def cli( ctx,
 
     LOGGER.remove()
 
-    # this log file is re-used so rotate it
+    # this log file stores a summary and is used across all sims
+    # so rotate it
     LOGGER.add(
             sink = f'{CENSERE_LOG_DIR}/censere.log',
-            format = "{time:HH:mm:ss} | {level: ^7} | {message}",
+            format = "{time:YY-MM-DD HH:mm:ss} | {level: ^7} | {message}",
             level = "SUCCESS",
             rotation="500 MB"
     )
@@ -518,8 +590,6 @@ def cli( ctx,
             click.echo( f'{a}' )
         sys.exit(0)
 
-
-
     # takes priority over --database
     if thisApp.database_dir != "":
 
@@ -535,18 +605,15 @@ def cli( ctx,
     if thisApp.continue_simulation == "":
 
         thisApp.solday = 0
-        thisApp.solday = thisApp.seed_resources_lands - 1
 
-        # all calculations are done in sols (integers from day of settler landing)
+        # all calculations are done in Sols (integers from day of settler landing)
         # but convert to earth datetime to make elapsed time easier to comprehend
         # for consistancy downstream we need to ensure datetimes have a consistant format
-        # i.e. with microsseconds so add a microsecond...
-        thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+        # i.e. with microseconds so add a microsecond in case ME doesn't include that resolution..
+        thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.martian_era_earthdate)
+        thisApp.earth_time +=  datetime.timedelta( microseconds=1)
 
-        thisApp.seed_mission_earth_time = thisApp.earth_time - ( thisApp.seed_resources_lands - 1) * datetime.timedelta( seconds=88775, microseconds=244147)
-
-        thisApp.earth_time = thisApp.seed_mission_earth_time
-
+        initial_human_mission_lands = thisApp.earth_time + ( thisApp.first_human_mission_lands ) * datetime.timedelta( seconds=88775, microseconds=244147)
 
         thisApp.current_settler_count = HELPER.get_current_settler_count()
 
@@ -554,9 +621,13 @@ def cli( ctx,
 
         s.simulation_id = thisApp.simulation
         s.random_seed = thisApp.random_seed
-        s.seed_mission_lands = thisApp.seed_resources_lands
-        s.seed_mission_earth_time = thisApp.seed_mission_earth_time
-        s.initial_mission_lands = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
+
+        s.me_earthtime = thisApp.earth_time
+
+        s.human_mission_lands = thisApp.first_human_mission_lands
+
+        s.initial_human_mission_lands = initial_human_mission_lands
+
         s.begin_datetime = datetime.datetime.now()
         s.limit_type = thisApp.limit
         s.limit_count = thisApp.limit_count
@@ -583,7 +654,7 @@ def cli( ctx,
     LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Started.')
     LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Seed = {thisApp.random_seed}')
     LOGGER.success(f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Targeting {thisApp.limit} = {thisApp.limit_count}')
-    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updating thisApp.database')
+    LOGGER.success( f'{year}.{sol:03d} ({thisApp.solday}) Simulation {thisApp.simulation} Updating {thisApp.database}')
 
     CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Mars Censere {VERSION.__version__}', bold=True )
 
@@ -602,32 +673,15 @@ def cli( ctx,
         # in time for calculating resource consumption
         thisApp.current_settler_count = HELPER.get_current_settler_count()
 
-        HELPER.register_resources()
+        HELPER.register_supply_missions()
 
-        # Resources are landed before humans, so we need to
-        # loop from negative time until initial landing to
-        # handle resource buildup...
-        thisApp.solday = thisApp.seed_resources_lands - 1
-
-        HELPER.run_seed_mission()
-
-        thisApp.solday = 0
-
-        HELPER.register_initial_landing()
+        HELPER.register_human_missions()
 
     if thisApp.use_memory_database:
         # pylint: disable-next=not-context-manager
         with DB.backup.backup("main", DB.db.connection(), "main") as sync:
             while not sync.done:
                 sync.step(4096)
-
-    # all calculations are done in sols (integers from day of settler landing)
-    # but convert to earth datetime to make elapsed time easier to comprehend
-    # for consistancy downstream we need to ensure datetimes have a consistant format
-    # i.e. with microsseconds so add a microsecond...
-    thisApp.earth_time = datetime.datetime.fromisoformat(thisApp.initial_mission_lands)
-    thisApp.earth_time = thisApp.earth_time + datetime.timedelta( microseconds=1 )
-
 
     d = MODELS.Demographic()
 
@@ -642,6 +696,11 @@ def cli( ctx,
 
     d.save()
 
+    ###################################################
+    # At this point we have registered all the event callbacks
+    # so we just start walking forward in time from Sol 1
+    # to the end of the simulation...
+    #
     # Run the main mission simulation loop
     HELPER.run_mission()
 

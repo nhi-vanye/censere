@@ -1,6 +1,6 @@
 ## @package config
 #
-## Copyright (c) 2019 Richard Offer. All right reserved.
+## Copyright (c) 2019-2023 Richard Offer. All right reserved.
 #
 # see LICENSE.md for license details
 #
@@ -8,21 +8,21 @@
 
 # Application configuration
 class thisApp(object):
-    NOTICE = 25     # higher value status messages
-    # INFO == 20
-    DETAIL = 15    # info + additional details
-    TRACE = 1
 
-    verbose = None
+    # common
+    verbose = False
     debug = False
-    log_level = None
-    database = ""
+    enable_logger = None
+    database = None
     dump = False
     debug_sql = False
+
+    # generator
     random_seed = None
     continue_simulation = None
     notes = None
-    database_dir = ""
+    database_dir = None
+    parameters = None
     astronaut_age_range = None
     astronaut_gender_ratio = None
     astronaut_life_expectancy = None
@@ -37,24 +37,30 @@ class thisApp(object):
     relationship_length = None
     sols_between_siblings = None
     use_ivf = None
-    seed_resources_lands = None
-    initial_mission_lands = None
+    resources_per_inital_supply_ship = None
+    resources_per_supply_ship = None
+    resources_per_human_ship = None
+    _resource_consumption_per_human = None
+    allow_negative_resources = None
+    martian_era_earthdate = None
+    first_human_mission_lands = None
+    supply_mission_period = None
+    human_mission_period = None
+    return_mission_period = None
+    ships_per_initial_supply_mission = None
+    ships_per_supply_mission = None
+    ships_per_initial_human_mission = None
+    ships_per_human_mission = None
+    ships_per_return_mission = None
+    humans_per_initial_ship = None
+    humans_per_ship = None
+    humans_per_return_ship = None
     limit = None
     limit_count = None
-    mission_lands = None
-    initial_settlers_per_ship = None
-    initial_ships_per_mission = None
-    settlers_per_ship = None
-    ships_per_mission = None
     cache_details = None
-    enable_profiling = None
-
-    seed_resource = None
-    seed_resource_consumption_per_sol = None
-    resource = None
-    resource_consumption_per_settler = None
-    resource_consumption_per_sol = None
-    allow_negative_commodities = None
+    hints = None
+    profile = None
+    use_memory_database = None
 
     # runtime
     simulation = ""
@@ -62,6 +68,25 @@ class thisApp(object):
     # cache the IDs for the basic resource to avoid lookups
     # as they don't change within a simulation
     commodity_ids = {}
+
+    colors = {
+        "base03" : (0,43,54),
+        "base02" : (7,54,66),
+        "base01" : (88,110,117),
+        "base00" : (101, 123, 131),
+        "base0" : (131, 148, 150),
+        "base1" : (147,161,161),
+        "base2" : (238,232,213),
+        "base3" : (253,247,227),
+        "yellow" : (181,137,0),
+        "orange" : (203,75,22),
+        "red" : (220,50,47),
+        "magenta" : (211,54,130),
+        "violet" : (108,113,196),
+        "blue" : (38,39,210),
+        "cyan" : (42,161,52),
+        "green" : (133,153,0),
+    }
 
     profilingHandle = None
 
@@ -95,7 +120,8 @@ class thisApp(object):
                   'random_seed',
                   'top_dir',
                   'use_memory_database',
-                  'verbose'
+                  'verbose',
+                  'colors'
                  ]
 
         res=[]

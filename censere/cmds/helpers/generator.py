@@ -35,35 +35,43 @@ def initialize_database():
     DB.create_tables()
 
 
-def register_initial_landing():
+def register_human_missions():
 
-    for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_mission, default_value=1 ) ):
+    for i in range( RANDOM.parse_random_value( thisApp.ships_per_initial_human_mission, default_value=1 ) ):
 
         EVENTS.register_callback(
-            runon =  1,
+            runon =  thisApp.first_human_mission_lands,
             priority = 20,
             periodic=0,
-            callback_func=EVENTS.callbacks.mission_lands,
+            callback_func=EVENTS.callbacks.human_mission_lands,
             kwargs = {
-                "settlers" : thisApp.settlers_per_initial_ship
+                "settlers" : thisApp.humans_per_initial_ship
             }
         )
 
-    for i in range( RANDOM.parse_random_value( thisApp.ships_per_mission ) ):
+    for i in range( RANDOM.parse_random_value( thisApp.ships_per_human_mission ) ):
 
         EVENTS.register_callback(
-                runon=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+                runon=thisApp.first_human_mission_lands + RANDOM.parse_random_value( thisApp.human_mission_period, default_value=759 ),
                 priority=5,
-                periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
-                callback_func=EVENTS.mission_lands,
+                periodic=RANDOM.parse_random_value( thisApp.human_mission_period, default_value=759 ),
+                callback_func=EVENTS.human_mission_lands,
                 kwargs = {
                     "simulation": thisApp.simulation,
-                    "settlers" : thisApp.settlers_per_ship
+                    "settlers" : thisApp.humans_per_ship
                 }
             )
 
+    EVENTS.register_callback(
+            runon =  RANDOM.parse_random_value(thisApp.return_mission_period),
+            periodic=RANDOM.parse_random_value( thisApp.return_mission_period, default_value=1498 ),
+            priority = 20,
+            callback_func=EVENTS.callbacks.return_mission_departs,
+            kwargs = {
+            }
+        )
 
-def register_resources():
+def register_supply_missions():
 
     # create the basic resources
     for commodity in [ MODELS.Resource.Other, MODELS.Resource.Electricity, MODELS.Resource.O2, MODELS.Resource.Water, MODELS.Resource.Fuel, MODELS.Resource.Food  ]:
@@ -78,11 +86,11 @@ def register_resources():
 
     # Create the Consumers that represents the per-settler resource consumption
     # pylint: disable-next=not-an-iterable
-    if len(thisApp.resource_consumption_per_settler):
+    if len(thisApp.resource_consumption_per_human):
         thisApp.report_commodity_status = True
 
     # pylint: disable-next=not-an-iterable
-    for res in thisApp.resource_consumption_per_settler:
+    for res in thisApp.resource_consumption_per_human:
 
         fields = res.split(" ")
 
@@ -100,14 +108,14 @@ def register_resources():
 
             r.is_per_settler = True
 
-            # There are no settlers present until Solday 1
+            # There are no settlers present until Sol `first_human_mission_lands`
             r.is_online = False
             r.save(force_insert=True)
 
             thisApp.commodity_ids[ f"{parsed.get('consume')}-settler" ] = r.consumer_id
 
             EVENTS.register_callback(
-                runon =  1,
+                runon =  thisApp.first_human_mission_lands,
                 priority = 20,
                 callback_func=EVENTS.callbacks.commodity_goes_online,
                 kwargs = {
@@ -120,26 +128,48 @@ def register_resources():
     # supply and consumption of resources. Additional callbacks are
     # registered as needed
     EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands,
+            runon =  1,
             priority = 20,
-            callback_func=EVENTS.callbacks.commodities_landed,
+            callback_func=EVENTS.callbacks.supply_mission_lands,
             kwargs = {
-                "resources" : thisApp.seed_resource
+                "resources" : thisApp.resources_per_initial_supply_ship
             }
         )
 
     EVENTS.register_callback(
             runon =  1,
-            periodic=RANDOM.parse_random_value( thisApp.mission_lands, default_value=759 ),
+            periodic=RANDOM.parse_random_value( thisApp.supply_mission_period, default_value=759 ),
             priority = 20,
-            callback_func=EVENTS.callbacks.commodities_landed,
+            callback_func=EVENTS.callbacks.supply_mission_lands,
             kwargs = {
-                "resources" : thisApp.resource
+                "resources" : thisApp.resources_per_supply_ship
+            }
+        )
+
+    # human ships also bring resources
+    EVENTS.register_callback(
+            runon =  thisApp.first_human_mission_lands,
+            priority = 20,
+            callback_func=EVENTS.callbacks.supply_mission_lands,
+            kwargs = {
+                "resources" : thisApp.resources_per_human_ship
             }
         )
 
     EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
+            runon =  thisApp.first_human_mission_lands + RANDOM.parse_random_value( thisApp.human_mission_period, default_value=759 ) ,
+            periodic=RANDOM.parse_random_value( thisApp.human_mission_period, default_value=759 ),
+            priority = 20,
+            callback_func=EVENTS.callbacks.supply_mission_lands,
+            kwargs = {
+                "resources" : thisApp.resources_per_human_ship
+            }
+        )
+
+
+
+    EVENTS.register_callback(
+            runon =  1,
             periodic = 1,
             priority = 25,
             callback_func=EVENTS.callbacks.per_sol_commodity_maintenance,
@@ -147,7 +177,7 @@ def register_resources():
         )
 
     EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
+            runon =  1,
             periodic = 1,
             priority = 40,
             callback_func=EVENTS.callbacks.per_sol_commodity_consumption,
@@ -155,7 +185,7 @@ def register_resources():
         )
 
     EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
+            runon =  1,
             periodic = 1,
             priority = 50,
             callback_func=EVENTS.callbacks.per_sol_commodity_supply,
@@ -163,7 +193,7 @@ def register_resources():
         )
 
     EVENTS.register_callback(
-            runon =  thisApp.seed_resources_lands+1,
+            runon =  1,
             periodic = 1,
             priority = 100,
             callback_func=EVENTS.callbacks.per_sol_update_commodity_resevoir_storage,
@@ -320,41 +350,6 @@ def add_annual_demographics( ):
         p.save()
 
 
-def run_seed_mission():
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.enable()
-
-    while thisApp.solday < 0 and thisApp.solday < thisApp.limit_count:
-
-        with DB.db.atomic() as txn:
-
-            EVENTS.invoke_callbacks()
-
-            if ( thisApp.solday % 28 ) == 0:
-
-                res = add_summary_entry( )
-
-                if thisApp.report_commodity_status is True:
-                    ( year, sol ) = UTILS.from_soldays( thisApp.solday )
-
-
-                    LOGGER.log( "INFO", f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}' )
-
-        # commit the transaction before backing it up
-        if ( thisApp.solday % 28 ) == 0:
-            if thisApp.use_memory_database:
-                # pylint: disable-next=not-context-manager
-                with DB.backup.backup("main", DB.db.connection(), "main") as sync:
-                    while not sync.done:
-                        sync.step(4096)
-
-        thisApp.solday += 1
-
-    if thisApp.enable_profiling:
-        thisApp.profilingHandle.disable()
-
-
 def run_mission():
 
     if thisApp.enable_profiling:
@@ -394,7 +389,6 @@ def run_mission():
             ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
             LOGGER.log( "INFO", f'{year}.{sol:03d} ({thisApp.solday}) #Settlers {get_limit_count("population")}' )
-            CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) #Settlers {get_limit_count("population")}' )
 
             if thisApp.cache_details is True:
                 LOGGER.log( "INFO", f'{year}.{sol:03d} ({thisApp.solday}) Family Policy {MODELS.functions.family_policy.cache_info()}' )
@@ -402,7 +396,7 @@ def run_mission():
             res = add_summary_entry( )
 
             if thisApp.report_commodity_status is True:
-                LOGGER.log( "INFO", f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}', fg='white' )
+                LOGGER.log( "INFO", f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}' )
 
             if thisApp.use_memory_database:
                 # pylint: disable-next=not-context-manager
@@ -414,10 +408,10 @@ def run_mission():
 
 
             LOGGER.log( "SUCCESS", f'{year}.{sol:03d} ({thisApp.solday}) #Settlers {get_limit_count("population")}' )
-            LOGGER.log( "SUCCESS", f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}', fg='white' )
+            LOGGER.log( "SUCCESS", f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}' )
 
-            CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) #Settlers {get_limit_count("population")}' )
-            CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}', fg='white' )
+            CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) New Year Status: #Settlers {get_limit_count("population")}', fg=thisApp.colors["blue"], bold=True )
+            CONSOLE( f'{year}.{sol:03d} ({thisApp.solday}) New Year Status: Stored Resources: Power={res['electricity']:.3f} Water={res['water']:.3f} O2={res['o2']:.3f}', fg=thisApp.colors["magenta"], bold=True )
 
             add_annual_demographics( )
 

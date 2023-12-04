@@ -1,21 +1,26 @@
 # Smoke Test parameters - small number of resources
+# and artificial timeframes to keep it quick
 # This is a TOML file
-CENSERE_GENERATOR_INITIAL_SETTLERS_PER_SHIP="randint:20,20"
-CENSERE_GENERATOR_SHIPS_PER_MISSION="randint:0,0"
+CENSERE_GENERATOR_SHIPS_PER_INITIAL_SUPPLY_MISSION="randint:2,2"
+CENSERE_GENERATOR_SHIPS_PER_INITIAL_HUMAN_MISSION="randint:2,2"
+CENSERE_GENERATOR_HUMANS_PER_INITIAL_SHIP="randint:20,20"
+CENSERE_GENERATOR_SHIPS_PER_SUPPLY_MISSION="randint:0,0"
+CENSERE_GENERATOR_SHIPS_PER_HUMAN_MISSION="randint:0,0"
 CENSERE_GENERATOR_RANDOM_SEED=875049
 CENSERE_GENERATOR_USE_IVF=true
+CENSERE_GENERATOR_FIRST_HUMAN_MISSION_LANDS=100
 CENSERE_GENERATOR_LIMIT="sols"
-CENSERE_GENERATOR_LIMIT_COUNT=100
-CENSERE_GENERATOR_ALLOW_NEGATIVE_COMMODITIES=true
+CENSERE_GENERATOR_LIMIT_COUNT=800
+CENSERE_GENERATOR_ALLOW_NEGATIVE_RESOURCES=true
 
-CENSERE_GENERATOR_SEED_RESOURCE="""
+CENSERE_GENERATOR_RESOURCES_PER_INITIAL_SUPPLY_SHIP="""
 count=randint:2,2 supply=electricity availability=binomial:0.9999 supplies=normal:2,0.2 description=RTG;\
 count=randint:1,2 store=electricity availability=binomial:0.99 initial-capacity=normal:4.0,0.1 max-capacity=normal:25,1 description=battery;\
 count=randint:1,1 consume=electricity consumes=normal:2,0.2 description=site;\
 count=randint:1,2 store=water availability=binomial:0.9 initial-capacity=normal:1000,100 max-capacity=normal:1500,500 description=tank;\
 count=randint:1,2 store=o2 availability=binomial:0.9 initial-capacity=normal:10000,100 max-capacity=normal:15000,500 description=tank"""
 
-CENSERE_GENERATOR_RESOURCE="""
+CENSERE_GENERATOR_RESOURCES_PER_HUMAN_SHIP="""
 count=randint:1,2 supply=o2 availability=binomial:0.9 supplies=normal:5000,500 description=scrubber;\
 count=randint:1,2 supply=water availability=binomial:0.9 supplies=normal:100,5 description=recycle"""
 

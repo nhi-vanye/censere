@@ -24,9 +24,9 @@ class Simulation(playhouse.signals.Model):
     # Unique identifier for the simulation
     simulation_id = APSW.UUIDField( unique=True)
 
-    seed_mission_lands = APSW.IntegerField( null=True)
-    seed_mission_earth_time = APSW.DateTimeField( null=True)
-    initial_mission_lands = APSW.DateTimeField()
+    me_earthtime = APSW.DateTimeField( null=True)
+    human_mission_lands = APSW.IntegerField( null=True)
+    initial_human_mission_lands = APSW.DateTimeField( null=True)
 
     # record the wall time we ran the simulation
     begin_datetime = APSW.DateTimeField( )

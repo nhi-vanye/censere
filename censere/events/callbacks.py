@@ -18,7 +18,7 @@ import censere.events as EVENTS
 import censere.models as MODELS
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
-from censere import LOGGER
+from censere import CONSOLE, LOGGER
 from censere.config import thisApp
 
 from .store import register_callback as register_callback
@@ -44,6 +44,7 @@ def settler_dies(**kwargs):
     ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     LOGGER.info( f"{year}.{sol:03d} Settler {name} ({id}) dies " )
+    CONSOLE( f"{year}.{sol:03d} Settler {name} ({id}) dies ", fg=thisApp.colors["red"] )
 
     # Call the instance method to trigger callback handling.
     for c in MODELS.Settler().select().filter( ( MODELS.Settler.settler_id == id ) & ( MODELS.Settler.simulation_id == thisApp.simulation ) ):
@@ -87,6 +88,7 @@ def settler_born(**kwargs):
     # Mother died while pregnant - no child
     if mother.death_solday:
         LOGGER.info( f'{year}.{sol:03d} Mother {str(biological_mother)} died while pregnant.' )
+        CONSOLE( f'{year}.{sol:03d} Mother {str(biological_mother)} died while pregnant.', fg=thisApp.colors["red"] )
         return
 
     mother.pregnant = False
@@ -129,7 +131,8 @@ def settler_born(**kwargs):
 
     r2.save()
 
-    LOGGER.success( f'{year}.{sol:03d} Martian {m.first_nam} {m.family_name} ({m.settler_id}) born')
+    LOGGER.success( f'{year}.{sol:03d} Martian {m.first_name} {m.family_name} ({m.settler_id}) born')
+    CONSOLE( f'{year}.{sol:03d} Martian {m.first_name} {m.family_name} ({m.settler_id}) born', fg=thisApp.colors["green"])
 
     age_at_death = RANDOM.parse_random_value( thisApp.martian_life_expectancy, default_value=1, key_in_earth_years=True)
 
@@ -178,7 +181,7 @@ def settler_born(**kwargs):
 
             (birth_year, birth_sol) = UTILS.from_soldays( when )
 
-            LOGGER.info( f'{year}.{sol:03d} Sibling of {m.first_name} {m.family_name} ({m.settler_id}) to be born on {birth_year}.{birth_sol:03d}' )
+            LOGGER.info( f'{year}.{sol:03d} Sibling of {m.first_name} {m.family_name} ({m.settler_id}) to be born on {int(birth_year)}.{int(birth_sol):03d}' )
 
             register_callback(
                 # handle the "cool off" period...
@@ -202,7 +205,7 @@ def settler_born(**kwargs):
 # A new lander arrives with #settlers
 #
 # TODO handle children (imagine aged 10-18, younger than that might be real world difficult)
-def mission_lands(**kwargs):
+def human_mission_lands(**kwargs):
 
     settlers = RANDOM.parse_random_value( kwargs['settlers'] )
 
@@ -215,6 +218,7 @@ def mission_lands(**kwargs):
     ( year, sol ) = UTILS.from_soldays( thisApp.solday )
 
     LOGGER.success( f"{year}.{sol:03d} Mission landed with {settlers} settlers" )
+    CONSOLE( f"{year}.{sol:03d} Mission landed with {settlers} settlers", fg=thisApp.colors["green"] )
 
 
     for i in range(settlers):
@@ -269,7 +273,7 @@ def end_relationship(**kwargs):
 
     rel.save()
 
-def commodities_landed(**kwargs):
+def supply_mission_lands(**kwargs):
 
     resources = []
 
@@ -389,6 +393,10 @@ def commodities_landed(**kwargs):
                 r.save(force_insert=True)
 
                 LOGGER.info( f"{year}.{sol:03d} Created {r.commodity} supply {r.name} ({r.supplier_id})" )
+
+
+def return_mission_departs(**kwargs):
+    LOGGER.info( "Not implemented yet")
 
 
 def per_sol_setup_each_commodity_resevoir_storage(**kwargs):
@@ -661,7 +669,7 @@ def per_sol_update_commodity_resevoir_storage(**kwargs):
 
                 if update.capacity < 0.0:
 
-                    if thisApp.allow_negative_commodities == False:
+                    if thisApp.allow_negative_resources == False:
 
                         update.capacity = 0.0
 

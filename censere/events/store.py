@@ -25,11 +25,6 @@ def register_callback( runon=0, priority=20, periodic=0, name="", callback_func=
     runon = int(runon)
     (runon_yr, runon_sol) = UTILS.from_soldays( runon )
 
-    if periodic == 0:
-
-        LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}() to be run once on Sol {runon} ({runon_yr}.{runon_sol:03d})")
-    else:
-        LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}() to be run every {periodic} Sols starting on {runon} ({runon_yr}.{runon_sol:03d})" )
 
     try:
         idx = MODELS.Event.select().where(
@@ -50,6 +45,12 @@ def register_callback( runon=0, priority=20, periodic=0, name="", callback_func=
         # but store the full name of the function for later execution
         e.callback_func = "{}.{}".format( callback_func.__module__, callback_func.__name__ )
         e.args =  json.dumps( kwargs )
+
+        if periodic == 0:
+
+            LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}( {kwargs} ) to be run once on Sol {runon} ({runon_yr}.{runon_sol:03d})")
+        else:
+            LOGGER.info( f"{year}.{sol:03d} Registering {callback_func.__name__}( {kwargs}) to be run every {periodic} Sols starting on {runon} ({runon_yr}.{runon_sol:03d})" )
 
         e.save()
     except Exception as e:
@@ -84,7 +85,6 @@ def invoke_callbacks( ):
         try:
             mod_name, func_name = row.callback_func.rsplit('.',1)
 
-            LOGGER.info( f'{year}.{sol:03d}   Calling {func_name}()' )
 
             mod = importlib.import_module(mod_name)
 
@@ -94,7 +94,7 @@ def invoke_callbacks( ):
 
             func = getattr(mod, func_name)
 
-            LOGGER.debug( f"{year}.{sol:03d}     {row.callback_func}( {kwargs} )" )
+            LOGGER.info( f'{year}.{sol:03d}   Calling {func_name}( {kwargs})' )
 
             result = func( **kwargs )
 

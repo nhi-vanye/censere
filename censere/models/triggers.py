@@ -1,19 +1,15 @@
 
-import logging
-
 import playhouse.signals
 
 import censere.utils as UTILS
 import censere.utils.random as RANDOM
+from censere import LOGGER
 from censere.config import thisApp
 
 from .relationship import Relationship as Relationship
 from .relationship import RelationshipEnum as RelationshipEnum
 from .settler import LocationEnum as LocationEnum
 from .settler import Settler as Settler
-
-LOGGER = logging.getLogger("c.m.triggers")
-DEVLOG = logging.getLogger("d.devel")
 
 ##
 # Be careful here between a class update (Settler.update().where() and
@@ -34,6 +30,7 @@ def settler_pre_save(sender, instance, created):
 #
 @playhouse.signals.post_save(sender=Settler)
 def settler_post_save(sender, instance, created):
+
 
     if created:
         # special case of astronaut saved
@@ -69,9 +66,12 @@ def settler_post_save(sender, instance, created):
 
     for i in instance._dirty_field_cache:
 
+
         if i.name == "death_solday":
 
-            LOGGER.debug( "%d.%03d Updated death_solday for %s %s (%s)", *UTILS.from_soldays( thisApp.solday ), instance.first_name, instance.family_name, instance.settler_id )
+            ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+            LOGGER.debug( f"{year}.{sol:03d} Updated death_solday for {instance.first_name} {instance.family_name} ({instance.settler_id})" )
 
             # When a person dies only their partner relationship ends
             # We don't remove any child/parent relationship links
@@ -88,11 +88,7 @@ def settler_post_save(sender, instance, created):
                 # the surviving partner to single - so call any triggers...
                 r.end_solday = thisApp.solday
 
-                LOGGER.info( "%d.%03d Relationship %s ended. Death of %s %s",
-                    *UTILS.from_soldays( thisApp.solday ),
-                    r.relationship_id,
-                    instance.first_name,
-                    instance.family_name)
+                LOGGER.info( f"{year}.{sol:03d} Relationship {r.relationship_id} ended. Death of {instance.first_name} {instance.family_name}")
 
                 r.save()
 
@@ -153,8 +149,9 @@ def relationship_post_save(sender, instance, created):
                 ).execute()
             )
 
-            LOGGER.log( logging.INFO, '%d.%03d Created new family %s', *UTILS.from_soldays( thisApp.solday ), instance.relationship_id )
-            LOGGER.log( thisApp.DETAIL, '%d.%03d Created new family between %s and %s', *UTILS.from_soldays( thisApp.solday ), instance.first, instance.second )
+            ( year, sol ) = UTILS.from_soldays( thisApp.solday )
+
+            LOGGER.info( f'{year}.{sol:03d} Created new family {instance.relationship_id} between {instance.first} and {instance.second}')
 
         else:
 
